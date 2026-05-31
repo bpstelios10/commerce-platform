@@ -46,8 +46,9 @@ func main() {
 	p2, found2 := products["999"]
 	slog.Info("product found", "product", p2, "found", found2)
 
-	var productRepo service.ProductRepository
-	productRepo = repository.NewInMemoryProductRepository()
+	// if i set the type, then i cant inject it to admin-service
+	// var productRepo service.ProductRepository
+	productRepo := repository.NewInMemoryProductRepository()
 
 	slog.Info("products loaded", "products", productRepo.FindAll())
 
@@ -62,7 +63,8 @@ func main() {
 	healthHandler := handler.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
 
-	adminHandler := handler.NewAdminHandler()
+	adminProductService := service.NewAdminService(productRepo)
+	adminHandler := handler.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
 	http.ListenAndServe(":8080", r)

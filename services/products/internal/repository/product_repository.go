@@ -37,3 +37,7 @@ func (r *InMemoryProductRepository) FindByID(id string) (product.Product, bool) 
 	p, found := r.products[id]
 	return p, found
 }
+
+func (r *InMemoryProductRepository) Save(p product.Product) {
+	r.products[p.ID] = p
+}
