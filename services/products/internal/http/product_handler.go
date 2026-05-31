@@ -3,7 +3,7 @@ package handler
 import (
 	"commerce-platform/services/products/internal/service"
 	"encoding/json"
-	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -27,7 +27,10 @@ func (h *ProductHandler) RegisterRoutes(r chi.Router) {
 func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 	products := h.service.GetProducts()
 
-	fmt.Println("Products: ", products)
+	slog.Info(
+		"products retrieved",
+		"count", len(products),
+	)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
@@ -37,12 +40,21 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	idPathParam := chi.URLParam(r, "id")
 	product, found := h.service.GetProductByID(idPathParam)
 
-	fmt.Println("Product: [", product, "], Found: [", found, "]")
-
 	if !found {
+		slog.Warn(
+			"product not found",
+			"productId", idPathParam,
+		)
+
 		http.NotFound(w, r)
 		return
 	}
+
+	slog.Info(
+		"product lookup",
+		"productId", idPathParam,
+		"found", found,
+	)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)

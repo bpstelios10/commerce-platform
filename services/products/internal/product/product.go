@@ -1,9 +1,9 @@
 package product
 
 type Product struct {
-	ID    string
-	Name  string
-	Price float64
+	ID    string  `json:"id"`
+	Name  string  `json:"name"`
+	Price float64 `json:"price"`
 }
 
 func (p Product) DisplayName() string {

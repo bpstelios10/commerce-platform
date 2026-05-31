@@ -1,14 +1,13 @@
 package main
 
 import (
+	"log/slog"
 	"net/http"
 
 	handler "commerce-platform/services/products/internal/http"
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
-
-	"fmt"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -20,19 +19,19 @@ func main() {
 		Price: 2500,
 	}
 
-	fmt.Println(product1.DisplayName())
+	slog.Info(product1.DisplayName())
 
 	product1.Rename("MacBook Pro M4")
 
-	fmt.Println(product1.Name)
+	slog.Info(product1.Name)
 
 	product1.ApplyDiscount(10)
 
-	fmt.Println(product1.Price)
+	slog.Info("product1", "price", product1.Price)
 
-	fmt.Println(product1.IsExpensive())
+	slog.Info("product1", "is expensive", product1.IsExpensive())
 
-	fmt.Println("--- TESTING CODE ---")
+	slog.Info("--- TESTING CODE ---")
 	products := map[string]product.Product{
 		"1": {
 			ID:    "1",
@@ -42,19 +41,17 @@ func main() {
 	}
 
 	p, found := products["1"]
-	fmt.Println(p)
-	fmt.Println(found)
+	slog.Info("product found", "product", p, "found", found)
 
 	p2, found2 := products["999"]
-	fmt.Println(p2)
-	fmt.Println(found2)
+	slog.Info("product found", "product", p2, "found", found2)
 
 	var productRepo service.ProductRepository
 	productRepo = repository.NewInMemoryProductRepository()
 
-	fmt.Println(productRepo.FindAll())
+	slog.Info("products loaded", "products", productRepo.FindAll())
 
-	fmt.Println("--- REAL LOGIC ---")
+	slog.Info("--- REAL LOGIC ---")
 
 	r := chi.NewRouter()
 
