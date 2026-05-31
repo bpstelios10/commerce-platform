@@ -38,22 +38,27 @@ func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 
 func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	idPathParam := chi.URLParam(r, "id")
-	product, found := h.service.GetProductByID(idPathParam)
+	product, err := h.service.GetProductByID(idPathParam)
 
-	if !found {
+	if err != nil {
 		slog.Warn(
-			"product not found",
+			"product error for",
 			"productId", idPathParam,
+			"error", err,
 		)
 
-		http.NotFound(w, r)
+		switch err {
+		case service.ErrProductNotFound:
+			http.Error(w, "not found", http.StatusNotFound)
+		default:
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		}
 		return
 	}
 
 	slog.Info(
-		"product lookup",
+		"product was found, with",
 		"productId", idPathParam,
-		"found", found,
 	)
 
 	w.Header().Set("Content-Type", "application/json")

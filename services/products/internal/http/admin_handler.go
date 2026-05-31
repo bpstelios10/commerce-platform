@@ -3,8 +3,10 @@ package handler
 import (
 	"commerce-platform/services/products/internal/service"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -31,11 +33,12 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		slog.Warn(
-			"invalid create product request",
-			"error", err,
-		)
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.validate(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -47,4 +50,28 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	h.adminService.CreateProduct(req.ID, req.Name, req.Price)
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *AdminHandler) validate(req CreateProductRequest) error {
+	var errs []string
+
+	if req.ID == "" {
+		errs = append(errs, "id is required")
+	}
+	if req.Name == "" {
+		errs = append(errs, "name is required")
+	}
+	if req.Price <= 0 {
+		errs = append(errs, "price must be > 0")
+	}
+
+	if len(errs) > 0 {
+		msg := strings.Join(errs, "; ")
+
+		slog.Warn("invalid create product request", "error", msg)
+
+		return fmt.Errorf("%s", msg)
+	}
+
+	return nil
 }
