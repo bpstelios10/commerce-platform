@@ -2,11 +2,6 @@ package repository
 
 import "commerce-platform/services/products/internal/product"
 
-type ProductRepository interface {
-	FindByID(id string) (product.Product, bool)
-	FindAll() []product.Product
-}
-
 type InMemoryProductRepository struct {
 	products map[string]product.Product
 }

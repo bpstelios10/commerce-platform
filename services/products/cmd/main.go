@@ -6,6 +6,7 @@ import (
 	handler "commerce-platform/services/products/internal/http"
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
+	"commerce-platform/services/products/internal/service"
 
 	"fmt"
 
@@ -48,16 +49,17 @@ func main() {
 	fmt.Println(p2)
 	fmt.Println(found2)
 
-	var repo repository.ProductRepository
-	repo = repository.NewInMemoryProductRepository()
+	var productRepo service.ProductRepository
+	productRepo = repository.NewInMemoryProductRepository()
 
-	fmt.Println(repo.FindAll())
+	fmt.Println(productRepo.FindAll())
 
 	fmt.Println("--- REAL LOGIC ---")
 
 	r := chi.NewRouter()
 
-	productHandler := handler.NewProductHandler()
+	productService := service.NewProductService(productRepo)
+	productHandler := handler.NewProductHandler(productService)
 	productHandler.RegisterRoutes(r)
 
 	healthHandler := handler.NewHealthHandler()
