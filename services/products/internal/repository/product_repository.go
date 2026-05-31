@@ -41,3 +41,11 @@ func (r *InMemoryProductRepository) FindByID(id string) (product.Product, bool) 
 func (r *InMemoryProductRepository) Save(p product.Product) {
 	r.products[p.ID] = p
 }
+
+func (r *InMemoryProductRepository) Update(p product.Product) {
+	r.products[p.ID] = p
+}
+
+func (r *InMemoryProductRepository) Delete(id string) {
+	delete(r.products, id)
+}

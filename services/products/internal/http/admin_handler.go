@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"commerce-platform/services/products/internal/service"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
+
+	"commerce-platform/services/products/internal/service"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -22,6 +21,8 @@ func NewAdminHandler(adminService *service.AdminService) *AdminHandler {
 func (h *AdminHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/admin", h.GetAdmin)
 	r.Post("/admin/products", h.CreateProduct)
+	r.Put("/admin/products/{id}", h.UpdateProduct)
+	r.Delete("/admin/products/{id}", h.DeleteProduct)
 }
 
 func (h *AdminHandler) GetAdmin(w http.ResponseWriter, r *http.Request) {
@@ -37,41 +38,45 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.validate(req); err != nil {
+	if err := validateCreateProduct(req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	slog.Info(
-		"create product request received",
-		"request", req,
-	)
+	slog.Info("create product request received", "request", req)
 
 	h.adminService.CreateProduct(req.ID, req.Name, req.Price)
 
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (h *AdminHandler) validate(req CreateProductRequest) error {
-	var errs []string
+func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	slog.Info("update product request received", "requestId", id)
 
-	if req.ID == "" {
-		errs = append(errs, "id is required")
-	}
-	if req.Name == "" {
-		errs = append(errs, "name is required")
-	}
-	if req.Price <= 0 {
-		errs = append(errs, "price must be > 0")
+	var req UpdateProductRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
 	}
 
-	if len(errs) > 0 {
-		msg := strings.Join(errs, "; ")
-
-		slog.Warn("invalid create product request", "error", msg)
-
-		return fmt.Errorf("%s", msg)
+	if err := validateUpdateProduct(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	return nil
+	slog.Info("updated fields:", "request", req)
+
+	h.adminService.UpdateProduct(id, req.Name, req.Price)
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	h.adminService.DeleteProduct(id)
+
+	w.WriteHeader(http.StatusNoContent)
 }
