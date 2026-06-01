@@ -27,11 +27,7 @@ func (s *ProductService) GetProducts() []product.Product {
 func (s *ProductService) GetProductByID(id string) (product.Product, error) {
 	p, found := s.repository.FindByID(id)
 	if !found {
-		slog.Warn(
-			"product error for",
-			"productId", id,
-			"error", ErrProductNotFound,
-		)
+		slog.Warn("product error for", "productId", id, "error", ErrProductNotFound)
 		return product.Product{}, ErrProductNotFound
 	}
 	return p, nil

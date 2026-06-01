@@ -1,4 +1,4 @@
-package handler
+package httpx
 
 import (
 	"commerce-platform/services/products/internal/service"
@@ -41,25 +41,11 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	product, err := h.service.GetProductByID(idPathParam)
 
 	if err != nil {
-		slog.Warn(
-			"product error for",
-			"productId", idPathParam,
-			"error", err,
-		)
-
-		switch err {
-		case service.ErrProductNotFound:
-			http.Error(w, "not found", http.StatusNotFound)
-		default:
-			http.Error(w, "internal error", http.StatusInternalServerError)
-		}
+		HandleError(w, err)
 		return
 	}
 
-	slog.Info(
-		"product was found, with",
-		"productId", idPathParam,
-	)
+	slog.Info("product was found, with", "productId", idPathParam)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)

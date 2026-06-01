@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	handler "commerce-platform/services/products/internal/http"
+	httpx "commerce-platform/services/products/internal/http"
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
@@ -57,14 +57,14 @@ func main() {
 	r := chi.NewRouter()
 
 	productService := service.NewProductService(productRepo)
-	productHandler := handler.NewProductHandler(productService)
+	productHandler := httpx.NewProductHandler(productService)
 	productHandler.RegisterRoutes(r)
 
-	healthHandler := handler.NewHealthHandler()
+	healthHandler := httpx.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
 
 	adminProductService := service.NewAdminService(productRepo)
-	adminHandler := handler.NewAdminHandler(adminProductService)
+	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
 	http.ListenAndServe(":8080", r)

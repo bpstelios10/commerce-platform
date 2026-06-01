@@ -1,4 +1,4 @@
-package handler
+package httpx
 
 type CreateProductRequest struct {
 	ID    string  `json:"id"`
