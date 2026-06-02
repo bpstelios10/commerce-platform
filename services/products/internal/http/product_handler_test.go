@@ -3,6 +3,7 @@ package httpx
 import (
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,19 +32,25 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.Code)
 	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
-	assert.JSONEq(
-		t,
-		`[{
-			"id": "1",
-			"name": "MacBook Pro",
-			"price": 2500
-		},{
-			"id": "2",
-			"name": "iPhone",
-			"price": 1200
-		}]`,
-		res.Body.String(),
-	)
+
+	var resProducts []map[string]any
+	err := json.Unmarshal(res.Body.Bytes(), &resProducts)
+	assert.NoError(t, err)
+
+	expectedProducts := []map[string]any{
+		{
+			"id":    "1",
+			"name":  "MacBook Pro",
+			"price": 2500.0,
+		},
+		{
+			"id":    "2",
+			"name":  "iPhone",
+			"price": 1200.0,
+		},
+	}
+
+	assert.ElementsMatch(t, expectedProducts, resProducts)
 }
 
 func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {

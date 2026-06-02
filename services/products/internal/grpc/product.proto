@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package product;
+
+option go_package = "commerce-platform/services/products/internal/grpc";
+
+service ProductService {
+  rpc GetProductByID(GetProductByIDRequest)
+      returns (GetProductByIDResponse);
+}
+
+message GetProductByIDRequest {
+  string id = 1;
+}
+
+message GetProductByIDResponse {
+  string id = 1;
+  string name = 2;
+  double price = 3;
+}

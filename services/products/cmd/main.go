@@ -1,15 +1,19 @@
 package main
 
 import (
+	"log"
 	"log/slog"
+	"net"
 	"net/http"
 
+	grpcx "commerce-platform/services/products/internal/grpc"
 	httpx "commerce-platform/services/products/internal/http"
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
 
 	"github.com/go-chi/chi/v5"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -52,7 +56,7 @@ func main() {
 
 	slog.Info("products loaded", "products", productRepo.FindAll())
 
-	slog.Info("--- REAL LOGIC ---")
+	slog.Info("--- REAL LOGIC REST---")
 
 	r := chi.NewRouter()
 
@@ -67,5 +71,25 @@ func main() {
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
-	http.ListenAndServe(":8080", r)
+	// this starts a go routine, like lightweight thread (in parallel).
+	go func() {
+		log.Println("http server running on :8080")
+		http.ListenAndServe(":8080", r)
+	}()
+
+	slog.Info("--- and gRPC ---")
+	grpcHandler := grpcx.NewProductGrpcHandler(productService)
+	grpcServer := grpc.NewServer()
+	grpcx.RegisterProductServiceServer(
+		grpcServer,
+		grpcHandler,
+	)
+
+	// start gRPC
+	lis, err := net.Listen("tcp", ":9090")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("grpc server running on :9090")
+	grpcServer.Serve(lis)
 }
