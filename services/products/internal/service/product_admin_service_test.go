@@ -95,8 +95,7 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 	}, p)
 }
 
-// TODO maybe fix this behavior?
-func TestDeleteProduct_WhenProductNotExists_nothingChanges(t *testing.T) {
+func TestDeleteProduct_WhenProductNotExists_NothingChanges(t *testing.T) {
 	repo := repository.NewInMemoryProductRepository()
 	adminSvc := NewAdminService(repo)
 
@@ -109,6 +108,9 @@ func TestDeleteProduct_WhenProductNotExists_nothingChanges(t *testing.T) {
 	_, exists = repo.FindByID("11")
 
 	assert.False(t, exists)
+
+	products := repo.FindAll()
+	assert.Len(t, products, 2)
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
@@ -124,4 +126,7 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 	_, exists = repo.FindByID("2")
 
 	assert.False(t, exists)
+
+	products := repo.FindAll()
+	assert.Len(t, products, 1)
 }

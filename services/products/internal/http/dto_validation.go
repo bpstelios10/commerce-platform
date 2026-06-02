@@ -17,11 +17,11 @@ func (e ValidationError) Error() string {
 func validateCreateProduct(req CreateProductRequest) error {
 	validationError := ValidationError{}
 
-	if req.ID == "" {
-		validationError.Errors = append(validationError.Errors, "id is required.")
+	if len(strings.TrimSpace(req.ID)) == 0 {
+		validationError.Errors = append(validationError.Errors, "id cannot be blank.")
 	}
-	if req.Name == "" {
-		validationError.Errors = append(validationError.Errors, "name is required.")
+	if len(strings.TrimSpace(req.Name)) == 0 {
+		validationError.Errors = append(validationError.Errors, "name cannot be blank.")
 	}
 	if req.Price <= 0 {
 		validationError.Errors = append(validationError.Errors, "price must be > 0.")
@@ -41,8 +41,8 @@ func validateCreateProduct(req CreateProductRequest) error {
 func validateUpdateProduct(req UpdateProductRequest) error {
 	validationError := ValidationError{}
 
-	if req.Name == "" {
-		validationError.Errors = append(validationError.Errors, "name is required.")
+	if len(strings.TrimSpace(req.Name)) == 0 {
+		validationError.Errors = append(validationError.Errors, "name cannot be blank.")
 	}
 	if req.Price <= 0 {
 		validationError.Errors = append(validationError.Errors, "price must be > 0.")
@@ -51,7 +51,7 @@ func validateUpdateProduct(req UpdateProductRequest) error {
 	if len(validationError.Errors) > 0 {
 		msg := fmt.Sprintf("%v", validationError.Errors)
 
-		slog.Warn("invalid create product request", "error", msg)
+		slog.Warn("invalid update product request", "error", msg)
 
 		return validationError
 	}
