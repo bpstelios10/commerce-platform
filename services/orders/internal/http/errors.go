@@ -3,22 +3,23 @@ package http
 import (
 	"commerce-platform/services/orders/internal/service"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 )
 
 func HandleError(w http.ResponseWriter, err error) {
-	// var validationErr ValidationError
+	var validationErr ValidationError
 
-	// if errors.As(err, &validationErr) {
-	// 	writeError(
-	// 		w,
-	// 		http.StatusBadRequest,
-	// 		"VALIDATION_ERROR",
-	// 		validationErr.Error(),
-	// 	)
-	// 	return
-	// }
+	if errors.As(err, &validationErr) {
+		writeError(
+			w,
+			http.StatusBadRequest,
+			"VALIDATION_ERROR",
+			validationErr.Error(),
+		)
+		return
+	}
 
 	switch err {
 

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"commerce-platform/services/orders/internal/repository"
 	"commerce-platform/services/orders/internal/service"
 	"encoding/json"
@@ -115,4 +116,104 @@ func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 		}`,
 		res.Body.String(),
 	)
+}
+
+func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
+	repo := repository.NewInMemoryOrderRepository()
+	svc := service.NewOrderService(repo)
+	handler := NewOrderHandler(svc)
+
+	r := chi.NewRouter()
+
+	handler.RegisterRoutes(r)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/orders",
+		bytes.NewBufferString(`{
+			"id": "3",
+			"product_id": "3",
+			"quantity": 1
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusCreated, res.Code)
+
+	p, exists := repo.FindByID("3")
+	assert.True(t, exists)
+	assert.Equal(t, "3", p.ID)
+	assert.Equal(t, "3", p.ProductID)
+	assert.Equal(t, 1, p.Quantity)
+}
+
+func TestCreateOrder_WhenWrongRequestBody_Returns500(t *testing.T) {
+	repo := repository.NewInMemoryOrderRepository()
+	svc := service.NewOrderService(repo)
+	handler := NewOrderHandler(svc)
+
+	r := chi.NewRouter()
+
+	handler.RegisterRoutes(r)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/orders",
+		bytes.NewBufferString(`{
+			"error-to-cause": "extra comma, so invalid json",
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_ORDER",
+			"message": "invalid order"
+		}`,
+		res.Body.String(),
+	)
+}
+
+func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
+	repo := repository.NewInMemoryOrderRepository()
+	svc := service.NewOrderService(repo)
+	handler := NewOrderHandler(svc)
+
+	r := chi.NewRouter()
+
+	handler.RegisterRoutes(r)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/orders",
+		bytes.NewBufferString(`{
+			"id": "",
+			"product_id": "",
+			"quantity": 0
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "VALIDATION_ERROR",
+			"message": "id cannot be blank.; product-id cannot be blank.; quantity must be > 0."
+		}`,
+		res.Body.String(),
+	)
+
+	_, exists := repo.FindByID("")
+	assert.False(t, exists)
 }

@@ -20,6 +20,7 @@ func NewOrderHandler(service *service.OrderService) *OrderHandler {
 func (h *OrderHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/orders", h.GetOrders)
 	r.Get("/orders/{id}", h.GetOrder)
+	r.Post("/orders", h.CreateOrder)
 }
 
 func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
@@ -44,4 +45,25 @@ func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(o)
+}
+
+func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	var req CreateOrderRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		slog.Warn("validation error occurred while creating order", "error", err)
+		HandleError(w, service.ErrInvalidOrder)
+		return
+	}
+
+	if err = validateCreateOrder(req); err != nil {
+		HandleError(w, err)
+		return
+	}
+
+	slog.Info("create order request received", "request", req)
+	h.service.CreateOrder(req.ID, req.ProductID, req.Quantity)
+
+	w.WriteHeader(http.StatusCreated)
 }
