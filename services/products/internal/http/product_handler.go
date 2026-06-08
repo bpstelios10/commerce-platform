@@ -27,10 +27,7 @@ func (h *ProductHandler) RegisterRoutes(r chi.Router) {
 func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 	products := h.service.GetProducts()
 
-	slog.Info(
-		"products retrieved",
-		"count", len(products),
-	)
+	slog.Info("products retrieved", "count", len(products))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)

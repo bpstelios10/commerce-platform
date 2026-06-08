@@ -22,11 +22,15 @@ Run with `go run ./services/products/cmd`
 
 Run tests `go test ./services/products/...`
 
+Run tests and get coverage `go test ./services/products/... -coverprofile=coverage.out && go tool cover -html=coverage.out`
+
 ### Orders Service
 
 Run with `go run ./services/orders/cmd`
 
 Run tests `go test ./services/orders/...`
+
+Run tests and get coverage `go test ./services/orders/... -coverprofile=coverage.out && go tool cover -html=coverage.out`
 
 ## GPRC
 
