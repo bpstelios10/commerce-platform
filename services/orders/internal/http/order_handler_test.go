@@ -149,7 +149,7 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.Equal(t, 1, p.Quantity)
 }
 
-func TestCreateOrder_WhenWrongRequestBody_Returns500(t *testing.T) {
+func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 	repo := repository.NewInMemoryOrderRepository()
 	svc := service.NewOrderService(repo)
 	handler := NewOrderHandler(svc)

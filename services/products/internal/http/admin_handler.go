@@ -34,7 +34,8 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		HandleError(w, err)
+		slog.Warn("validation error occurred while creating product", "error", err)
+		HandleError(w, service.ErrInvalidProduct)
 		return
 	}
 
@@ -57,7 +58,8 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var req UpdateProductRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		HandleError(w, err)
+		slog.Warn("validation error occurred while updating product", "error", err)
+		HandleError(w, service.ErrInvalidProduct)
 		return
 	}
 
