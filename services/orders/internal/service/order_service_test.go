@@ -39,3 +39,40 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, ErrOrderNotFound, err)
 }
+
+func TestCreateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
+	repo := repository.NewInMemoryOrderRepository()
+	svc := NewOrderService(repo)
+
+	svc.CreateOrder("11", "1", 10)
+
+	o, err := svc.GetOrderByID("11")
+
+	assert.Nil(t, err)
+	assert.Equal(t, "11", o.ID)
+	assert.Equal(t, "1", o.ProductID)
+	assert.Equal(t, 10, o.Quantity)
+	assert.Equal(t, order.CREATED, o.Status)
+}
+
+func TestCreateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
+	repo := repository.NewInMemoryOrderRepository()
+	svc := NewOrderService(repo)
+
+	o, err := svc.GetOrderByID("1")
+	assert.Nil(t, err)
+	assert.Equal(t, "1", o.ID)
+	assert.Equal(t, "1", o.ProductID)
+	assert.Equal(t, 2, o.Quantity)
+	assert.Equal(t, order.CREATED, o.Status)
+
+	svc.CreateOrder("1", "1", 10)
+
+	o, err = svc.GetOrderByID("1")
+
+	assert.Nil(t, err)
+	assert.Equal(t, "1", o.ID)
+	assert.Equal(t, "1", o.ProductID)
+	assert.Equal(t, 10, o.Quantity)
+	assert.Equal(t, order.CREATED, o.Status)
+}

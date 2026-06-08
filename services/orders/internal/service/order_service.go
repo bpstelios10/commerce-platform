@@ -8,6 +8,7 @@ import (
 type OrderRepository interface {
 	FindAll() []order.Order
 	FindByID(id string) (order.Order, bool)
+	Save(order.Order)
 }
 
 type OrderService struct {
@@ -31,4 +32,17 @@ func (s *OrderService) GetOrderByID(id string) (order.Order, error) {
 	}
 
 	return o, nil
+}
+
+func (s *OrderService) CreateOrder(id string, productID string, quantity int) {
+	o := order.Order{
+		ID:        id,
+		ProductID: productID,
+		Quantity:  quantity,
+		Status:    order.CREATED,
+	}
+
+	slog.Info("creating", "order", o)
+
+	s.repository.Save(o)
 }

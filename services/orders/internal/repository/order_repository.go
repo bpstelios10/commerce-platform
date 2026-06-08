@@ -40,3 +40,7 @@ func (repo *InMemoryOrderRepository) FindByID(id string) (order.Order, bool) {
 
 	return o, found
 }
+
+func (repo *InMemoryOrderRepository) Save(o order.Order) {
+	repo.orders[o.ID] = o
+}
