@@ -53,7 +53,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	slog.Info("update product request received", "requestId", id)
+	slog.Info("update product request received", "ProductId", id)
 
 	var req UpdateProductRequest
 	err := json.NewDecoder(r.Body).Decode(&req)

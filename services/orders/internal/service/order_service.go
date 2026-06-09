@@ -9,6 +9,7 @@ type OrderRepository interface {
 	FindAll() []order.Order
 	FindByID(id string) (order.Order, bool)
 	Save(order.Order)
+	Update(order.Order)
 }
 
 type OrderService struct {
@@ -45,4 +46,17 @@ func (s *OrderService) CreateOrder(id string, productID string, quantity int) {
 	slog.Info("creating", "order", o)
 
 	s.repository.Save(o)
+}
+
+func (s *OrderService) UpdateOrder(id string, productID string, quantity int, status order.OrderStatus) {
+	o := order.Order{
+		ID:        id,
+		ProductID: productID,
+		Quantity:  quantity,
+		Status:    status,
+	}
+
+	slog.Info("updating", "order", o)
+
+	s.repository.Update(o)
 }

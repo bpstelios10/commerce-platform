@@ -44,3 +44,7 @@ func (repo *InMemoryOrderRepository) FindByID(id string) (order.Order, bool) {
 func (repo *InMemoryOrderRepository) Save(o order.Order) {
 	repo.orders[o.ID] = o
 }
+
+func (repo *InMemoryOrderRepository) Update(o order.Order) {
+	repo.orders[o.ID] = o
+}

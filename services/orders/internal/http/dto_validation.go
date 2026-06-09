@@ -37,3 +37,27 @@ func validateCreateOrder(req CreateOrderRequest) error {
 
 	return nil
 }
+
+func validateUpdateOrder(req UpdateOrderRequest) error {
+	validationError := ValidationError{}
+
+	if len(strings.TrimSpace(req.ProductID)) == 0 {
+		validationError.Errors = append(validationError.Errors, "product-id cannot be blank.")
+	}
+	if req.Quantity <= 0 {
+		validationError.Errors = append(validationError.Errors, "quantity must be > 0.")
+	}
+	if !req.Status.IsValid() {
+		validationError.Errors = append(validationError.Errors, "status is not valid.")
+	}
+
+	if len(validationError.Errors) > 0 {
+		msg := fmt.Sprintf("%v", validationError.Errors)
+
+		slog.Warn("invalid update order request", "error", msg)
+
+		return validationError
+	}
+
+	return nil
+}

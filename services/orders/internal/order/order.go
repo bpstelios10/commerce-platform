@@ -15,3 +15,11 @@ type Order struct {
 	Quantity  int         `json:"quantity"`
 	Status    OrderStatus `json:"status"`
 }
+
+func (s OrderStatus) IsValid() bool {
+	switch s {
+	case CREATED, PAID, RETURNED, CANCELLED:
+		return true
+	}
+	return false
+}
