@@ -20,7 +20,6 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
 
 	req := httptest.NewRequest(
@@ -63,7 +62,6 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
 
 	req := httptest.NewRequest(
@@ -95,7 +93,6 @@ func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
 
 	req := httptest.NewRequest(
@@ -125,7 +122,6 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
 
 	req := httptest.NewRequest(
@@ -156,7 +152,6 @@ func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
 
 	req := httptest.NewRequest(
@@ -188,7 +183,6 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
 
 	req := httptest.NewRequest(
@@ -301,7 +295,6 @@ func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
 
 	req := httptest.NewRequest(
@@ -333,7 +326,6 @@ func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
 
 	req := httptest.NewRequest(
@@ -361,5 +353,28 @@ func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 	)
 
 	_, exists := repo.FindByID("")
+	assert.False(t, exists)
+}
+
+func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
+	repo := repository.NewInMemoryOrderRepository()
+	svc := service.NewOrderService(repo)
+	handler := NewOrderHandler(svc)
+
+	r := chi.NewRouter()
+	handler.RegisterRoutes(r)
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		"/orders/2",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusNoContent, res.Code)
+
+	_, exists := repo.FindByID("2")
 	assert.False(t, exists)
 }

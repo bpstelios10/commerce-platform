@@ -10,6 +10,7 @@ type OrderRepository interface {
 	FindByID(id string) (order.Order, bool)
 	Save(order.Order)
 	Update(order.Order)
+	Delete(id string)
 }
 
 type OrderService struct {
@@ -59,4 +60,10 @@ func (s *OrderService) UpdateOrder(id string, productID string, quantity int, st
 	slog.Info("updating", "order", o)
 
 	s.repository.Update(o)
+}
+
+func (s *OrderService) DeleteOrder(id string) {
+	slog.Info("attempting to delete product with", "productId", id)
+
+	s.repository.Delete(id)
 }

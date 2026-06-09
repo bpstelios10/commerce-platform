@@ -95,7 +95,7 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 	}, p)
 }
 
-func TestDeleteProduct_WhenProductNotExists_NothingChanges(t *testing.T) {
+func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
 	repo := repository.NewInMemoryProductRepository()
 	adminSvc := NewAdminService(repo)
 

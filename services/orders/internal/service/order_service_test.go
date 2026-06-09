@@ -113,3 +113,37 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	assert.Equal(t, 11, o.Quantity)
 	assert.Equal(t, order.PAID, o.Status)
 }
+
+func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
+	repo := repository.NewInMemoryOrderRepository()
+	svc := NewOrderService(repo)
+
+	// order does not exist
+	_, exists := repo.FindByID("11")
+	assert.False(t, exists)
+
+	svc.DeleteOrder("11")
+	_, exists = repo.FindByID("11")
+
+	assert.False(t, exists)
+
+	orders := repo.FindAll()
+	assert.Len(t, orders, 2)
+}
+
+func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
+	repo := repository.NewInMemoryOrderRepository()
+	svc := NewOrderService(repo)
+
+	// order exists
+	_, exists := repo.FindByID("2")
+	assert.True(t, exists)
+
+	svc.DeleteOrder("2")
+	_, exists = repo.FindByID("2")
+
+	assert.False(t, exists)
+
+	orders := repo.FindAll()
+	assert.Len(t, orders, 1)
+}

@@ -48,3 +48,7 @@ func (repo *InMemoryOrderRepository) Save(o order.Order) {
 func (repo *InMemoryOrderRepository) Update(o order.Order) {
 	repo.orders[o.ID] = o
 }
+
+func (repo *InMemoryOrderRepository) Delete(id string) {
+	delete(repo.orders, id)
+}

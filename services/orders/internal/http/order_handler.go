@@ -24,6 +24,7 @@ func (h *OrderHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/orders/{id}", h.GetOrder)
 	r.Post("/orders", h.CreateOrder)
 	r.Put("/orders/{id}", h.UpdateOrder)
+	r.Delete("/orders/{id}", h.DeleteProduct)
 }
 
 func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
@@ -95,4 +96,12 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	h.service.UpdateOrder(id, req.ProductID, req.Quantity, req.Status)
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *OrderHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	h.service.DeleteOrder(id)
+
+	w.WriteHeader(http.StatusNoContent)
 }
