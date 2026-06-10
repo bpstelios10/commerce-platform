@@ -8,11 +8,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateProduct_WhenProductNotExists(t *testing.T) {
+func setup(t *testing.T) (*AdminService, *repository.InMemoryProductRepository) {
+	t.Helper()
 	repo := repository.NewInMemoryProductRepository()
-	adminSvc := NewAdminService(repo)
+	svc := NewAdminService(repo)
 
-	adminSvc.CreateProduct("5", "MacBook Pro M4", 2501.0)
+	return svc, repo
+}
+
+func TestCreateProduct_WhenProductNotExists(t *testing.T) {
+	svc, repo := setup(t)
+
+	svc.CreateProduct("5", "MacBook Pro M4", 2501.0)
 	p, exists := repo.FindByID("5")
 
 	assert.True(t, exists)
@@ -25,8 +32,7 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 
 // TODO maybe fix this behavior?
 func TestCreateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := NewAdminService(repo)
+	svc, repo := setup(t)
 
 	// product exists
 	p, exists := repo.FindByID("1")
@@ -38,7 +44,7 @@ func TestCreateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Price: 2500.0,
 	}, p)
 
-	adminSvc.CreateProduct("1", "MacBook Pro M4", 2501.0)
+	svc.CreateProduct("1", "MacBook Pro M4", 2501.0)
 	p, exists = repo.FindByID("1")
 
 	assert.True(t, exists)
@@ -51,15 +57,14 @@ func TestCreateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 
 // TODO maybe fix this behavior?
 func TestUpdateProduct_WhenProductNotExists_CreatesProduct(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := NewAdminService(repo)
+	svc, repo := setup(t)
 
 	// product does not exist
 	_, exists := repo.FindByID("10")
 
 	assert.False(t, exists)
 
-	adminSvc.UpdateProduct("10", "whatever", 1201.0)
+	svc.UpdateProduct("10", "whatever", 1201.0)
 	p, exists := repo.FindByID("10")
 
 	assert.True(t, exists)
@@ -71,8 +76,7 @@ func TestUpdateProduct_WhenProductNotExists_CreatesProduct(t *testing.T) {
 }
 
 func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := NewAdminService(repo)
+	svc, repo := setup(t)
 
 	// product exists
 	p, exists := repo.FindByID("2")
@@ -84,7 +88,7 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Price: 1200.0,
 	}, p)
 
-	adminSvc.UpdateProduct("2", "iPhone 7", 1201.0)
+	svc.UpdateProduct("2", "iPhone 7", 1201.0)
 	p, exists = repo.FindByID("2")
 
 	assert.True(t, exists)
@@ -96,15 +100,14 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 }
 
 func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := NewAdminService(repo)
+	svc, repo := setup(t)
 
 	// product does not exist
 	_, exists := repo.FindByID("11")
 
 	assert.False(t, exists)
 
-	adminSvc.DeleteProduct("11")
+	svc.DeleteProduct("11")
 	_, exists = repo.FindByID("11")
 
 	assert.False(t, exists)
@@ -114,15 +117,14 @@ func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := NewAdminService(repo)
+	svc, repo := setup(t)
 
 	// product exists
 	_, exists := repo.FindByID("2")
 
 	assert.True(t, exists)
 
-	adminSvc.DeleteProduct("2")
+	svc.DeleteProduct("2")
 	_, exists = repo.FindByID("2")
 
 	assert.False(t, exists)

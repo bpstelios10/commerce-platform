@@ -14,13 +14,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
+// To be used as BeforeEach
+func setupOrderHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryOrderRepository) {
+	t.Helper()
 	repo := repository.NewInMemoryOrderRepository()
 	svc := service.NewOrderService(repo)
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
+
+	return r, repo
+}
+
+func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
+	r, _ := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -57,12 +65,7 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 }
 
 func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, _ := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -88,12 +91,7 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 }
 
 func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, _ := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -117,12 +115,7 @@ func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 }
 
 func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, repo := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -147,12 +140,7 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 }
 
 func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, _ := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -178,12 +166,7 @@ func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 }
 
 func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, repo := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -214,12 +197,7 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 }
 
 func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, repo := setupOrderHandlerTest(t)
 
 	p, exists := repo.FindByID("1")
 	assert.True(t, exists)
@@ -252,12 +230,7 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 }
 
 func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, repo := setupOrderHandlerTest(t)
 
 	p, exists := repo.FindByID("1")
 	assert.True(t, exists)
@@ -290,12 +263,7 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 }
 
 func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, _ := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPut,
@@ -321,12 +289,7 @@ func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 }
 
 func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, repo := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPut,
@@ -357,12 +320,7 @@ func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 }
 
 func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+	r, repo := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodDelete,

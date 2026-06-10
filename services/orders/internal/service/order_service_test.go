@@ -8,9 +8,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
+func setup(t *testing.T) (*OrderService, *repository.InMemoryOrderRepository) {
+	t.Helper()
 	repo := repository.NewInMemoryOrderRepository()
 	svc := NewOrderService(repo)
+
+	return svc, repo
+}
+
+func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
+	svc, _ := setup(t)
 
 	orders := svc.GetOrders()
 
@@ -18,12 +25,11 @@ func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
 }
 
 func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := NewOrderService(repo)
+	svc, _ := setup(t)
 
 	o, err := svc.GetOrderByID("1")
 
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "1", o.ID)
 	assert.Equal(t, "1", o.ProductID)
 	assert.Equal(t, 2, o.Quantity)
@@ -31,36 +37,35 @@ func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 }
 
 func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := NewOrderService(repo)
+	svc, _ := setup(t)
 
 	_, err := svc.GetOrderByID("11")
 
-	assert.NotNil(t, err)
-	assert.Equal(t, ErrOrderNotFound, err)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrOrderNotFound)
 }
 
 func TestCreateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := NewOrderService(repo)
+	svc, repo := setup(t)
 
 	svc.CreateOrder("11", "1", 10)
 
-	o, err := svc.GetOrderByID("11")
+	o, exists := repo.FindByID("11")
 
-	assert.Nil(t, err)
-	assert.Equal(t, "11", o.ID)
-	assert.Equal(t, "1", o.ProductID)
-	assert.Equal(t, 10, o.Quantity)
-	assert.Equal(t, order.CREATED, o.Status)
+	assert.True(t, exists)
+	assert.Equal(t, order.Order{
+		ID:        "11",
+		ProductID: "1",
+		Quantity:  10,
+		Status:    order.CREATED,
+	}, o)
 }
 
 func TestCreateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := NewOrderService(repo)
+	svc, repo := setup(t)
 
 	o, err := svc.GetOrderByID("1")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "1", o.ID)
 	assert.Equal(t, "1", o.ProductID)
 	assert.Equal(t, 2, o.Quantity)
@@ -68,55 +73,60 @@ func TestCreateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 
 	svc.CreateOrder("1", "1", 10)
 
-	o, err = svc.GetOrderByID("1")
+	o, exists := repo.FindByID("1")
 
-	assert.Nil(t, err)
-	assert.Equal(t, "1", o.ID)
-	assert.Equal(t, "1", o.ProductID)
-	assert.Equal(t, 10, o.Quantity)
-	assert.Equal(t, order.CREATED, o.Status)
+	assert.True(t, exists)
+	assert.Equal(t, order.Order{
+		ID:        "1",
+		ProductID: "1",
+		Quantity:  10,
+		Status:    order.CREATED,
+	}, o)
 }
 
 func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := NewOrderService(repo)
+	svc, repo := setup(t)
 
 	svc.UpdateOrder("11", "1", 10, order.CANCELLED)
 
-	o, err := svc.GetOrderByID("11")
+	o, exists := repo.FindByID("11")
 
-	assert.Nil(t, err)
-	assert.Equal(t, "11", o.ID)
-	assert.Equal(t, "1", o.ProductID)
-	assert.Equal(t, 10, o.Quantity)
-	assert.Equal(t, order.CANCELLED, o.Status)
+	assert.True(t, exists)
+	assert.Equal(t, order.Order{
+		ID:        "11",
+		ProductID: "1",
+		Quantity:  10,
+		Status:    order.CANCELLED,
+	}, o)
 }
 
 func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := NewOrderService(repo)
+	svc, repo := setup(t)
 
-	o, err := svc.GetOrderByID("1")
-	assert.Nil(t, err)
-	assert.Equal(t, "1", o.ID)
-	assert.Equal(t, "1", o.ProductID)
-	assert.Equal(t, 2, o.Quantity)
-	assert.Equal(t, order.CREATED, o.Status)
+	o, exists := repo.FindByID("1")
+	assert.True(t, exists)
+	assert.Equal(t, order.Order{
+		ID:        "1",
+		ProductID: "1",
+		Quantity:  2,
+		Status:    order.CREATED,
+	}, o)
 
 	svc.UpdateOrder("1", "1", 11, order.PAID)
 
-	o, err = svc.GetOrderByID("1")
+	o, exists = repo.FindByID("1")
 
-	assert.Nil(t, err)
-	assert.Equal(t, "1", o.ID)
-	assert.Equal(t, "1", o.ProductID)
-	assert.Equal(t, 11, o.Quantity)
-	assert.Equal(t, order.PAID, o.Status)
+	assert.True(t, exists)
+	assert.Equal(t, order.Order{
+		ID:        "1",
+		ProductID: "1",
+		Quantity:  11,
+		Status:    order.PAID,
+	}, o)
 }
 
 func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := NewOrderService(repo)
+	svc, repo := setup(t)
 
 	// order does not exist
 	_, exists := repo.FindByID("11")
@@ -132,8 +142,7 @@ func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
 }
 
 func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
-	repo := repository.NewInMemoryOrderRepository()
-	svc := NewOrderService(repo)
+	svc, repo := setup(t)
 
 	// order exists
 	_, exists := repo.FindByID("2")

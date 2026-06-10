@@ -12,14 +12,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetAdmin_Returns200(t *testing.T) {
+func setupAdminHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryProductRepository) {
+	t.Helper()
 	repo := repository.NewInMemoryProductRepository()
 	adminSvc := service.NewAdminService(repo)
 	handler := NewAdminHandler(adminSvc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
+
+	return r, repo
+}
+
+func TestGetAdmin_Returns200(t *testing.T) {
+	r, _ := setupAdminHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -35,13 +41,7 @@ func TestGetAdmin_Returns200(t *testing.T) {
 }
 
 func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := service.NewAdminService(repo)
-	handler := NewAdminHandler(adminSvc)
-
-	r := chi.NewRouter()
-
-	handler.RegisterRoutes(r)
+	r, repo := setupAdminHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -66,13 +66,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 }
 
 func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := service.NewAdminService(repo)
-	handler := NewAdminHandler(adminSvc)
-
-	r := chi.NewRouter()
-
-	handler.RegisterRoutes(r)
+	r, _ := setupAdminHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -98,13 +92,7 @@ func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
 }
 
 func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := service.NewAdminService(repo)
-	handler := NewAdminHandler(adminSvc)
-
-	r := chi.NewRouter()
-
-	handler.RegisterRoutes(r)
+	r, _ := setupAdminHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -132,13 +120,7 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 }
 
 func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := service.NewAdminService(repo)
-	handler := NewAdminHandler(adminSvc)
-
-	r := chi.NewRouter()
-
-	handler.RegisterRoutes(r)
+	r, repo := setupAdminHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPut,
@@ -162,13 +144,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 }
 
 func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := service.NewAdminService(repo)
-	handler := NewAdminHandler(adminSvc)
-
-	r := chi.NewRouter()
-
-	handler.RegisterRoutes(r)
+	r, _ := setupAdminHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPut,
@@ -194,13 +170,7 @@ func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
 }
 
 func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := service.NewAdminService(repo)
-	handler := NewAdminHandler(adminSvc)
-
-	r := chi.NewRouter()
-
-	handler.RegisterRoutes(r)
+	r, repo := setupAdminHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPut,
@@ -232,13 +202,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	adminSvc := service.NewAdminService(repo)
-	handler := NewAdminHandler(adminSvc)
-
-	r := chi.NewRouter()
-
-	handler.RegisterRoutes(r)
+	r, repo := setupAdminHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodDelete,

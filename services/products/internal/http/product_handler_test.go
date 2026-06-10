@@ -12,14 +12,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
+func setupProductHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryProductRepository) {
+	t.Helper()
 	repo := repository.NewInMemoryProductRepository()
 	svc := service.NewProductService(repo)
 	handler := NewProductHandler(svc)
 
 	r := chi.NewRouter()
-
 	handler.RegisterRoutes(r)
+
+	return r, repo
+}
+
+func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
+	r, _ := setupProductHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -54,13 +60,7 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 }
 
 func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	svc := service.NewProductService(repo)
-	handler := NewProductHandler(svc)
-
-	r := chi.NewRouter()
-
-	handler.RegisterRoutes(r)
+	r, _ := setupProductHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -85,13 +85,7 @@ func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 }
 
 func TestGetProduct_WhenProductNotExists_Returns404(t *testing.T) {
-	repo := repository.NewInMemoryProductRepository()
-	svc := service.NewProductService(repo)
-	handler := NewProductHandler(svc)
-
-	r := chi.NewRouter()
-
-	handler.RegisterRoutes(r)
+	r, _ := setupProductHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
