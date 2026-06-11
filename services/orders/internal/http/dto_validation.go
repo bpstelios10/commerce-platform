@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"log/slog"
 	"strings"
 )
@@ -28,9 +27,7 @@ func validateCreateOrder(req CreateOrderRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		msg := fmt.Sprintf("%v", validationError.Errors)
-
-		slog.Warn("invalid create order request", "error", msg)
+		slog.Warn("invalid create order request", "errors", validationError.Errors)
 
 		return validationError
 	}
@@ -52,9 +49,7 @@ func validateUpdateOrder(req UpdateOrderRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		msg := fmt.Sprintf("%v", validationError.Errors)
-
-		slog.Warn("invalid update order request", "error", msg)
+		slog.Warn("invalid create order request", "errors", validationError.Errors)
 
 		return validationError
 	}

@@ -10,12 +10,12 @@ import (
 )
 
 type ProductHandler struct {
-	service *service.ProductService
+	productService *service.ProductService
 }
 
-func NewProductHandler(service *service.ProductService) *ProductHandler {
+func NewProductHandler(productService *service.ProductService) *ProductHandler {
 	return &ProductHandler{
-		service: service,
+		productService: productService,
 	}
 }
 
@@ -25,7 +25,7 @@ func (h *ProductHandler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
-	products := h.service.GetProducts()
+	products := h.productService.GetProducts()
 
 	slog.Info("products retrieved", "count", len(products))
 
@@ -35,7 +35,7 @@ func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 
 func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	idPathParam := chi.URLParam(r, "id")
-	product, err := h.service.GetProductByID(idPathParam)
+	product, err := h.productService.GetProductByID(idPathParam)
 
 	if err != nil {
 		HandleError(w, err)

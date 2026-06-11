@@ -1,7 +1,6 @@
 package httpx
 
 import (
-	"fmt"
 	"log/slog"
 	"strings"
 )
@@ -28,9 +27,7 @@ func validateCreateProduct(req CreateProductRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		msg := fmt.Sprintf("%v", validationError.Errors)
-
-		slog.Warn("invalid create product request", "error", msg)
+		slog.Warn("invalid create order request", "errors", validationError.Errors)
 
 		return validationError
 	}
@@ -49,9 +46,7 @@ func validateUpdateProduct(req UpdateProductRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		msg := fmt.Sprintf("%v", validationError.Errors)
-
-		slog.Warn("invalid update product request", "error", msg)
+		slog.Warn("invalid create order request", "errors", validationError.Errors)
 
 		return validationError
 	}

@@ -68,7 +68,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("updated fields:", "request", req)
+	slog.Info("update product", "request", req)
 
 	h.adminService.UpdateProduct(id, req.Name, req.Price)
 

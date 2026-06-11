@@ -1,5 +1,7 @@
 package order
 
+import "strings"
+
 type OrderStatus string
 
 const (
@@ -22,4 +24,8 @@ func (s OrderStatus) IsValid() bool {
 		return true
 	}
 	return false
+}
+
+func (s OrderStatus) Normalize() OrderStatus {
+	return OrderStatus(strings.ToUpper(string(s)))
 }

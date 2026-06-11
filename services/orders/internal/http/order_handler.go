@@ -1,22 +1,20 @@
 package http
 
 import (
-	"commerce-platform/services/orders/internal/order"
 	"commerce-platform/services/orders/internal/service"
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type OrderHandler struct {
-	service *service.OrderService
+	orderService *service.OrderService
 }
 
-func NewOrderHandler(service *service.OrderService) *OrderHandler {
-	return &OrderHandler{service: service}
+func NewOrderHandler(orderService *service.OrderService) *OrderHandler {
+	return &OrderHandler{orderService: orderService}
 }
 
 func (h *OrderHandler) RegisterRoutes(r chi.Router) {
@@ -24,11 +22,11 @@ func (h *OrderHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/orders/{id}", h.GetOrder)
 	r.Post("/orders", h.CreateOrder)
 	r.Put("/orders/{id}", h.UpdateOrder)
-	r.Delete("/orders/{id}", h.DeleteProduct)
+	r.Delete("/orders/{id}", h.DeleteOrder)
 }
 
 func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
-	orders := h.service.GetOrders()
+	orders := h.orderService.GetOrders()
 
 	slog.Info("orders retrieved", "count", len(orders))
 
@@ -38,7 +36,7 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 
 func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	o, err := h.service.GetOrderByID(id)
+	o, err := h.orderService.GetOrderByID(id)
 
 	if err != nil {
 		HandleError(w, err)
@@ -67,14 +65,14 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("create order request received", "request", req)
-	h.service.CreateOrder(req.ID, req.ProductID, req.Quantity)
+	h.orderService.CreateOrder(req.ID, req.ProductID, req.Quantity)
 
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	slog.Info("update order request received", "OrderId", id)
+	slog.Info("update order request received", "orderId", id)
 
 	var req UpdateOrderRequest
 
@@ -85,23 +83,23 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// normalize status
-	req.Status = order.OrderStatus(strings.ToUpper(string(req.Status)))
+	// normalize status - to uppercase
+	req.Status = req.Status.Normalize()
 	if err = validateUpdateOrder(req); err != nil {
 		HandleError(w, err)
 		return
 	}
 
-	slog.Info("updated fields:", "request", req)
-	h.service.UpdateOrder(id, req.ProductID, req.Quantity, req.Status)
+	slog.Info("update order", "request", req)
+	h.orderService.UpdateOrder(id, req.ProductID, req.Quantity, req.Status)
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *OrderHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	h.service.DeleteOrder(id)
+	h.orderService.DeleteOrder(id)
 
 	w.WriteHeader(http.StatusNoContent)
 }
