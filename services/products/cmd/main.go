@@ -67,7 +67,7 @@ func main() {
 	healthHandler := httpx.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
 
-	adminProductService := service.NewAdminService(productRepo)
+	adminProductService := service.NewAdminService(productService, productRepo)
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 

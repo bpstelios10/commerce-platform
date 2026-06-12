@@ -94,7 +94,10 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("update order", "request", req)
-	h.orderService.UpdateOrder(id, req.ProductID, req.Quantity, req.Status)
+	if err = h.orderService.UpdateOrder(id, req.ProductID, req.Quantity, req.Status); err != nil {
+		HandleError(w, err)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 }

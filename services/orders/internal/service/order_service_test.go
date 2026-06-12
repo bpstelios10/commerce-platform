@@ -54,10 +54,11 @@ func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	svc, _, _ := setup(t)
 
-	_, err := svc.GetOrderByID("11")
+	o, err := svc.GetOrderByID("11")
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrOrderNotFound)
+	assert.Empty(t, o)
 }
 
 func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
@@ -89,17 +90,15 @@ func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	svc, repo, _ := setup(t)
 
-	svc.UpdateOrder("11", "1", 10, order.CANCELLED)
+	err := svc.UpdateOrder("11", "1", 10, order.CANCELLED)
+
+	assert.Error(t, err)
 
 	o, exists := repo.FindByID("11")
 
-	assert.True(t, exists)
-	assert.Equal(t, order.Order{
-		ID:        "11",
-		ProductID: "1",
-		Quantity:  10,
-		Status:    order.CANCELLED,
-	}, o)
+	assert.False(t, exists)
+	assert.ErrorIs(t, err, ErrOrderNotFound)
+	assert.Empty(t, o)
 }
 
 func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
@@ -114,10 +113,11 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 		Status:    order.CREATED,
 	}, o)
 
-	svc.UpdateOrder("1", "1", 11, order.PAID)
+	err := svc.UpdateOrder("1", "1", 11, order.PAID)
 
 	o, exists = repo.FindByID("1")
 
+	assert.NoError(t, err)
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        "1",

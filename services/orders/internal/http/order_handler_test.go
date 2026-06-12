@@ -364,6 +364,37 @@ func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 	assert.False(t, exists)
 }
 
+func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
+	r, repo := setupOrderHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodPut,
+		"/orders/11",
+		bytes.NewBufferString(`{
+			"product_id": "1",
+			"quantity": 1,
+			"status": "PAiD"
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusNotFound, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "ORDER_NOT_FOUND",
+			"message": "order not found"
+		}`,
+		res.Body.String(),
+	)
+
+	_, exists := repo.FindByID("11")
+	assert.False(t, exists)
+}
+
 func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
 

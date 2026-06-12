@@ -70,7 +70,10 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("update product", "request", req)
 
-	h.adminService.UpdateProduct(id, req.Name, req.Price)
+	if err = h.adminService.UpdateProduct(id, req.Name, req.Price); err != nil {
+		HandleError(w, err)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 }

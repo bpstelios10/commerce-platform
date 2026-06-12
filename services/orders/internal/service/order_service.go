@@ -61,7 +61,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, id string, productID str
 	return nil
 }
 
-func (s *OrderService) UpdateOrder(id string, productID string, quantity int, status order.OrderStatus) {
+func (s *OrderService) UpdateOrder(id string, productID string, quantity int, status order.OrderStatus) error {
+	if _, err := s.GetOrderByID(id); err != nil {
+		return err
+	}
+
 	o := order.Order{
 		ID:        id,
 		ProductID: productID,
@@ -72,10 +76,11 @@ func (s *OrderService) UpdateOrder(id string, productID string, quantity int, st
 	slog.Info("updating", "order", o)
 
 	s.orderRepository.Update(o)
+	return nil
 }
 
 func (s *OrderService) DeleteOrder(id string) {
-	slog.Info("attempting to delete product with", "productId", id)
+	slog.Info("attempting to delete order with", "productId", id)
 
 	s.orderRepository.Delete(id)
 }

@@ -15,7 +15,8 @@ import (
 func setupAdminHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryProductRepository) {
 	t.Helper()
 	repo := repository.NewInMemoryProductRepository()
-	adminSvc := service.NewAdminService(repo)
+	productService := service.NewProductService(repo)
+	adminSvc := service.NewAdminService(productService, repo)
 	handler := NewAdminHandler(adminSvc)
 
 	r := chi.NewRouter()
@@ -199,6 +200,37 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, "MacBook Pro", p.Name)
 	assert.Equal(t, 2500.0, p.Price)
+}
+
+func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
+	r, repo := setupAdminHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodPut,
+		"/admin/products/11",
+		bytes.NewBufferString(`{
+			"name": "non-existing-product",
+			"price": 1000.1
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusNotFound, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "PRODUCT_NOT_FOUND",
+			"message": "product not found"
+		}`,
+		res.Body.String(),
+	)
+
+	p, exists := repo.FindByID("11")
+	assert.False(t, exists)
+	assert.Empty(t, p)
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {

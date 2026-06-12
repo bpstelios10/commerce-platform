@@ -11,7 +11,8 @@ import (
 func setup(t *testing.T) (*AdminService, *repository.InMemoryProductRepository) {
 	t.Helper()
 	repo := repository.NewInMemoryProductRepository()
-	svc := NewAdminService(repo)
+	productService := NewProductService(repo)
+	svc := NewAdminService(productService, repo)
 
 	return svc, repo
 }
@@ -64,15 +65,13 @@ func TestUpdateProduct_WhenProductNotExists_CreatesProduct(t *testing.T) {
 
 	assert.False(t, exists)
 
-	svc.UpdateProduct("10", "whatever", 1201.0)
+	err := svc.UpdateProduct("10", "whatever", 1201.0)
 	p, exists := repo.FindByID("10")
 
-	assert.True(t, exists)
-	assert.Equal(t, product.Product{
-		ID:    "10",
-		Name:  "whatever",
-		Price: 1201.0,
-	}, p)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrProductNotFound)
+	assert.False(t, exists)
+	assert.Empty(t, p)
 }
 
 func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
@@ -88,9 +87,10 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Price: 1200.0,
 	}, p)
 
-	svc.UpdateProduct("2", "iPhone 7", 1201.0)
+	err := svc.UpdateProduct("2", "iPhone 7", 1201.0)
 	p, exists = repo.FindByID("2")
 
+	assert.NoError(t, err)
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
 		ID:    "2",

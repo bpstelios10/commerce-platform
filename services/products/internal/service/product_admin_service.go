@@ -12,11 +12,12 @@ type ProductWriter interface {
 }
 
 type AdminService struct {
-	repo ProductWriter
+	productService *ProductService
+	repo           ProductWriter
 }
 
-func NewAdminService(repo ProductWriter) *AdminService {
-	return &AdminService{repo: repo}
+func NewAdminService(productService *ProductService, repo ProductWriter) *AdminService {
+	return &AdminService{productService: productService, repo: repo}
 }
 
 func (s *AdminService) CreateProduct(id, name string, price float64) {
@@ -31,7 +32,11 @@ func (s *AdminService) CreateProduct(id, name string, price float64) {
 	s.repo.Save(p)
 }
 
-func (s *AdminService) UpdateProduct(id, name string, price float64) {
+func (s *AdminService) UpdateProduct(id, name string, price float64) error {
+	if _, err := s.productService.GetProductByID(id); err != nil {
+		return err
+	}
+
 	slog.Info("updating product with", "productId", id)
 
 	p := product.Product{
@@ -41,6 +46,7 @@ func (s *AdminService) UpdateProduct(id, name string, price float64) {
 	}
 
 	s.repo.Update(p)
+	return nil
 }
 
 func (s *AdminService) DeleteProduct(id string) {
