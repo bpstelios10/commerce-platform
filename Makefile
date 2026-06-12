@@ -1,4 +1,4 @@
-.PHONY: all build test test-orders test-products test-v coverage lint tidy proto clean
+.PHONY: all build test test-orders test-products test-v coverage lint tidy proto-server proto-client clean
 
 SERVICES := orders products
 
@@ -46,16 +46,27 @@ tidy:
 	go work sync
 
 # ── proto ──────────────────────────────────────────────────────────────────────
+# Usage:
+#   make proto-server PROTO=product VERSION=v1
+#   make proto-client PROTO=product VERSION=v1 SERVICE=orders
 
-PROTO_DIR := services/products/internal/grpc
-
-proto:
+proto-server:
 	protoc \
-		--go_out=. \
+		--go_out=services/$(PROTO)s/internal/grpc \
 		--go_opt=paths=source_relative \
-		--go-grpc_out=. \
+		--go-grpc_out=services/$(PROTO)s/internal/grpc \
 		--go-grpc_opt=paths=source_relative \
-		$(PROTO_DIR)/product.proto
+		--proto_path=protos/$(PROTO)/$(VERSION) \
+		protos/$(PROTO)/$(VERSION)/$(PROTO).proto
+
+proto-client:
+	protoc \
+		--go_out=services/$(SERVICE)/internal/grpc \
+		--go_opt=paths=source_relative \
+		--go-grpc_out=services/$(SERVICE)/internal/grpc \
+		--go-grpc_opt=paths=source_relative \
+		--proto_path=protos/$(PROTO)/$(VERSION) \
+		protos/$(PROTO)/$(VERSION)/$(PROTO).proto
 
 # ── clean ──────────────────────────────────────────────────────────────────────
 
