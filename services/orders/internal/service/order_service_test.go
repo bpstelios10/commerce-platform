@@ -90,7 +90,7 @@ func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	svc, repo, _ := setup(t)
 
-	err := svc.UpdateOrder("11", "1", 10, order.CANCELLED)
+	err := svc.UpdateOrder(context.Background(), "11", "1", 10, order.CANCELLED)
 
 	assert.Error(t, err)
 
@@ -113,7 +113,7 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 		Status:    order.CREATED,
 	}, o)
 
-	err := svc.UpdateOrder("1", "1", 11, order.PAID)
+	err := svc.UpdateOrder(context.Background(), "1", "1", 11, order.PAID)
 
 	o, exists = repo.FindByID("1")
 
@@ -124,6 +124,24 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 		ProductID: "1",
 		Quantity:  11,
 		Status:    order.PAID,
+	}, o)
+}
+
+func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
+	svc, repo, _ := setup(t)
+
+	err := svc.UpdateOrder(context.Background(), "1", "999", 11, order.PAID)
+
+	assert.ErrorIs(t, err, ErrProductNotFound)
+
+	// order unchanged
+	o, exists := repo.FindByID("1")
+	assert.True(t, exists)
+	assert.Equal(t, order.Order{
+		ID:        "1",
+		ProductID: "1",
+		Quantity:  2,
+		Status:    order.CREATED,
 	}, o)
 }
 

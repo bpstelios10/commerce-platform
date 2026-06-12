@@ -61,8 +61,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, id string, productID str
 	return nil
 }
 
-func (s *OrderService) UpdateOrder(id string, productID string, quantity int, status order.OrderStatus) error {
+func (s *OrderService) UpdateOrder(ctx context.Context, id string, productID string, quantity int, status order.OrderStatus) error {
 	if _, err := s.GetOrderByID(id); err != nil {
+		return err
+	}
+
+	if err := s.validateProductExists(ctx, productID); err != nil {
 		return err
 	}
 

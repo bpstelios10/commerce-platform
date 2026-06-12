@@ -20,5 +20,5 @@ bin/
 .env
 
 # Coverage
-coverage.out
+coverage*.out
 *.coverprofile

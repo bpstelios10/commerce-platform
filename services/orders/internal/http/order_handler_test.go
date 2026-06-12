@@ -307,6 +307,40 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 	assert.Equal(t, order.PAID, p.Status)
 }
 
+func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
+	r, repo := setupOrderHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodPut,
+		"/orders/1",
+		bytes.NewBufferString(`{
+			"product_id": "999",
+			"quantity": 2,
+			"status": "PAID"
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusConflict, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "PRODUCT_NOT_FOUND",
+			"message": "product not found for the given id"
+		}`,
+		res.Body.String(),
+	)
+
+	// order unchanged
+	p, exists := repo.FindByID("1")
+	assert.True(t, exists)
+	assert.Equal(t, "1", p.ProductID)
+	assert.Equal(t, order.CREATED, p.Status)
+}
+
 func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 	r, _ := setupOrderHandlerTest(t)
 

@@ -94,7 +94,7 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("update order", "request", req)
-	if err = h.orderService.UpdateOrder(id, req.ProductID, req.Quantity, req.Status); err != nil {
+	if err = h.orderService.UpdateOrder(r.Context(), id, req.ProductID, req.Quantity, req.Status); err != nil {
 		HandleError(w, err)
 		return
 	}
