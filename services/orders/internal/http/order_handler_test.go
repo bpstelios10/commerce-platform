@@ -2,9 +2,11 @@ package http
 
 import (
 	"bytes"
+	"commerce-platform/services/orders/internal/grpc"
 	"commerce-platform/services/orders/internal/order"
 	"commerce-platform/services/orders/internal/repository"
 	"commerce-platform/services/orders/internal/service"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -14,11 +16,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type mockProductsClient struct {
+	productIDs map[string]bool
+}
+
+func (m *mockProductsClient) GetProductByID(_ context.Context, id string) (*grpc.GetProductByIDResponse, error) {
+	if m.productIDs[id] {
+		return &grpc.GetProductByIDResponse{Id: id}, nil
+	}
+	return nil, service.ErrProductNotFound
+}
+
 // To be used as BeforeEach
 func setupOrderHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryOrderRepository) {
 	t.Helper()
 	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
+	client := &mockProductsClient{productIDs: map[string]bool{"1": true, "2": true, "3": true}}
+	svc := service.NewOrderService(repo, client)
 	handler := NewOrderHandler(svc)
 
 	r := chi.NewRouter()
@@ -122,7 +136,7 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 		"/orders",
 		bytes.NewBufferString(`{
 			"id": "3",
-			"product_id": "3",
+			"product_id": "1",
 			"quantity": 1
 		}`),
 	)
@@ -135,8 +149,39 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	p, exists := repo.FindByID("3")
 	assert.True(t, exists)
 	assert.Equal(t, "3", p.ID)
-	assert.Equal(t, "3", p.ProductID)
+	assert.Equal(t, "1", p.ProductID)
 	assert.Equal(t, 1, p.Quantity)
+}
+
+func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
+	r, repo := setupOrderHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/orders",
+		bytes.NewBufferString(`{
+			"id": "3",
+			"product_id": "999",
+			"quantity": 1
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusConflict, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "PRODUCT_NOT_FOUND",
+			"message": "product not found for the given id"
+		}`,
+		res.Body.String(),
+	)
+
+	_, exists := repo.FindByID("3")
+	assert.False(t, exists)
 }
 
 func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {

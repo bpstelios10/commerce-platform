@@ -1,4 +1,4 @@
-.PHONY: all build test test-orders test-products test-v coverage lint tidy proto-server proto-client clean
+.PHONY: all build run-all run-orders run-products test-all test-orders test-products test-v coverage lint tidy proto-server proto-client clean
 
 SERVICES := orders products
 
@@ -10,9 +10,21 @@ build:
 	go build -C services/orders   -o ../../bin/orders   ./cmd/...
 	go build -C services/products -o ../../bin/products ./cmd/...
 
+# ── run ────────────────────────────────────────────────────────────────────────
+
+run-products:
+	go run ./services/products/cmd/...
+
+run-orders:
+	go run ./services/orders/cmd/...
+
+run-all:
+	go run ./services/products/cmd/... &
+	go run ./services/orders/cmd/...
+
 # ── test ───────────────────────────────────────────────────────────────────────
 
-test:
+test-all:
 	go test -C services/orders   ./...
 	go test -C services/products ./...
 

@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
+	grpcx "commerce-platform/services/orders/internal/grpc"
 	httpx "commerce-platform/services/orders/internal/http"
 	"commerce-platform/services/orders/internal/repository"
 	"commerce-platform/services/orders/internal/service"
@@ -12,17 +13,18 @@ import (
 )
 
 func main() {
-	fmt.Println("Commerce Platform - ORDERS")
-
+	log.Println("Commerce Platform - ORDERS")
 	r := chi.NewRouter()
 
 	healthHandler := httpx.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
 
 	repo := repository.NewInMemoryOrderRepository()
-	svc := service.NewOrderService(repo)
+	productsClient := grpcx.MustNewProductsGrpcClient("localhost:9090")
+	svc := service.NewOrderService(repo, productsClient)
 	orderHandler := httpx.NewOrderHandler(svc)
 	orderHandler.RegisterRoutes(r)
 
-	http.ListenAndServe(":8080", r)
+	log.Println("http server running on :8081")
+	log.Fatal(http.ListenAndServe(":8081", r))
 }

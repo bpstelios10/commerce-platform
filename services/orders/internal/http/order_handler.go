@@ -65,7 +65,10 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("create order request received", "request", req)
-	h.orderService.CreateOrder(req.ID, req.ProductID, req.Quantity)
+	if err = h.orderService.CreateOrder(r.Context(), req.ID, req.ProductID, req.Quantity); err != nil {
+		HandleError(w, err)
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
 }

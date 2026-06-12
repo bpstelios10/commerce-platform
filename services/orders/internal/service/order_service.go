@@ -1,7 +1,9 @@
 package service
 
 import (
+	"commerce-platform/services/orders/internal/grpc"
 	"commerce-platform/services/orders/internal/order"
+	"context"
 	"log/slog"
 )
 
@@ -13,20 +15,25 @@ type OrderRepository interface {
 	Delete(id string)
 }
 
-type OrderService struct {
-	repository OrderRepository
+type ProductsClient interface {
+	GetProductByID(ctx context.Context, id string) (*grpc.GetProductByIDResponse, error)
 }
 
-func NewOrderService(repository OrderRepository) *OrderService {
-	return &OrderService{repository: repository}
+type OrderService struct {
+	orderRepository OrderRepository
+	productsClient  ProductsClient
+}
+
+func NewOrderService(repository OrderRepository, productsClient ProductsClient) *OrderService {
+	return &OrderService{orderRepository: repository, productsClient: productsClient}
 }
 
 func (s *OrderService) GetOrders() []order.Order {
-	return s.repository.FindAll()
+	return s.orderRepository.FindAll()
 }
 
 func (s *OrderService) GetOrderByID(id string) (order.Order, error) {
-	o, found := s.repository.FindByID(id)
+	o, found := s.orderRepository.FindByID(id)
 
 	if !found {
 		slog.Warn("Order Not found, with", "ID", id)
@@ -36,7 +43,11 @@ func (s *OrderService) GetOrderByID(id string) (order.Order, error) {
 	return o, nil
 }
 
-func (s *OrderService) CreateOrder(id string, productID string, quantity int) {
+func (s *OrderService) CreateOrder(ctx context.Context, id string, productID string, quantity int) error {
+	if err := s.validateProductExists(ctx, productID); err != nil {
+		return err
+	}
+
 	o := order.Order{
 		ID:        id,
 		ProductID: productID,
@@ -46,7 +57,8 @@ func (s *OrderService) CreateOrder(id string, productID string, quantity int) {
 
 	slog.Info("creating", "order", o)
 
-	s.repository.Save(o)
+	s.orderRepository.Save(o)
+	return nil
 }
 
 func (s *OrderService) UpdateOrder(id string, productID string, quantity int, status order.OrderStatus) {
@@ -59,11 +71,20 @@ func (s *OrderService) UpdateOrder(id string, productID string, quantity int, st
 
 	slog.Info("updating", "order", o)
 
-	s.repository.Update(o)
+	s.orderRepository.Update(o)
 }
 
 func (s *OrderService) DeleteOrder(id string) {
 	slog.Info("attempting to delete product with", "productId", id)
 
-	s.repository.Delete(id)
+	s.orderRepository.Delete(id)
+}
+
+func (s *OrderService) validateProductExists(ctx context.Context, productID string) error {
+	_, err := s.productsClient.GetProductByID(ctx, productID)
+	if err != nil {
+		slog.Warn("product not found for given product id", "productId", productID)
+		return ErrProductNotFound
+	}
+	return nil
 }

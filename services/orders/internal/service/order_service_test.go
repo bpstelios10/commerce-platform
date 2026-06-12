@@ -1,23 +1,38 @@
 package service
 
 import (
+	"commerce-platform/services/orders/internal/grpc"
 	"commerce-platform/services/orders/internal/order"
 	"commerce-platform/services/orders/internal/repository"
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func setup(t *testing.T) (*OrderService, *repository.InMemoryOrderRepository) {
+// mockProductsClient implements ProductsClient for tests.
+type mockProductsClient struct {
+	productIDs map[string]bool // product IDs that "exist"
+}
+
+func (m *mockProductsClient) GetProductByID(_ context.Context, id string) (*grpc.GetProductByIDResponse, error) {
+	if m.productIDs[id] {
+		return &grpc.GetProductByIDResponse{Id: id}, nil
+	}
+	return nil, ErrProductNotFound
+}
+
+func setup(t *testing.T) (*OrderService, *repository.InMemoryOrderRepository, *mockProductsClient) {
 	t.Helper()
 	repo := repository.NewInMemoryOrderRepository()
-	svc := NewOrderService(repo)
+	client := &mockProductsClient{productIDs: map[string]bool{"1": true, "2": true}}
+	svc := NewOrderService(repo, client)
 
-	return svc, repo
+	return svc, repo, client
 }
 
 func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
-	svc, _ := setup(t)
+	svc, _, _ := setup(t)
 
 	orders := svc.GetOrders()
 
@@ -25,7 +40,7 @@ func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
 }
 
 func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
-	svc, _ := setup(t)
+	svc, _, _ := setup(t)
 
 	o, err := svc.GetOrderByID("1")
 
@@ -37,7 +52,7 @@ func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 }
 
 func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
-	svc, _ := setup(t)
+	svc, _, _ := setup(t)
 
 	_, err := svc.GetOrderByID("11")
 
@@ -45,13 +60,13 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	assert.ErrorIs(t, err, ErrOrderNotFound)
 }
 
-func TestCreateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
-	svc, repo := setup(t)
+func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
+	svc, repo, _ := setup(t)
 
-	svc.CreateOrder("11", "1", 10)
+	err := svc.CreateOrder(context.Background(), "11", "1", 10)
 
+	assert.NoError(t, err)
 	o, exists := repo.FindByID("11")
-
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        "11",
@@ -61,31 +76,18 @@ func TestCreateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	}, o)
 }
 
-func TestCreateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
-	svc, repo := setup(t)
+func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
+	svc, repo, _ := setup(t)
 
-	o, err := svc.GetOrderByID("1")
-	assert.NoError(t, err)
-	assert.Equal(t, "1", o.ID)
-	assert.Equal(t, "1", o.ProductID)
-	assert.Equal(t, 2, o.Quantity)
-	assert.Equal(t, order.CREATED, o.Status)
+	err := svc.CreateOrder(context.Background(), "11", "999", 10)
 
-	svc.CreateOrder("1", "1", 10)
-
-	o, exists := repo.FindByID("1")
-
-	assert.True(t, exists)
-	assert.Equal(t, order.Order{
-		ID:        "1",
-		ProductID: "1",
-		Quantity:  10,
-		Status:    order.CREATED,
-	}, o)
+	assert.ErrorIs(t, err, ErrProductNotFound)
+	_, exists := repo.FindByID("11")
+	assert.False(t, exists)
 }
 
 func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
-	svc, repo := setup(t)
+	svc, repo, _ := setup(t)
 
 	svc.UpdateOrder("11", "1", 10, order.CANCELLED)
 
@@ -101,7 +103,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 }
 
 func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
-	svc, repo := setup(t)
+	svc, repo, _ := setup(t)
 
 	o, exists := repo.FindByID("1")
 	assert.True(t, exists)
@@ -126,7 +128,7 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 }
 
 func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
-	svc, repo := setup(t)
+	svc, repo, _ := setup(t)
 
 	// order does not exist
 	_, exists := repo.FindByID("11")
@@ -142,7 +144,7 @@ func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
 }
 
 func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
-	svc, repo := setup(t)
+	svc, repo, _ := setup(t)
 
 	// order exists
 	_, exists := repo.FindByID("2")

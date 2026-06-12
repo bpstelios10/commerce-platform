@@ -39,6 +39,14 @@ func HandleError(w http.ResponseWriter, err error) {
 			err.Error(),
 		)
 
+	case service.ErrProductNotFound:
+		writeError(
+			w,
+			http.StatusConflict,
+			"PRODUCT_NOT_FOUND",
+			err.Error(),
+		)
+
 	default:
 		slog.Warn("unexpected error handled, with", "error", err)
 		writeError(
