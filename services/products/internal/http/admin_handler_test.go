@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,12 +44,13 @@ func TestGetAdmin_Returns200(t *testing.T) {
 
 func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	r, repo := setupAdminHandlerTest(t)
+	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/admin/products",
 		bytes.NewBufferString(`{
-			"id": "3",
+			"id": "`+id.String()+`",
 			"name": "iPad",
 			"price": 999
 		}`),
@@ -59,9 +61,9 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, res.Code)
 
-	p, exists := repo.FindByID("3")
+	p, exists := repo.FindByID(id)
 	assert.True(t, exists)
-	assert.Equal(t, "3", p.ID)
+	assert.Equal(t, id, p.ID)
 	assert.Equal(t, "iPad", p.Name)
 	assert.Equal(t, 999.0, p.Price)
 }
@@ -125,7 +127,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/admin/products/2",
+		"/admin/products/"+repository.SecondUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"price": 1500
@@ -137,11 +139,38 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.Code)
 
-	p, exists := repo.FindByID("2")
+	p, exists := repo.FindByID(repository.SecondUUID)
 	assert.True(t, exists)
-	assert.Equal(t, "2", p.ID)
+	assert.Equal(t, repository.SecondUUID, p.ID)
 	assert.Equal(t, "iPhone 15", p.Name)
 	assert.Equal(t, 1500.0, p.Price)
+}
+
+func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
+	r, _ := setupAdminHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodPut,
+		"/admin/products/1234",
+		bytes.NewBufferString(`{
+			"name": "iPhone 15",
+			"price": 1500
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_UUID",
+			"message": "invalid UUID"
+		}`,
+		res.Body.String(),
+	)
 }
 
 func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
@@ -149,7 +178,7 @@ func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/admin/products/1",
+		"/admin/products/"+repository.SecondUUID.String(),
 		bytes.NewBufferString(`{
 			"error-to-cause": "extra comma, so invalid json",
 		}`),
@@ -175,7 +204,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/admin/products/1",
+		"/admin/products/"+repository.FirstUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "",
 			"price": 0
@@ -196,7 +225,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		res.Body.String(),
 	)
 
-	p, exists := repo.FindByID("1")
+	p, exists := repo.FindByID(repository.FirstUUID)
 	assert.True(t, exists)
 	assert.Equal(t, "MacBook Pro", p.Name)
 	assert.Equal(t, 2500.0, p.Price)
@@ -204,10 +233,11 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 
 func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	r, repo := setupAdminHandlerTest(t)
+	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/admin/products/11",
+		"/admin/products/"+id.String(),
 		bytes.NewBufferString(`{
 			"name": "non-existing-product",
 			"price": 1000.1
@@ -228,7 +258,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		res.Body.String(),
 	)
 
-	p, exists := repo.FindByID("11")
+	p, exists := repo.FindByID(id)
 	assert.False(t, exists)
 	assert.Empty(t, p)
 }
@@ -238,7 +268,7 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodDelete,
-		"/admin/products/2",
+		"/admin/products/"+repository.SecondUUID.String(),
 		nil,
 	)
 	res := httptest.NewRecorder()
@@ -247,6 +277,33 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, res.Code)
 
-	_, exists := repo.FindByID("2")
+	_, exists := repo.FindByID(repository.SecondUUID)
 	assert.False(t, exists)
+}
+
+func TestDeleteProduct_WhenBadUUID_Returns400(t *testing.T) {
+	r, repo := setupAdminHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		"/admin/products/1234",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_UUID",
+			"message": "invalid UUID"
+		}`,
+		res.Body.String(),
+	)
+
+	products := repo.FindAll()
+	assert.Len(t, products, 2)
 }

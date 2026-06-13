@@ -5,6 +5,7 @@ import (
 	"commerce-platform/services/products/internal/repository"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,13 +20,14 @@ func setup(t *testing.T) (*AdminService, *repository.InMemoryProductRepository) 
 
 func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 	svc, repo := setup(t)
+	id, _ := uuid.NewV7()
 
-	svc.CreateProduct("5", "MacBook Pro M4", 2501.0)
-	p, exists := repo.FindByID("5")
+	svc.CreateProduct(id, "MacBook Pro M4", 2501.0)
+	p, exists := repo.FindByID(id)
 
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
-		ID:    "5",
+		ID:    id,
 		Name:  "MacBook Pro M4",
 		Price: 2501.0,
 	}, p)
@@ -36,21 +38,21 @@ func TestCreateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 	svc, repo := setup(t)
 
 	// product exists
-	p, exists := repo.FindByID("1")
+	p, exists := repo.FindByID(repository.FirstUUID)
 
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
-		ID:    "1",
+		ID:    repository.FirstUUID,
 		Name:  "MacBook Pro",
 		Price: 2500.0,
 	}, p)
 
-	svc.CreateProduct("1", "MacBook Pro M4", 2501.0)
-	p, exists = repo.FindByID("1")
+	svc.CreateProduct(repository.FirstUUID, "MacBook Pro M4", 2501.0)
+	p, exists = repo.FindByID(repository.FirstUUID)
 
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
-		ID:    "1",
+		ID:    repository.FirstUUID,
 		Name:  "MacBook Pro M4",
 		Price: 2501.0,
 	}, p)
@@ -59,14 +61,15 @@ func TestCreateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 // TODO maybe fix this behavior?
 func TestUpdateProduct_WhenProductNotExists_CreatesProduct(t *testing.T) {
 	svc, repo := setup(t)
+	id, _ := uuid.NewV7()
 
 	// product does not exist
-	_, exists := repo.FindByID("10")
+	_, exists := repo.FindByID(id)
 
 	assert.False(t, exists)
 
-	err := svc.UpdateProduct("10", "whatever", 1201.0)
-	p, exists := repo.FindByID("10")
+	err := svc.UpdateProduct(id, "whatever", 1201.0)
+	p, exists := repo.FindByID(id)
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrProductNotFound)
@@ -78,22 +81,22 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 	svc, repo := setup(t)
 
 	// product exists
-	p, exists := repo.FindByID("2")
+	p, exists := repo.FindByID(repository.SecondUUID)
 
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
-		ID:    "2",
+		ID:    repository.SecondUUID,
 		Name:  "iPhone",
 		Price: 1200.0,
 	}, p)
 
-	err := svc.UpdateProduct("2", "iPhone 7", 1201.0)
-	p, exists = repo.FindByID("2")
+	err := svc.UpdateProduct(repository.SecondUUID, "iPhone 7", 1201.0)
+	p, exists = repo.FindByID(repository.SecondUUID)
 
 	assert.NoError(t, err)
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
-		ID:    "2",
+		ID:    repository.SecondUUID,
 		Name:  "iPhone 7",
 		Price: 1201.0,
 	}, p)
@@ -101,14 +104,15 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 
 func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
 	svc, repo := setup(t)
+	id, _ := uuid.NewV7()
 
 	// product does not exist
-	_, exists := repo.FindByID("11")
+	_, exists := repo.FindByID(id)
 
 	assert.False(t, exists)
 
-	svc.DeleteProduct("11")
-	_, exists = repo.FindByID("11")
+	svc.DeleteProduct(id)
+	_, exists = repo.FindByID(id)
 
 	assert.False(t, exists)
 
@@ -120,12 +124,12 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 	svc, repo := setup(t)
 
 	// product exists
-	_, exists := repo.FindByID("2")
+	_, exists := repo.FindByID(repository.SecondUUID)
 
 	assert.True(t, exists)
 
-	svc.DeleteProduct("2")
-	_, exists = repo.FindByID("2")
+	svc.DeleteProduct(repository.SecondUUID)
+	_, exists = repo.FindByID(repository.SecondUUID)
 
 	assert.False(t, exists)
 

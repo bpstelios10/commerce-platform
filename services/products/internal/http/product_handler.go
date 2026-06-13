@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"commerce-platform/services/products/internal/service"
+	"commerce-platform/services/products/internal/validation"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -35,7 +36,13 @@ func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 
 func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	idPathParam := chi.URLParam(r, "id")
-	product, err := h.productService.GetProductByID(idPathParam)
+	validUUID, err := validation.GetValidUUID(idPathParam)
+	if err != nil {
+		HandleError(w, err)
+		return
+	}
+
+	product, err := h.productService.GetProductByID(validUUID)
 
 	if err != nil {
 		HandleError(w, err)

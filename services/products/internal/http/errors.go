@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"commerce-platform/services/products/internal/service"
+	"commerce-platform/services/products/internal/validation"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -36,6 +37,14 @@ func HandleError(w http.ResponseWriter, err error) {
 			w,
 			http.StatusBadRequest,
 			"INVALID_PRODUCT",
+			err.Error(),
+		)
+
+	case validation.ErrInvalidUUID:
+		writeError(
+			w,
+			http.StatusBadRequest,
+			"INVALID_UUID",
 			err.Error(),
 		)
 

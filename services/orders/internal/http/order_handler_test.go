@@ -31,7 +31,12 @@ func (m *mockProductsClient) GetProductByID(_ context.Context, id string) (*grpc
 func setupOrderHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryOrderRepository) {
 	t.Helper()
 	repo := repository.NewInMemoryOrderRepository()
-	client := &mockProductsClient{productIDs: map[string]bool{"1": true, "2": true, "3": true}}
+	client := &mockProductsClient{
+		productIDs: map[string]bool{
+			repository.FirstProductID:  true,
+			repository.SecondProductID: true,
+		},
+	}
 	svc := service.NewOrderService(repo, client)
 	handler := NewOrderHandler(svc)
 
@@ -63,13 +68,13 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 	expectedOrders := []map[string]any{
 		{
 			"id":         "1",
-			"product_id": "1",
+			"product_id": repository.FirstProductID,
 			"quantity":   float64(2),
 			"status":     "CREATED",
 		},
 		{
 			"id":         "2",
-			"product_id": "2",
+			"product_id": repository.SecondProductID,
 			"quantity":   float64(1),
 			"status":     "PAID",
 		},
@@ -96,7 +101,7 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 		t,
 		`{
 			"id":         "1",
-			"product_id": "1",
+			"product_id": "`+repository.FirstProductID+`",
 			"quantity":   2,
 			"status":     "CREATED"
 		}`,
@@ -136,7 +141,7 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 		"/orders",
 		bytes.NewBufferString(`{
 			"id": "3",
-			"product_id": "1",
+			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 1
 		}`),
 	)
@@ -149,7 +154,7 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	p, exists := repo.FindByID("3")
 	assert.True(t, exists)
 	assert.Equal(t, "3", p.ID)
-	assert.Equal(t, "1", p.ProductID)
+	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 1, p.Quantity)
 }
 
@@ -247,7 +252,7 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	p, exists := repo.FindByID("1")
 	assert.True(t, exists)
 	assert.Equal(t, "1", p.ID)
-	assert.Equal(t, "1", p.ProductID)
+	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.CREATED, p.Status)
 
@@ -255,7 +260,7 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 		http.MethodPut,
 		"/orders/1",
 		bytes.NewBufferString(`{
-			"product_id": "1",
+			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 2,
 			"status": "PAID"
 		}`),
@@ -269,7 +274,7 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	p, exists = repo.FindByID("1")
 	assert.True(t, exists)
 	assert.Equal(t, "1", p.ID)
-	assert.Equal(t, "1", p.ProductID)
+	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.PAID, p.Status)
 }
@@ -280,7 +285,7 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 	p, exists := repo.FindByID("1")
 	assert.True(t, exists)
 	assert.Equal(t, "1", p.ID)
-	assert.Equal(t, "1", p.ProductID)
+	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.CREATED, p.Status)
 
@@ -288,7 +293,7 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 		http.MethodPut,
 		"/orders/1",
 		bytes.NewBufferString(`{
-			"product_id": "1",
+			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 2,
 			"status": "paid"
 		}`),
@@ -302,7 +307,7 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 	p, exists = repo.FindByID("1")
 	assert.True(t, exists)
 	assert.Equal(t, "1", p.ID)
-	assert.Equal(t, "1", p.ProductID)
+	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.PAID, p.Status)
 }
@@ -337,7 +342,7 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	// order unchanged
 	p, exists := repo.FindByID("1")
 	assert.True(t, exists)
-	assert.Equal(t, "1", p.ProductID)
+	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, order.CREATED, p.Status)
 }
 
@@ -405,7 +410,7 @@ func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 		http.MethodPut,
 		"/orders/11",
 		bytes.NewBufferString(`{
-			"product_id": "1",
+			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 1,
 			"status": "PAiD"
 		}`),

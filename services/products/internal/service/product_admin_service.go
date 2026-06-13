@@ -3,12 +3,14 @@ package service
 import (
 	"commerce-platform/services/products/internal/product"
 	"log/slog"
+
+	"github.com/google/uuid"
 )
 
 type ProductWriter interface {
 	Save(product.Product)
 	Update(product.Product)
-	Delete(id string)
+	Delete(id uuid.UUID)
 }
 
 type AdminService struct {
@@ -20,7 +22,7 @@ func NewAdminService(productService *ProductService, repo ProductWriter) *AdminS
 	return &AdminService{productService: productService, repo: repo}
 }
 
-func (s *AdminService) CreateProduct(id, name string, price float64) {
+func (s *AdminService) CreateProduct(id uuid.UUID, name string, price float64) {
 	p := product.Product{
 		ID:    id,
 		Name:  name,
@@ -32,7 +34,7 @@ func (s *AdminService) CreateProduct(id, name string, price float64) {
 	s.repo.Save(p)
 }
 
-func (s *AdminService) UpdateProduct(id, name string, price float64) error {
+func (s *AdminService) UpdateProduct(id uuid.UUID, name string, price float64) error {
 	if _, err := s.productService.GetProductByID(id); err != nil {
 		return err
 	}
@@ -49,7 +51,7 @@ func (s *AdminService) UpdateProduct(id, name string, price float64) error {
 	return nil
 }
 
-func (s *AdminService) DeleteProduct(id string) {
+func (s *AdminService) DeleteProduct(id uuid.UUID) {
 	slog.Info("attempting to delete product with", "productId", id)
 
 	s.repo.Delete(id)

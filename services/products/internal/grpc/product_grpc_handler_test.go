@@ -7,6 +7,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -52,7 +53,7 @@ func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	res, err := client.GetProductByID(
 		context.Background(),
 		&GetProductByIDRequest{
-			Id: "1",
+			Id: repository.FirstUUID.String(),
 		},
 	)
 
@@ -60,18 +61,19 @@ func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	st, ok := status.FromError(err)
 	assert.True(t, ok)
 	assert.Equal(t, codes.OK, st.Code())
-	assert.Equal(t, "1", res.Id)
+	assert.Equal(t, repository.FirstUUID.String(), res.Id)
 	assert.Equal(t, "MacBook Pro", res.Name)
 	assert.Equal(t, 2500.0, res.Price)
 }
 
 func TestGetProductByID_WhenProductNotExists_ReturnsError(t *testing.T) {
 	client := setupProductHandlerTest(t)
+	id, _ := uuid.NewV7()
 
 	res, err := client.GetProductByID(
 		context.Background(),
 		&GetProductByIDRequest{
-			Id: "999",
+			Id: id.String(),
 		},
 	)
 
@@ -80,4 +82,21 @@ func TestGetProductByID_WhenProductNotExists_ReturnsError(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, codes.NotFound, st.Code())
 	assert.Equal(t, "product not found", st.Message())
+}
+
+func TestGetProductByID_WhenBadUUID_ReturnsError(t *testing.T) {
+	client := setupProductHandlerTest(t)
+
+	res, err := client.GetProductByID(
+		context.Background(),
+		&GetProductByIDRequest{
+			Id: "1234",
+		},
+	)
+
+	assert.Nil(t, res)
+	st, ok := status.FromError(err)
+	assert.True(t, ok)
+	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.Equal(t, "invalid UUID", st.Message())
 }

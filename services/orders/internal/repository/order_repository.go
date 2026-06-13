@@ -6,6 +6,11 @@ import (
 	"commerce-platform/services/orders/internal/order"
 )
 
+var (
+	FirstProductID  = "f47ac10b-58cc-4372-a567-0e02b2c3d001"
+	SecondProductID = "f47ac10b-58cc-4372-a567-0e02b2c3d002"
+)
+
 // InMemoryOrderRepository is shared across goroutines (one instance, called from
 // every HTTP request goroutine). Go maps are NOT safe for concurrent use: a write
 // happening at the same time as any other access (read or write) panics the process
@@ -23,13 +28,13 @@ func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 		orders: map[string]order.Order{
 			"1": {
 				ID:        "1",
-				ProductID: "1",
+				ProductID: FirstProductID,
 				Quantity:  2,
 				Status:    order.CREATED,
 			},
 			"2": {
 				ID:        "2",
-				ProductID: "2",
+				ProductID: SecondProductID,
 				Quantity:  1,
 				Status:    order.PAID,
 			},

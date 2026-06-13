@@ -89,6 +89,7 @@ func (s *OrderService) DeleteOrder(id string) {
 	s.orderRepository.Delete(id)
 }
 
+// TODO return error. we hide now if it is InvalidArgument, NotFound, Internal
 func (s *OrderService) validateProductExists(ctx context.Context, productID string) error {
 	_, err := s.productsClient.GetProductByID(ctx, productID)
 	if err != nil {

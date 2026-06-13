@@ -13,12 +13,13 @@ import (
 	"commerce-platform/services/products/internal/service"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 )
 
 func main() {
 	product1 := product.Product{
-		ID:    "1",
+		ID:    uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
 		Name:  "MacBook Pro",
 		Price: 2500,
 	}
@@ -38,7 +39,7 @@ func main() {
 	slog.Info("--- TESTING CODE ---")
 	products := map[string]product.Product{
 		"1": {
-			ID:    "1",
+			ID:    uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002"),
 			Name:  "MacBook Pro",
 			Price: 2500,
 		},

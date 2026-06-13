@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"commerce-platform/services/products/internal/service"
+	"commerce-platform/services/products/internal/validation"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type AdminHandler struct {
@@ -46,17 +48,22 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("create product request received", "request", req)
 
-	h.adminService.CreateProduct(req.ID, req.Name, req.Price)
+	h.adminService.CreateProduct(uuid.MustParse(req.ID), req.Name, req.Price)
 
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	slog.Info("update product request received", "ProductId", id)
+	validUUID, err := validation.GetValidUUID(id)
+	if err != nil {
+		HandleError(w, err)
+		return
+	}
+	slog.Info("update product request received", "ProductId", validUUID)
 
 	var req UpdateProductRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		slog.Warn("validation error occurred while updating product", "error", err)
 		HandleError(w, service.ErrInvalidProduct)
@@ -70,7 +77,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("update product", "request", req)
 
-	if err = h.adminService.UpdateProduct(id, req.Name, req.Price); err != nil {
+	if err = h.adminService.UpdateProduct(validUUID, req.Name, req.Price); err != nil {
 		HandleError(w, err)
 		return
 	}
@@ -80,8 +87,14 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	validUUID, err := validation.GetValidUUID(id)
+	if err != nil {
+		HandleError(w, err)
+		return
+	}
+	slog.Info("delete product request received", "ProductId", validUUID)
 
-	h.adminService.DeleteProduct(id)
+	h.adminService.DeleteProduct(validUUID)
 
 	w.WriteHeader(http.StatusNoContent)
 }

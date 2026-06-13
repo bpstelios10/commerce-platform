@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,12 +46,12 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 
 	expectedProducts := []map[string]any{
 		{
-			"id":    "1",
+			"id":    repository.FirstUUID.String(),
 			"name":  "MacBook Pro",
 			"price": 2500.0,
 		},
 		{
-			"id":    "2",
+			"id":    repository.SecondUUID.String(),
 			"name":  "iPhone",
 			"price": 1200.0,
 		},
@@ -64,7 +65,7 @@ func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodGet,
-		"/products/1",
+		"/products/"+repository.FirstUUID.String(),
 		nil,
 	)
 	res := httptest.NewRecorder()
@@ -76,7 +77,7 @@ func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 	assert.JSONEq(
 		t,
 		`{
-			"id": "1",
+			"id": "`+repository.FirstUUID.String()+`",
 			"name": "MacBook Pro",
 			"price": 2500
 		}`,
@@ -86,10 +87,11 @@ func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 
 func TestGetProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	r, _ := setupProductHandlerTest(t)
+	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodGet,
-		"/products/6",
+		"/products/"+id.String(),
 		nil,
 	)
 	res := httptest.NewRecorder()
@@ -103,6 +105,30 @@ func TestGetProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		`{
 			"code": "PRODUCT_NOT_FOUND",
 			"message": "product not found"
+		}`,
+		res.Body.String(),
+	)
+}
+
+func TestGetProduct_WhenBadUUID_Returns400(t *testing.T) {
+	r, _ := setupProductHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products/1234",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_UUID",
+			"message": "invalid UUID"
 		}`,
 		res.Body.String(),
 	)

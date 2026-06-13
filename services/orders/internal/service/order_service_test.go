@@ -25,7 +25,12 @@ func (m *mockProductsClient) GetProductByID(_ context.Context, id string) (*grpc
 func setup(t *testing.T) (*OrderService, *repository.InMemoryOrderRepository, *mockProductsClient) {
 	t.Helper()
 	repo := repository.NewInMemoryOrderRepository()
-	client := &mockProductsClient{productIDs: map[string]bool{"1": true, "2": true}}
+	client := &mockProductsClient{
+		productIDs: map[string]bool{
+			repository.FirstProductID:  true,
+			repository.SecondProductID: true,
+		},
+	}
 	svc := NewOrderService(repo, client)
 
 	return svc, repo, client
@@ -46,7 +51,7 @@ func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "1", o.ID)
-	assert.Equal(t, "1", o.ProductID)
+	assert.Equal(t, repository.FirstProductID, o.ProductID)
 	assert.Equal(t, 2, o.Quantity)
 	assert.Equal(t, order.CREATED, o.Status)
 }
@@ -64,14 +69,14 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
 	svc, repo, _ := setup(t)
 
-	err := svc.CreateOrder(context.Background(), "11", "1", 10)
+	err := svc.CreateOrder(context.Background(), "11", repository.FirstProductID, 10)
 
 	assert.NoError(t, err)
 	o, exists := repo.FindByID("11")
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        "11",
-		ProductID: "1",
+		ProductID: repository.FirstProductID,
 		Quantity:  10,
 		Status:    order.CREATED,
 	}, o)
@@ -108,12 +113,12 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        "1",
-		ProductID: "1",
+		ProductID: repository.FirstProductID,
 		Quantity:  2,
 		Status:    order.CREATED,
 	}, o)
 
-	err := svc.UpdateOrder(context.Background(), "1", "1", 11, order.PAID)
+	err := svc.UpdateOrder(context.Background(), "1", repository.FirstProductID, 11, order.PAID)
 
 	o, exists = repo.FindByID("1")
 
@@ -121,7 +126,7 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        "1",
-		ProductID: "1",
+		ProductID: repository.FirstProductID,
 		Quantity:  11,
 		Status:    order.PAID,
 	}, o)
@@ -139,7 +144,7 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        "1",
-		ProductID: "1",
+		ProductID: repository.FirstProductID,
 		Quantity:  2,
 		Status:    order.CREATED,
 	}, o)
