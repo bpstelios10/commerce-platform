@@ -2,6 +2,7 @@ package http
 
 import (
 	"commerce-platform/services/orders/internal/service"
+	"commerce-platform/services/orders/internal/validation"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -44,6 +45,14 @@ func HandleError(w http.ResponseWriter, err error) {
 			w,
 			http.StatusConflict,
 			"PRODUCT_NOT_FOUND",
+			err.Error(),
+		)
+
+	case validation.ErrInvalidUUID:
+		writeError(
+			w,
+			http.StatusBadRequest,
+			"INVALID_UUID",
 			err.Error(),
 		)
 

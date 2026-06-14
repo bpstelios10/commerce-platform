@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,13 +68,13 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 
 	expectedOrders := []map[string]any{
 		{
-			"id":         "1",
+			"id":         repository.FirstOrderID.String(),
 			"product_id": repository.FirstProductID,
 			"quantity":   float64(2),
 			"status":     "CREATED",
 		},
 		{
-			"id":         "2",
+			"id":         repository.SecondOrderID.String(),
 			"product_id": repository.SecondProductID,
 			"quantity":   float64(1),
 			"status":     "PAID",
@@ -88,7 +89,7 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodGet,
-		"/orders/1",
+		"/orders/"+repository.FirstOrderID.String(),
 		nil,
 	)
 	res := httptest.NewRecorder()
@@ -100,7 +101,7 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 	assert.JSONEq(
 		t,
 		`{
-			"id":         "1",
+			"id":         "`+repository.FirstOrderID.String()+`",
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity":   2,
 			"status":     "CREATED"
@@ -111,10 +112,11 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 
 func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 	r, _ := setupOrderHandlerTest(t)
+	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodGet,
-		"/orders/6",
+		"/orders/"+id.String(),
 		nil,
 	)
 	res := httptest.NewRecorder()
@@ -133,14 +135,39 @@ func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 	)
 }
 
+func TestGetOrder_WhenBadUUID_Returns400(t *testing.T) {
+	r, _ := setupOrderHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/orders/1234",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_UUID",
+			"message": "invalid UUID"
+		}`,
+		res.Body.String(),
+	)
+}
+
 func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
+	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/orders",
 		bytes.NewBufferString(`{
-			"id": "3",
+			"id": "`+id.String()+`",
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 1
 		}`),
@@ -151,21 +178,22 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, res.Code)
 
-	p, exists := repo.FindByID("3")
+	p, exists := repo.FindByID(id)
 	assert.True(t, exists)
-	assert.Equal(t, "3", p.ID)
+	assert.Equal(t, id, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 1, p.Quantity)
 }
 
 func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
+	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/orders",
 		bytes.NewBufferString(`{
-			"id": "3",
+			"id": "`+id.String()+`",
 			"product_id": "999",
 			"quantity": 1
 		}`),
@@ -185,7 +213,7 @@ func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		res.Body.String(),
 	)
 
-	_, exists := repo.FindByID("3")
+	_, exists := repo.FindByID(id)
 	assert.False(t, exists)
 }
 
@@ -216,7 +244,7 @@ func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 }
 
 func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	r, _ := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -241,24 +269,21 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 		}`,
 		res.Body.String(),
 	)
-
-	_, exists := repo.FindByID("")
-	assert.False(t, exists)
 }
 
 func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
 
-	p, exists := repo.FindByID("1")
+	p, exists := repo.FindByID(repository.FirstOrderID)
 	assert.True(t, exists)
-	assert.Equal(t, "1", p.ID)
+	assert.Equal(t, repository.FirstOrderID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.CREATED, p.Status)
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/orders/1",
+		"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 2,
@@ -271,9 +296,9 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.Code)
 
-	p, exists = repo.FindByID("1")
+	p, exists = repo.FindByID(repository.FirstOrderID)
 	assert.True(t, exists)
-	assert.Equal(t, "1", p.ID)
+	assert.Equal(t, repository.FirstOrderID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.PAID, p.Status)
@@ -282,16 +307,16 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
 
-	p, exists := repo.FindByID("1")
+	p, exists := repo.FindByID(repository.FirstOrderID)
 	assert.True(t, exists)
-	assert.Equal(t, "1", p.ID)
+	assert.Equal(t, repository.FirstOrderID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.CREATED, p.Status)
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/orders/1",
+		"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 2,
@@ -304,9 +329,9 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 
 	assert.Equal(t, http.StatusOK, res.Code)
 
-	p, exists = repo.FindByID("1")
+	p, exists = repo.FindByID(repository.FirstOrderID)
 	assert.True(t, exists)
-	assert.Equal(t, "1", p.ID)
+	assert.Equal(t, repository.FirstOrderID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.PAID, p.Status)
@@ -317,7 +342,7 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/orders/1",
+		"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"product_id": "999",
 			"quantity": 2,
@@ -340,7 +365,7 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	)
 
 	// order unchanged
-	p, exists := repo.FindByID("1")
+	p, exists := repo.FindByID(repository.FirstOrderID)
 	assert.True(t, exists)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, order.CREATED, p.Status)
@@ -351,7 +376,7 @@ func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/orders/1",
+		"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"error-to-cause": "extra comma, so invalid json",
 		}`),
@@ -373,11 +398,11 @@ func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 }
 
 func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	r, _ := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/orders/1",
+		"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"product_id": "",
 			"quantity": 0,
@@ -398,17 +423,43 @@ func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 		}`,
 		res.Body.String(),
 	)
+}
 
-	_, exists := repo.FindByID("")
-	assert.False(t, exists)
+func TestUpdateOrder_WhenBadUUID_Returns400(t *testing.T) {
+	r, _ := setupOrderHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodPut,
+		"/orders/1234",
+		bytes.NewBufferString(`{
+			"product_id": "`+repository.FirstProductID+`",
+			"quantity": 1,
+			"status": "PAID"
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_UUID",
+			"message": "invalid UUID"
+		}`,
+		res.Body.String(),
+	)
 }
 
 func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
+	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodPut,
-		"/orders/11",
+		"/orders/"+id.String(),
 		bytes.NewBufferString(`{
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 1,
@@ -430,7 +481,7 @@ func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 		res.Body.String(),
 	)
 
-	_, exists := repo.FindByID("11")
+	_, exists := repo.FindByID(id)
 	assert.False(t, exists)
 }
 
@@ -439,7 +490,7 @@ func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 
 	req := httptest.NewRequest(
 		http.MethodDelete,
-		"/orders/2",
+		"/orders/"+repository.SecondOrderID.String(),
 		nil,
 	)
 	res := httptest.NewRecorder()
@@ -448,6 +499,33 @@ func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, res.Code)
 
-	_, exists := repo.FindByID("2")
+	_, exists := repo.FindByID(repository.SecondOrderID)
 	assert.False(t, exists)
+}
+
+func TestDeleteOrder_WhenBadUUID_Returns400(t *testing.T) {
+	r, repo := setupOrderHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		"/orders/1234",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_UUID",
+			"message": "invalid UUID"
+		}`,
+		res.Body.String(),
+	)
+
+	orders := repo.FindAll()
+	assert.Len(t, orders, 2)
 }

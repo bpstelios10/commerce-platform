@@ -1,6 +1,10 @@
 package order
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/google/uuid"
+)
 
 type OrderStatus string
 
@@ -12,7 +16,7 @@ const (
 )
 
 type Order struct {
-	ID        string      `json:"id"`
+	ID        uuid.UUID   `json:"id"`
 	ProductID string      `json:"product_id"`
 	Quantity  int         `json:"quantity"`
 	Status    OrderStatus `json:"status"`

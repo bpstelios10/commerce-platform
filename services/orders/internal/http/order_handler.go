@@ -2,11 +2,13 @@ package http
 
 import (
 	"commerce-platform/services/orders/internal/service"
+	"commerce-platform/services/orders/internal/validation"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type OrderHandler struct {
@@ -35,7 +37,13 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	idParam := chi.URLParam(r, "id")
+	id, err := validation.GetValidUUID(idParam)
+	if err != nil {
+		HandleError(w, err)
+		return
+	}
+
 	o, err := h.orderService.GetOrderByID(id)
 
 	if err != nil {
@@ -65,7 +73,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("create order request received", "request", req)
-	if err = h.orderService.CreateOrder(r.Context(), req.ID, req.ProductID, req.Quantity); err != nil {
+	if err = h.orderService.CreateOrder(r.Context(), uuid.MustParse(req.ID), req.ProductID, req.Quantity); err != nil {
 		HandleError(w, err)
 		return
 	}
@@ -74,12 +82,17 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	idParam := chi.URLParam(r, "id")
+	id, err := validation.GetValidUUID(idParam)
+	if err != nil {
+		HandleError(w, err)
+		return
+	}
 	slog.Info("update order request received", "orderId", id)
 
 	var req UpdateOrderRequest
 
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		slog.Warn("validation error occurred while updating order", "error", err)
 		HandleError(w, service.ErrInvalidOrder)
@@ -103,7 +116,12 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	idParam := chi.URLParam(r, "id")
+	id, err := validation.GetValidUUID(idParam)
+	if err != nil {
+		HandleError(w, err)
+		return
+	}
 
 	h.orderService.DeleteOrder(id)
 

@@ -4,11 +4,16 @@ import (
 	"sync"
 
 	"commerce-platform/services/orders/internal/order"
+
+	"github.com/google/uuid"
 )
 
 var (
 	FirstProductID  = "f47ac10b-58cc-4372-a567-0e02b2c3d001"
 	SecondProductID = "f47ac10b-58cc-4372-a567-0e02b2c3d002"
+
+	FirstOrderID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d011")
+	SecondOrderID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d012")
 )
 
 // InMemoryOrderRepository is shared across goroutines (one instance, called from
@@ -20,20 +25,20 @@ var (
 // are exclusive. Rule of thumb: reads take RLock, writes take Lock.
 type InMemoryOrderRepository struct {
 	mu     sync.RWMutex
-	orders map[string]order.Order
+	orders map[uuid.UUID]order.Order
 }
 
 func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 	return &InMemoryOrderRepository{
-		orders: map[string]order.Order{
-			"1": {
-				ID:        "1",
+		orders: map[uuid.UUID]order.Order{
+			FirstOrderID: {
+				ID:        FirstOrderID,
 				ProductID: FirstProductID,
 				Quantity:  2,
 				Status:    order.CREATED,
 			},
-			"2": {
-				ID:        "2",
+			SecondOrderID: {
+				ID:        SecondOrderID,
 				ProductID: SecondProductID,
 				Quantity:  1,
 				Status:    order.PAID,
@@ -56,7 +61,7 @@ func (repo *InMemoryOrderRepository) FindAll() []order.Order {
 	return orders
 }
 
-func (repo *InMemoryOrderRepository) FindByID(id string) (order.Order, bool) {
+func (repo *InMemoryOrderRepository) FindByID(id uuid.UUID) (order.Order, bool) {
 	// read-only: RLock.
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
@@ -82,7 +87,7 @@ func (repo *InMemoryOrderRepository) Update(o order.Order) {
 	repo.orders[o.ID] = o
 }
 
-func (repo *InMemoryOrderRepository) Delete(id string) {
+func (repo *InMemoryOrderRepository) Delete(id uuid.UUID) {
 	// mutates the map: exclusive Lock.
 	repo.mu.Lock()
 	defer repo.mu.Unlock()

@@ -5,14 +5,16 @@ import (
 	"commerce-platform/services/orders/internal/order"
 	"context"
 	"log/slog"
+
+	"github.com/google/uuid"
 )
 
 type OrderRepository interface {
 	FindAll() []order.Order
-	FindByID(id string) (order.Order, bool)
+	FindByID(id uuid.UUID) (order.Order, bool)
 	Save(order.Order)
 	Update(order.Order)
-	Delete(id string)
+	Delete(id uuid.UUID)
 }
 
 type ProductsClient interface {
@@ -32,7 +34,7 @@ func (s *OrderService) GetOrders() []order.Order {
 	return s.orderRepository.FindAll()
 }
 
-func (s *OrderService) GetOrderByID(id string) (order.Order, error) {
+func (s *OrderService) GetOrderByID(id uuid.UUID) (order.Order, error) {
 	o, found := s.orderRepository.FindByID(id)
 
 	if !found {
@@ -43,7 +45,7 @@ func (s *OrderService) GetOrderByID(id string) (order.Order, error) {
 	return o, nil
 }
 
-func (s *OrderService) CreateOrder(ctx context.Context, id string, productID string, quantity int) error {
+func (s *OrderService) CreateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int) error {
 	if err := s.validateProductExists(ctx, productID); err != nil {
 		return err
 	}
@@ -61,7 +63,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, id string, productID str
 	return nil
 }
 
-func (s *OrderService) UpdateOrder(ctx context.Context, id string, productID string, quantity int, status order.OrderStatus) error {
+func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) error {
 	if _, err := s.GetOrderByID(id); err != nil {
 		return err
 	}
@@ -83,7 +85,7 @@ func (s *OrderService) UpdateOrder(ctx context.Context, id string, productID str
 	return nil
 }
 
-func (s *OrderService) DeleteOrder(id string) {
+func (s *OrderService) DeleteOrder(id uuid.UUID) {
 	slog.Info("attempting to delete order with", "productId", id)
 
 	s.orderRepository.Delete(id)
