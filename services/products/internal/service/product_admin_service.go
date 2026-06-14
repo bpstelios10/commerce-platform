@@ -22,7 +22,8 @@ func NewAdminService(productService *ProductService, repo ProductWriter) *AdminS
 	return &AdminService{productService: productService, repo: repo}
 }
 
-func (s *AdminService) CreateProduct(id uuid.UUID, name string, price float64) {
+func (s *AdminService) CreateProduct(name string, price float64) (product.Product, error) {
+	id, _ := uuid.NewV7()
 	p := product.Product{
 		ID:    id,
 		Name:  name,
@@ -32,6 +33,8 @@ func (s *AdminService) CreateProduct(id uuid.UUID, name string, price float64) {
 	slog.Info("creating product", "product", p)
 
 	s.repo.Save(p)
+
+	return p, nil
 }
 
 func (s *AdminService) UpdateProduct(id uuid.UUID, name string, price float64) error {

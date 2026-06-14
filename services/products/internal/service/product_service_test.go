@@ -9,6 +9,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestGetProducts_WhenProductExists_ReturnsProducts(t *testing.T) {
+	repo := repository.NewInMemoryProductRepository()
+	svc := NewProductService(repo)
+
+	p := svc.GetProducts()
+
+	assert.Equal(t, 2, len(p))
+}
+
 func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	repo := repository.NewInMemoryProductRepository()
 	svc := NewProductService(repo)

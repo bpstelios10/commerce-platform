@@ -2,8 +2,10 @@ package httpx
 
 import (
 	"bytes"
+	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -44,13 +46,11 @@ func TestGetAdmin_Returns200(t *testing.T) {
 
 func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	r, repo := setupAdminHandlerTest(t)
-	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/admin/products",
 		bytes.NewBufferString(`{
-			"id": "`+id.String()+`",
 			"name": "iPad",
 			"price": 999
 		}`),
@@ -60,12 +60,23 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	r.ServeHTTP(res, req)
 
 	assert.Equal(t, http.StatusCreated, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
 
-	p, exists := repo.FindByID(id)
+	// decode response to get the server-assigned ID
+	var created product.Product
+	err := json.Unmarshal(res.Body.Bytes(), &created)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, created.ID)
+	assert.Equal(t, "iPad", created.Name)
+	assert.Equal(t, float64(999), created.Price)
+	assert.Equal(t, "/products/"+created.ID.String(), res.Header().Get("Location"))
+
+	// verify it was actually persisted
+	p, exists := repo.FindByID(created.ID)
 	assert.True(t, exists)
-	assert.Equal(t, id, p.ID)
-	assert.Equal(t, "iPad", p.Name)
-	assert.Equal(t, 999.0, p.Price)
+	assert.Equal(t, created.ID, p.ID)
+	assert.Equal(t, created.Name, p.Name)
+	assert.Equal(t, created.Price, p.Price)
 }
 
 func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
@@ -116,7 +127,7 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "id cannot be blank.; name cannot be blank.; price must be > 0."
+			"message": "name cannot be blank.; price must be > 0."
 		}`,
 		res.Body.String(),
 	)

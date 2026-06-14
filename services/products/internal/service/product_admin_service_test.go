@@ -20,50 +20,26 @@ func setup(t *testing.T) (*AdminService, *repository.InMemoryProductRepository) 
 
 func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 	svc, repo := setup(t)
-	id, _ := uuid.NewV7()
 
-	svc.CreateProduct(id, "MacBook Pro M4", 2501.0)
-	p, exists := repo.FindByID(id)
+	p, err := svc.CreateProduct("MacBook Pro M4", 2501.0)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
+	p, exists := repo.FindByID(p.ID)
 
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
-		ID:    id,
+		ID:    p.ID,
 		Name:  "MacBook Pro M4",
 		Price: 2501.0,
 	}, p)
 }
 
-// TODO maybe fix this behavior?
-func TestCreateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
+func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	svc, repo := setup(t)
-
-	// product exists
-	p, exists := repo.FindByID(repository.FirstUUID)
-
-	assert.True(t, exists)
-	assert.Equal(t, product.Product{
-		ID:    repository.FirstUUID,
-		Name:  "MacBook Pro",
-		Price: 2500.0,
-	}, p)
-
-	svc.CreateProduct(repository.FirstUUID, "MacBook Pro M4", 2501.0)
-	p, exists = repo.FindByID(repository.FirstUUID)
-
-	assert.True(t, exists)
-	assert.Equal(t, product.Product{
-		ID:    repository.FirstUUID,
-		Name:  "MacBook Pro M4",
-		Price: 2501.0,
-	}, p)
-}
-
-// TODO maybe fix this behavior?
-func TestUpdateProduct_WhenProductNotExists_CreatesProduct(t *testing.T) {
-	svc, repo := setup(t)
-	id, _ := uuid.NewV7()
-
 	// product does not exist
+	id, _ := uuid.NewV7()
+
 	_, exists := repo.FindByID(id)
 
 	assert.False(t, exists)

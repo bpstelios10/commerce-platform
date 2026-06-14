@@ -9,7 +9,6 @@ import (
 	"commerce-platform/services/products/internal/validation"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 type AdminHandler struct {
@@ -48,9 +47,12 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("create product request received", "request", req)
 
-	h.adminService.CreateProduct(uuid.MustParse(req.ID), req.Name, req.Price)
+	p, err := h.adminService.CreateProduct(req.Name, req.Price)
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Location", "/products/"+p.ID.String())
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(p)
 }
 
 func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {

@@ -16,9 +16,6 @@ func (e ValidationError) Error() string {
 func validateCreateProduct(req CreateProductRequest) error {
 	validationError := ValidationError{}
 
-	if len(strings.TrimSpace(req.ID)) == 0 {
-		validationError.Errors = append(validationError.Errors, "id cannot be blank.")
-	}
 	if len(strings.TrimSpace(req.Name)) == 0 {
 		validationError.Errors = append(validationError.Errors, "name cannot be blank.")
 	}

@@ -17,48 +17,14 @@ func TestValidateCreateProduct(t *testing.T) {
 		{
 			name: "valid product",
 			request: CreateProductRequest{
-				ID:    "1",
 				Name:  "MacBook Pro",
 				Price: 2500,
 			},
 			expectError: false,
 		},
 		{
-			name: "missing id",
-			request: CreateProductRequest{
-				Name:  "MacBook Pro",
-				Price: 2500,
-			},
-			expectError:          true,
-			numberOfErrors:       1,
-			expectedErrorMessage: "id cannot be blank.",
-		},
-		{
-			name: "empty id",
-			request: CreateProductRequest{
-				ID:    "",
-				Name:  "MacBook Pro",
-				Price: 2500,
-			},
-			expectError:          true,
-			numberOfErrors:       1,
-			expectedErrorMessage: "id cannot be blank.",
-		},
-		{
-			name: "blank id",
-			request: CreateProductRequest{
-				ID:    "  ",
-				Name:  "MacBook Pro",
-				Price: 2500,
-			},
-			expectError:          true,
-			numberOfErrors:       1,
-			expectedErrorMessage: "id cannot be blank.",
-		},
-		{
 			name: "missing name",
 			request: CreateProductRequest{
-				ID:    "1",
 				Price: 2500,
 			},
 			expectError:          true,
@@ -68,7 +34,6 @@ func TestValidateCreateProduct(t *testing.T) {
 		{
 			name: "empty name",
 			request: CreateProductRequest{
-				ID:    "1",
 				Name:  "",
 				Price: 2500,
 			},
@@ -79,7 +44,6 @@ func TestValidateCreateProduct(t *testing.T) {
 		{
 			name: "blank name",
 			request: CreateProductRequest{
-				ID:    "1",
 				Name:  "   ",
 				Price: 2500,
 			},
@@ -90,7 +54,6 @@ func TestValidateCreateProduct(t *testing.T) {
 		{
 			name: "missing price",
 			request: CreateProductRequest{
-				ID:   "1",
 				Name: "MacBook Pro",
 			},
 			expectError:          true,
@@ -100,7 +63,6 @@ func TestValidateCreateProduct(t *testing.T) {
 		{
 			name: "negative price",
 			request: CreateProductRequest{
-				ID:    "1",
 				Name:  "MacBook Pro",
 				Price: -100,
 			},
@@ -111,7 +73,6 @@ func TestValidateCreateProduct(t *testing.T) {
 		{
 			name: "zero price",
 			request: CreateProductRequest{
-				ID:    "1",
 				Name:  "MacBook Pro",
 				Price: 0,
 			},
@@ -120,15 +81,14 @@ func TestValidateCreateProduct(t *testing.T) {
 			expectedErrorMessage: "price must be > 0.",
 		},
 		{
-			name: "missing id and name, zero price",
+			name: "missing name, zero price",
 			request: CreateProductRequest{
-				ID:    "",
 				Name:  "",
 				Price: 0,
 			},
 			expectError:          true,
-			numberOfErrors:       3,
-			expectedErrorMessage: "id cannot be blank.; name cannot be blank.; price must be > 0.",
+			numberOfErrors:       2,
+			expectedErrorMessage: "name cannot be blank.; price must be > 0.",
 		},
 	}
 
