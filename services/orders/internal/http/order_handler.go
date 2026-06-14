@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 type OrderHandler struct {
@@ -73,12 +72,16 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("create order request received", "request", req)
-	if err = h.orderService.CreateOrder(r.Context(), uuid.MustParse(req.ID), req.ProductID, req.Quantity); err != nil {
+	o, err := h.orderService.CreateOrder(r.Context(), req.ProductID, req.Quantity)
+	if err != nil {
 		HandleError(w, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Location", "/orders/"+o.ID.String())
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(o)
 }
 
 func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {

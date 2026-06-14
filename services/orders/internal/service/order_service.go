@@ -45,10 +45,12 @@ func (s *OrderService) GetOrderByID(id uuid.UUID) (order.Order, error) {
 	return o, nil
 }
 
-func (s *OrderService) CreateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int) error {
+func (s *OrderService) CreateOrder(ctx context.Context, productID string, quantity int) (order.Order, error) {
 	if err := s.validateProductExists(ctx, productID); err != nil {
-		return err
+		return order.Order{}, err
 	}
+
+	id, _ := uuid.NewV7()
 
 	o := order.Order{
 		ID:        id,
@@ -60,7 +62,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, id uuid.UUID, productID 
 	slog.Info("creating", "order", o)
 
 	s.orderRepository.Save(o)
-	return nil
+	return o, nil
 }
 
 func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) error {

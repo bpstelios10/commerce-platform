@@ -42,7 +42,7 @@ func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
 
 	orders := svc.GetOrders()
 
-	assert.Equal(t, 2, len(orders))
+	assert.Len(t, orders, 2)
 }
 
 func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
@@ -70,15 +70,14 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 
 func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
 	svc, repo, _ := setup(t)
-	id, _ := uuid.NewV7()
 
-	err := svc.CreateOrder(context.Background(), id, repository.FirstProductID, 10)
+	o, err := svc.CreateOrder(context.Background(), repository.FirstProductID, 10)
 
 	assert.NoError(t, err)
-	o, exists := repo.FindByID(id)
+	o, exists := repo.FindByID(o.ID)
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
-		ID:        id,
+		ID:        o.ID,
 		ProductID: repository.FirstProductID,
 		Quantity:  10,
 		Status:    order.CREATED,
@@ -87,13 +86,13 @@ func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
 
 func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	svc, repo, _ := setup(t)
-	id, _ := uuid.NewV7()
 
-	err := svc.CreateOrder(context.Background(), id, "999", 10)
+	o, err := svc.CreateOrder(context.Background(), "999", 10)
 
 	assert.ErrorIs(t, err, ErrProductNotFound)
-	_, exists := repo.FindByID(id)
-	assert.False(t, exists)
+	assert.Empty(t, o)
+	orders := repo.FindAll()
+	assert.Len(t, orders, 2)
 }
 
 func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {

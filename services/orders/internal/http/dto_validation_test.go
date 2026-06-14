@@ -18,48 +18,14 @@ func TestValidateCreateOrder(t *testing.T) {
 		{
 			name: "valid Order",
 			request: CreateOrderRequest{
-				ID:        "1",
 				ProductID: "1",
 				Quantity:  10,
 			},
 			expectError: false,
 		},
 		{
-			name: "missing id",
-			request: CreateOrderRequest{
-				ProductID: "1",
-				Quantity:  10,
-			},
-			expectError:          true,
-			numberOfErrors:       1,
-			expectedErrorMessage: "id cannot be blank.",
-		},
-		{
-			name: "empty id",
-			request: CreateOrderRequest{
-				ID:        "",
-				ProductID: "1",
-				Quantity:  10,
-			},
-			expectError:          true,
-			numberOfErrors:       1,
-			expectedErrorMessage: "id cannot be blank.",
-		},
-		{
-			name: "blank id",
-			request: CreateOrderRequest{
-				ID:        "  ",
-				ProductID: "1",
-				Quantity:  10,
-			},
-			expectError:          true,
-			numberOfErrors:       1,
-			expectedErrorMessage: "id cannot be blank.",
-		},
-		{
 			name: "missing product id",
 			request: CreateOrderRequest{
-				ID:       "1",
 				Quantity: 10,
 			},
 			expectError:          true,
@@ -69,7 +35,6 @@ func TestValidateCreateOrder(t *testing.T) {
 		{
 			name: "empty product id",
 			request: CreateOrderRequest{
-				ID:        "1",
 				ProductID: "",
 				Quantity:  10,
 			},
@@ -80,7 +45,6 @@ func TestValidateCreateOrder(t *testing.T) {
 		{
 			name: "blank product id",
 			request: CreateOrderRequest{
-				ID:        "1",
 				ProductID: "   ",
 				Quantity:  10,
 			},
@@ -91,7 +55,6 @@ func TestValidateCreateOrder(t *testing.T) {
 		{
 			name: "missing quantity",
 			request: CreateOrderRequest{
-				ID:        "1",
 				ProductID: "1",
 			},
 			expectError:          true,
@@ -101,7 +64,6 @@ func TestValidateCreateOrder(t *testing.T) {
 		{
 			name: "negative quantity",
 			request: CreateOrderRequest{
-				ID:        "1",
 				ProductID: "1",
 				Quantity:  -100,
 			},
@@ -112,7 +74,6 @@ func TestValidateCreateOrder(t *testing.T) {
 		{
 			name: "zero quantity",
 			request: CreateOrderRequest{
-				ID:        "1",
 				ProductID: "1",
 				Quantity:  0,
 			},
@@ -121,15 +82,14 @@ func TestValidateCreateOrder(t *testing.T) {
 			expectedErrorMessage: "quantity must be > 0.",
 		},
 		{
-			name: "missing id and product id, zero quantity",
+			name: "missing product id, zero quantity",
 			request: CreateOrderRequest{
-				ID:        "",
 				ProductID: "",
 				Quantity:  0,
 			},
 			expectError:          true,
-			numberOfErrors:       3,
-			expectedErrorMessage: "id cannot be blank.; product-id cannot be blank.; quantity must be > 0.",
+			numberOfErrors:       2,
+			expectedErrorMessage: "product-id cannot be blank.; quantity must be > 0.",
 		},
 	}
 

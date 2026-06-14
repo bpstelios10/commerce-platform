@@ -161,13 +161,11 @@ func TestGetOrder_WhenBadUUID_Returns400(t *testing.T) {
 
 func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
-	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/orders",
 		bytes.NewBufferString(`{
-			"id": "`+id.String()+`",
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 1
 		}`),
@@ -178,22 +176,33 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, res.Code)
 
-	p, exists := repo.FindByID(id)
+	assert.Equal(t, http.StatusCreated, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+
+	// decode response to get the server-assigned ID
+	var created order.Order
+	err := json.Unmarshal(res.Body.Bytes(), &created)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, created.ID) // a UUID was assigned
+	assert.Equal(t, repository.FirstProductID, created.ProductID)
+	assert.Equal(t, 1, created.Quantity)
+	assert.Equal(t, order.CREATED, created.Status)
+	assert.Equal(t, "/orders/"+created.ID.String(), res.Header().Get("Location"))
+
+	// verify it was actually persisted
+	p, exists := repo.FindByID(created.ID)
 	assert.True(t, exists)
-	assert.Equal(t, id, p.ID)
+	assert.Equal(t, created.ID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
-	assert.Equal(t, 1, p.Quantity)
 }
 
 func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
-	id, _ := uuid.NewV7()
 
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/orders",
 		bytes.NewBufferString(`{
-			"id": "`+id.String()+`",
 			"product_id": "999",
 			"quantity": 1
 		}`),
@@ -213,8 +222,8 @@ func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		res.Body.String(),
 	)
 
-	_, exists := repo.FindByID(id)
-	assert.False(t, exists)
+	orders := repo.FindAll()
+	assert.Len(t, orders, 2)
 }
 
 func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
@@ -250,7 +259,6 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 		http.MethodPost,
 		"/orders",
 		bytes.NewBufferString(`{
-			"id": "",
 			"product_id": "",
 			"quantity": 0
 		}`),
@@ -265,7 +273,7 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "id cannot be blank.; product-id cannot be blank.; quantity must be > 0."
+			"message": "product-id cannot be blank.; quantity must be > 0."
 		}`,
 		res.Body.String(),
 	)
