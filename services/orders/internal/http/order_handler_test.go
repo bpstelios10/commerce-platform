@@ -303,6 +303,17 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	r.ServeHTTP(res, req)
 
 	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"id": "`+repository.FirstOrderID.String()+`",
+			"product_id": "`+repository.FirstProductID+`",
+			"quantity": 2,
+			"status": "PAID"
+		}`,
+		res.Body.String(),
+	)
 
 	p, exists = repo.FindByID(repository.FirstOrderID)
 	assert.True(t, exists)
@@ -336,6 +347,17 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 	r.ServeHTTP(res, req)
 
 	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"id": "`+repository.FirstOrderID.String()+`",
+			"product_id": "`+repository.FirstProductID+`",
+			"quantity": 2,
+			"status": "PAID"
+		}`,
+		res.Body.String(),
+	)
 
 	p, exists = repo.FindByID(repository.FirstOrderID)
 	assert.True(t, exists)

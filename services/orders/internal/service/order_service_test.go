@@ -99,7 +99,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	svc, repo, _ := setup(t)
 	id, _ := uuid.NewV7()
 
-	err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELLED)
+	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELLED)
 
 	assert.Error(t, err)
 
@@ -108,6 +108,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	assert.False(t, exists)
 	assert.ErrorIs(t, err, ErrOrderNotFound)
 	assert.Empty(t, o)
+	assert.Empty(t, updated)
 }
 
 func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
@@ -122,11 +123,17 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 		Status:    order.CREATED,
 	}, o)
 
-	err := svc.UpdateOrder(context.Background(), repository.FirstOrderID, repository.FirstProductID, 11, order.PAID)
+	updated, err := svc.UpdateOrder(context.Background(), repository.FirstOrderID, repository.FirstProductID, 11, order.PAID)
 
 	o, exists = repo.FindByID(repository.FirstOrderID)
 
 	assert.NoError(t, err)
+	assert.Equal(t, order.Order{
+		ID:        repository.FirstOrderID,
+		ProductID: repository.FirstProductID,
+		Quantity:  11,
+		Status:    order.PAID,
+	}, updated)
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        repository.FirstOrderID,
@@ -139,9 +146,10 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	svc, repo, _ := setup(t)
 
-	err := svc.UpdateOrder(context.Background(), repository.FirstOrderID, "999", 11, order.PAID)
+	updated, err := svc.UpdateOrder(context.Background(), repository.FirstOrderID, "999", 11, order.PAID)
 
 	assert.ErrorIs(t, err, ErrProductNotFound)
+	assert.Empty(t, updated)
 
 	// order unchanged
 	o, exists := repo.FindByID(repository.FirstOrderID)

@@ -110,12 +110,15 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("update order", "request", req)
-	if err = h.orderService.UpdateOrder(r.Context(), id, req.ProductID, req.Quantity, req.Status); err != nil {
+	o, err := h.orderService.UpdateOrder(r.Context(), id, req.ProductID, req.Quantity, req.Status)
+	if err != nil {
 		HandleError(w, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(o)
 }
 
 func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
