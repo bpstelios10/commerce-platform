@@ -5,7 +5,6 @@ import (
 	"commerce-platform/services/orders/internal/validation"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 )
 
@@ -57,7 +56,7 @@ func HandleError(w http.ResponseWriter, err error) {
 		)
 
 	default:
-		slog.Warn("unexpected error handled, with", "error", err)
+		log().Warn("unexpected error handled, with", "error", err)
 		writeError(
 			w,
 			http.StatusInternalServerError,

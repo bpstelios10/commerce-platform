@@ -6,18 +6,23 @@ import (
 )
 
 type Config struct {
-	Service string
-	Env     string
-	Level   slog.Level
+	Service   string
+	Env       string
+	Component string
+	Level     slog.Level
 }
 
 func New(cfg Config) *slog.Logger {
 	if cfg.Service == "" {
-		cfg.Service = "unknown-service"
+		cfg.Service = "N/D"
 	}
 
 	if cfg.Env == "" {
 		cfg.Env = "local"
+	}
+
+	if cfg.Component == "" {
+		cfg.Component = "N/D"
 	}
 
 	if cfg.Level == 0 {
@@ -39,6 +44,7 @@ func New(cfg Config) *slog.Logger {
 	logger := slog.New(handler).With(
 		"service", cfg.Service,
 		"env", cfg.Env,
+		"component", cfg.Component,
 	)
 
 	return logger

@@ -22,12 +22,15 @@ type ProductsClient interface {
 }
 
 type OrderService struct {
+	logger          *slog.Logger
 	orderRepository OrderRepository
 	productsClient  ProductsClient
 }
 
 func NewOrderService(repository OrderRepository, productsClient ProductsClient) *OrderService {
-	return &OrderService{orderRepository: repository, productsClient: productsClient}
+	logger := slog.Default().With("component", "orders.service")
+
+	return &OrderService{logger: logger, orderRepository: repository, productsClient: productsClient}
 }
 
 func (s *OrderService) GetOrders() []order.Order {
@@ -38,7 +41,7 @@ func (s *OrderService) GetOrderByID(id uuid.UUID) (order.Order, error) {
 	o, found := s.orderRepository.FindByID(id)
 
 	if !found {
-		slog.Warn("Order Not found, with", "ID", id)
+		s.log().Warn("Order Not found, with", "ID", id)
 		return order.Order{}, ErrOrderNotFound
 	}
 
@@ -59,7 +62,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 		Status:    order.CREATED,
 	}
 
-	slog.Info("creating", "order", o)
+	s.log().Info("creating", "order", o)
 
 	s.orderRepository.Save(o)
 	return o, nil
@@ -81,14 +84,14 @@ func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID 
 		Status:    status,
 	}
 
-	slog.Info("updating", "order", o)
+	s.log().Info("updating", "order", o)
 
 	s.orderRepository.Update(o)
 	return o, nil
 }
 
 func (s *OrderService) DeleteOrder(id uuid.UUID) {
-	slog.Info("attempting to delete order with", "productId", id)
+	s.log().Info("attempting to delete order with", "productId", id)
 
 	s.orderRepository.Delete(id)
 }
@@ -97,8 +100,12 @@ func (s *OrderService) DeleteOrder(id uuid.UUID) {
 func (s *OrderService) validateProductExists(ctx context.Context, productID string) error {
 	_, err := s.productsClient.GetProductByID(ctx, productID)
 	if err != nil {
-		slog.Warn("product not found for given product id", "productId", productID)
+		s.log().Warn("product not found for given product id", "productId", productID)
 		return ErrProductNotFound
 	}
 	return nil
+}
+
+func (s *OrderService) log() *slog.Logger {
+	return s.logger
 }

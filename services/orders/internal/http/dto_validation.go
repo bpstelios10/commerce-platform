@@ -1,7 +1,6 @@
 package http
 
 import (
-	"log/slog"
 	"strings"
 )
 
@@ -24,7 +23,7 @@ func validateCreateOrder(req CreateOrderRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		slog.Warn("invalid create order request", "errors", validationError.Errors)
+		log().Warn("invalid create order request", "errors", validationError.Errors)
 
 		return validationError
 	}
@@ -46,7 +45,7 @@ func validateUpdateOrder(req UpdateOrderRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		slog.Warn("invalid create order request", "errors", validationError.Errors)
+		log().Warn("invalid update order request", "errors", validationError.Errors)
 
 		return validationError
 	}

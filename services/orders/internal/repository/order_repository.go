@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"log/slog"
 	"sync"
 
 	"commerce-platform/services/orders/internal/order"
@@ -24,12 +25,14 @@ var (
 // We use RWMutex (not plain Mutex) so multiple reads can run in parallel; only writes
 // are exclusive. Rule of thumb: reads take RLock, writes take Lock.
 type InMemoryOrderRepository struct {
+	logger *slog.Logger
 	mu     sync.RWMutex
 	orders map[uuid.UUID]order.Order
 }
 
 func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 	return &InMemoryOrderRepository{
+		logger: slog.Default().With("component", "orders.repository"),
 		orders: map[uuid.UUID]order.Order{
 			FirstOrderID: {
 				ID:        FirstOrderID,
@@ -77,6 +80,7 @@ func (repo *InMemoryOrderRepository) Save(o order.Order) {
 	defer repo.mu.Unlock()
 
 	repo.orders[o.ID] = o
+	repo.log().Info("order saved", "orderId", o.ID, "productId", o.ProductID)
 }
 
 func (repo *InMemoryOrderRepository) Update(o order.Order) {
@@ -85,6 +89,7 @@ func (repo *InMemoryOrderRepository) Update(o order.Order) {
 	defer repo.mu.Unlock()
 
 	repo.orders[o.ID] = o
+	repo.log().Info("order updated", "orderId", o.ID, "productId", o.ProductID)
 }
 
 func (repo *InMemoryOrderRepository) Delete(id uuid.UUID) {
@@ -93,4 +98,9 @@ func (repo *InMemoryOrderRepository) Delete(id uuid.UUID) {
 	defer repo.mu.Unlock()
 
 	delete(repo.orders, id)
+	repo.log().Info("order deleted", "orderId", id)
+}
+
+func (repo *InMemoryOrderRepository) log() *slog.Logger {
+	return repo.logger
 }

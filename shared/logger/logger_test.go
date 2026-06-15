@@ -42,17 +42,19 @@ func TestNew_UsesFallbackFieldsAndInfoLevelByDefault(t *testing.T) {
 
 	assert.Contains(t, out, "level=INFO")
 	assert.Contains(t, out, "msg=hello-default")
-	assert.Contains(t, out, "service=unknown-service")
+	assert.Contains(t, out, "service=N/D")
 	assert.Contains(t, out, "env=local")
+	assert.Contains(t, out, "component=N/D")
 	assert.NotContains(t, out, "debug-should-not-appear")
 }
 
 func TestNew_UsesProvidedFieldsAndLevel(t *testing.T) {
 	out := captureStdout(t, func() {
 		logger := New(Config{
-			Service: "orders",
-			Env:     "dev",
-			Level:   slog.LevelDebug,
+			Service:   "orders",
+			Env:       "dev",
+			Component: "payment",
+			Level:     slog.LevelDebug,
 		})
 		logger.Debug("hello-debug")
 	})
@@ -72,5 +74,6 @@ func TestNew_UsesProvidedFieldsAndLevel(t *testing.T) {
 	assert.Equal(t, "DEBUG", entry["level"])
 	assert.Equal(t, "hello-debug", entry["msg"])
 	assert.Equal(t, "orders", entry["service"])
+	assert.Equal(t, "payment", entry["component"])
 	assert.Equal(t, "dev", entry["env"])
 }

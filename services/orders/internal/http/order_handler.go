@@ -11,11 +11,15 @@ import (
 )
 
 type OrderHandler struct {
+	logger       *slog.Logger
 	orderService *service.OrderService
 }
 
 func NewOrderHandler(orderService *service.OrderService) *OrderHandler {
-	return &OrderHandler{orderService: orderService}
+	return &OrderHandler{
+		logger:       log(),
+		orderService: orderService,
+	}
 }
 
 func (h *OrderHandler) RegisterRoutes(r chi.Router) {
@@ -29,7 +33,7 @@ func (h *OrderHandler) RegisterRoutes(r chi.Router) {
 func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	orders := h.orderService.GetOrders()
 
-	slog.Info("orders retrieved", "count", len(orders))
+	h.log().Info("orders retrieved", "count", len(orders))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(orders)
@@ -50,7 +54,7 @@ func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("order was found, with", "orderId", id)
+	h.log().Info("order was found, with", "orderId", id)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(o)
@@ -61,7 +65,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		slog.Warn("validation error occurred while creating order", "error", err)
+		h.log().Warn("validation error occurred while creating order", "error", err)
 		HandleError(w, service.ErrInvalidOrder)
 		return
 	}
@@ -71,7 +75,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("create order request received", "request", req)
+	h.log().Info("create order request received", "request", req)
 	o, err := h.orderService.CreateOrder(r.Context(), req.ProductID, req.Quantity)
 	if err != nil {
 		HandleError(w, err)
@@ -91,13 +95,13 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, err)
 		return
 	}
-	slog.Info("update order request received", "orderId", id)
+	h.log().Info("update order request received", "orderId", id)
 
 	var req UpdateOrderRequest
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		slog.Warn("validation error occurred while updating order", "error", err)
+		h.log().Warn("validation error occurred while updating order", "error", err)
 		HandleError(w, service.ErrInvalidOrder)
 		return
 	}
@@ -109,7 +113,7 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("update order", "request", req)
+	h.log().Info("update order", "request", req)
 	o, err := h.orderService.UpdateOrder(r.Context(), id, req.ProductID, req.Quantity, req.Status)
 	if err != nil {
 		HandleError(w, err)
@@ -132,4 +136,8 @@ func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	h.orderService.DeleteOrder(id)
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *OrderHandler) log() *slog.Logger {
+	return h.logger
 }
