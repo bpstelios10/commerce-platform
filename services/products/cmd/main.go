@@ -11,6 +11,7 @@ import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
+	"commerce-platform/shared/logger"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -18,6 +19,14 @@ import (
 )
 
 func main() {
+	// import shared logger
+	logger := logger.New(logger.Config{
+		Service: "products",
+		Env:     "local",
+		Level:   slog.LevelInfo,
+	})
+	slog.SetDefault(logger)
+
 	product1 := product.Product{
 		ID:    uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
 		Name:  "MacBook Pro",
