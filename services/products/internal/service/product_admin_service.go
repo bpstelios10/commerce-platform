@@ -37,9 +37,9 @@ func (s *AdminService) CreateProduct(name string, price float64) (product.Produc
 	return p, nil
 }
 
-func (s *AdminService) UpdateProduct(id uuid.UUID, name string, price float64) error {
+func (s *AdminService) UpdateProduct(id uuid.UUID, name string, price float64) (product.Product, error) {
 	if _, err := s.productService.GetProductByID(id); err != nil {
-		return err
+		return product.Product{}, err
 	}
 
 	slog.Info("updating product with", "productId", id)
@@ -51,7 +51,7 @@ func (s *AdminService) UpdateProduct(id uuid.UUID, name string, price float64) e
 	}
 
 	s.repo.Update(p)
-	return nil
+	return p, nil
 }
 
 func (s *AdminService) DeleteProduct(id uuid.UUID) {

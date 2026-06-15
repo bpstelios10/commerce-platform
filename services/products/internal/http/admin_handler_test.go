@@ -149,6 +149,16 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	r.ServeHTTP(res, req)
 
 	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"id": "`+repository.SecondUUID.String()+`",
+			"name": "iPhone 15",
+			"price": 1500
+		}`,
+		res.Body.String(),
+	)
 
 	p, exists := repo.FindByID(repository.SecondUUID)
 	assert.True(t, exists)

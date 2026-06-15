@@ -79,12 +79,15 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("update product", "request", req)
 
-	if err = h.adminService.UpdateProduct(validUUID, req.Name, req.Price); err != nil {
+	p, err := h.adminService.UpdateProduct(validUUID, req.Name, req.Price)
+	if err != nil {
 		HandleError(w, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(p)
 }
 
 func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {

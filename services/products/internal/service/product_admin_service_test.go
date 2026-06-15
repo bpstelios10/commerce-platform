@@ -44,13 +44,14 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 
 	assert.False(t, exists)
 
-	err := svc.UpdateProduct(id, "whatever", 1201.0)
+	updated, err := svc.UpdateProduct(id, "whatever", 1201.0)
 	p, exists := repo.FindByID(id)
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrProductNotFound)
 	assert.False(t, exists)
 	assert.Empty(t, p)
+	assert.Empty(t, updated)
 }
 
 func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
@@ -66,10 +67,15 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Price: 1200.0,
 	}, p)
 
-	err := svc.UpdateProduct(repository.SecondUUID, "iPhone 7", 1201.0)
+	updated, err := svc.UpdateProduct(repository.SecondUUID, "iPhone 7", 1201.0)
 	p, exists = repo.FindByID(repository.SecondUUID)
 
 	assert.NoError(t, err)
+	assert.Equal(t, product.Product{
+		ID:    repository.SecondUUID,
+		Name:  "iPhone 7",
+		Price: 1201.0,
+	}, updated)
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
 		ID:    repository.SecondUUID,
