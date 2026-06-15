@@ -1,4 +1,4 @@
-.PHONY: all build run-all run-orders run-products test-all test-orders test-products test-v coverage lint tidy proto-server proto-client clean
+.PHONY: all build run-all run-orders run-products test-all test-orders test-products test-shared test-v coverage lint tidy proto-server proto-client clean
 
 SERVICES := orders products
 
@@ -25,6 +25,7 @@ run-all:
 # ── test ───────────────────────────────────────────────────────────────────────
 
 test-all:
+	go test -C shared            ./...
 	go test -C services/orders   ./...
 	go test -C services/products ./...
 
@@ -34,25 +35,33 @@ test-orders:
 test-products:
 	go test -C services/products ./...
 
+test-shared:
+	go test -C shared ./...
+
 test-v:
+	go test -C shared            -v ./...
 	go test -C services/orders   -v ./...
 	go test -C services/products -v ./...
 
 coverage:
+	go test -C shared            ./... -coverprofile=../coverage-shared.out
 	go test -C services/orders   ./... -coverprofile=../../coverage-orders.out
 	go test -C services/products ./... -coverprofile=../../coverage-products.out
+	go tool cover -html=coverage-shared.out
 	go tool cover -html=coverage-orders.out
 	go tool cover -html=coverage-products.out
 
 # ── lint ───────────────────────────────────────────────────────────────────────
 
 lint:
+	golangci-lint run ./shared/...
 	golangci-lint run ./services/orders/...
 	golangci-lint run ./services/products/...
 
 # ── tidy ───────────────────────────────────────────────────────────────────────
 
 tidy:
+	go mod tidy -C shared
 	go mod tidy -C services/orders
 	go mod tidy -C services/products
 	go work sync
@@ -83,4 +92,4 @@ proto-client:
 # ── clean ──────────────────────────────────────────────────────────────────────
 
 clean:
-	rm -rf bin/ coverage-orders.out coverage-products.out
+	rm -rf bin/ coverage-shared.out coverage-orders.out coverage-products.out
