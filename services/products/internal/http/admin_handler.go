@@ -48,7 +48,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("create product request received", "request", req)
 
-	p, err := h.adminService.CreateProduct(req.Name, product.ProductCategory(req.Category), req.Price)
+	p, err := h.adminService.CreateProduct(req.Name, product.ProductCategory(req.Category), req.Price, *req.Stock)
 	if err != nil {
 		HandleError(w, err)
 		return
@@ -84,7 +84,8 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("update product", "request", req)
 
-	p, err := h.adminService.UpdateProduct(validUUID, req.Name, product.ProductCategory(req.Category), req.Price)
+	// TODO the product-category shouldnt be a model. just a string should be fine
+	p, err := h.adminService.UpdateProduct(validUUID, req.Name, product.ProductCategory(req.Category), req.Price, *req.Stock)
 	if err != nil {
 		HandleError(w, err)
 		return

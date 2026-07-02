@@ -15,7 +15,7 @@ func TestGetProducts_WhenProductExists_ReturnsProducts(t *testing.T) {
 
 	p := svc.GetProducts()
 
-	assert.Equal(t, 2, len(p))
+	assert.Equal(t, 4, len(p))
 }
 
 func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
@@ -29,6 +29,7 @@ func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	assert.Equal(t, "MacBook Pro", p.Name)
 	assert.Equal(t, product.ProductCategory("ACCESSORY"), p.Category)
 	assert.Equal(t, 2500.0, p.Price)
+	assert.Equal(t, 10, p.Stock)
 }
 
 func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {

@@ -25,9 +25,12 @@ func validateCreateProduct(req CreateProductRequest) error {
 	if req.Price <= 0 {
 		validationError.Errors = append(validationError.Errors, "price must be > 0.")
 	}
+	if req.Stock == nil || *req.Stock < 0 {
+		validationError.Errors = append(validationError.Errors, "stock cannot be negative.")
+	}
 
 	if len(validationError.Errors) > 0 {
-		slog.Warn("invalid create order request", "errors", validationError.Errors)
+		slog.Warn("invalid create product request", "errors", validationError.Errors)
 
 		return validationError
 	}
@@ -47,9 +50,12 @@ func validateUpdateProduct(req UpdateProductRequest) error {
 	if req.Price <= 0 {
 		validationError.Errors = append(validationError.Errors, "price must be > 0.")
 	}
+	if req.Stock == nil || *req.Stock < 0 {
+		validationError.Errors = append(validationError.Errors, "stock cannot be negative.")
+	}
 
 	if len(validationError.Errors) > 0 {
-		slog.Warn("invalid create order request", "errors", validationError.Errors)
+		slog.Warn("invalid update product request", "errors", validationError.Errors)
 
 		return validationError
 	}

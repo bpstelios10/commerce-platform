@@ -23,6 +23,8 @@ type InMemoryProductRepository struct {
 var (
 	FirstUUID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001")
 	SecondUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002")
+	ThirdUUID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d003")
+	FourthUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d004")
 )
 
 func NewInMemoryProductRepository() *InMemoryProductRepository {
@@ -33,12 +35,28 @@ func NewInMemoryProductRepository() *InMemoryProductRepository {
 				Name:     "MacBook Pro",
 				Category: product.ProductCategory("ACCESSORY"),
 				Price:    2500,
+				Stock:    10,
 			},
 			SecondUUID: {
 				ID:       SecondUUID,
 				Name:     "iPhone",
 				Category: product.ProductCategory("ACCESSORY"),
 				Price:    1200,
+				Stock:    5,
+			},
+			ThirdUUID: {
+				ID:       ThirdUUID,
+				Name:     "hoodie Mykonos",
+				Category: product.ProductCategory("CLOTHES"),
+				Price:    80,
+				Stock:    8,
+			},
+			FourthUUID: {
+				ID:       FourthUUID,
+				Name:     "Eye necklace",
+				Category: product.ProductCategory("JEWELRY"),
+				Price:    150,
+				Stock:    15,
 			},
 		},
 	}

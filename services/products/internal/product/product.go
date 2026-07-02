@@ -7,6 +7,7 @@ type Product struct {
 	Name     string          `json:"name"`
 	Category ProductCategory `json:"category"`
 	Price    float64         `json:"price"`
+	Stock    int             `json:"stock"`
 }
 
 func (p Product) DisplayName() string {

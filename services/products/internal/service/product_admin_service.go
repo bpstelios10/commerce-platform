@@ -23,7 +23,7 @@ func NewAdminService(productService *ProductService, categoryService *ProductCat
 	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 
-func (s *AdminService) CreateProduct(name string, category product.ProductCategory, price float64) (product.Product, error) {
+func (s *AdminService) CreateProduct(name string, category product.ProductCategory, price float64, stock int) (product.Product, error) {
 	category = category.Normalize()
 	if err := s.categoryService.Validate(category); err != nil {
 		return product.Product{}, err
@@ -35,6 +35,7 @@ func (s *AdminService) CreateProduct(name string, category product.ProductCatego
 		Name:     name,
 		Category: category,
 		Price:    price,
+		Stock:    stock,
 	}
 
 	slog.Info("creating product", "product", p)
@@ -44,7 +45,7 @@ func (s *AdminService) CreateProduct(name string, category product.ProductCatego
 	return p, nil
 }
 
-func (s *AdminService) UpdateProduct(id uuid.UUID, name string, category product.ProductCategory, price float64) (product.Product, error) {
+func (s *AdminService) UpdateProduct(id uuid.UUID, name string, category product.ProductCategory, price float64, stock int) (product.Product, error) {
 	if _, err := s.productService.GetProductByID(id); err != nil {
 		return product.Product{}, err
 	}
@@ -61,6 +62,7 @@ func (s *AdminService) UpdateProduct(id uuid.UUID, name string, category product
 		Name:     name,
 		Category: category,
 		Price:    price,
+		Stock:    stock,
 	}
 
 	s.repo.Update(p)
