@@ -1,9 +1,9 @@
 package service
 
-import "commerce-platform/services/products/internal/product"
+import "strings"
 
 type ProductCategoryRepository interface {
-	Exists(category product.ProductCategory) bool
+	Exists(category string) bool
 }
 
 type ProductCategoryService struct {
@@ -14,9 +14,11 @@ func NewProductCategoryService(repo ProductCategoryRepository) *ProductCategoryS
 	return &ProductCategoryService{repo: repo}
 }
 
-func (s *ProductCategoryService) Validate(category product.ProductCategory) error {
-	if !s.repo.Exists(category) {
-		return ErrInvalidCategory
+func (s *ProductCategoryService) Validate(category string) (string, error) {
+	normalized := strings.ToUpper(strings.TrimSpace(category))
+	if !s.repo.Exists(normalized) {
+		return "", ErrInvalidCategory
 	}
-	return nil
+
+	return normalized, nil
 }

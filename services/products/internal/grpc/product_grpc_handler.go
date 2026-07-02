@@ -32,7 +32,7 @@ func (h *ProductGrpcHandler) GetProductByID(ctx context.Context, req *GetProduct
 	return &GetProductByIDResponse{
 		Id:       p.ID.String(),
 		Name:     p.Name,
-		Category: string(p.Category),
+		Category: p.Category,
 		Price:    p.Price,
 	}, nil
 }

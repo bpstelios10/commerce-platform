@@ -23,9 +23,9 @@ func NewAdminService(productService *ProductService, categoryService *ProductCat
 	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 
-func (s *AdminService) CreateProduct(name string, category product.ProductCategory, price float64, stock int) (product.Product, error) {
-	category = category.Normalize()
-	if err := s.categoryService.Validate(category); err != nil {
+func (s *AdminService) CreateProduct(name string, category string, price float64, stock int) (product.Product, error) {
+	validatedCategory, err := s.categoryService.Validate(category)
+	if err != nil {
 		return product.Product{}, err
 	}
 
@@ -33,7 +33,7 @@ func (s *AdminService) CreateProduct(name string, category product.ProductCatego
 	p := product.Product{
 		ID:       id,
 		Name:     name,
-		Category: category,
+		Category: validatedCategory,
 		Price:    price,
 		Stock:    stock,
 	}
@@ -45,13 +45,13 @@ func (s *AdminService) CreateProduct(name string, category product.ProductCatego
 	return p, nil
 }
 
-func (s *AdminService) UpdateProduct(id uuid.UUID, name string, category product.ProductCategory, price float64, stock int) (product.Product, error) {
+func (s *AdminService) UpdateProduct(id uuid.UUID, name string, category string, price float64, stock int) (product.Product, error) {
 	if _, err := s.productService.GetProductByID(id); err != nil {
 		return product.Product{}, err
 	}
 
-	category = category.Normalize()
-	if err := s.categoryService.Validate(category); err != nil {
+	validatedCategory, err := s.categoryService.Validate(category)
+	if err != nil {
 		return product.Product{}, err
 	}
 
@@ -60,7 +60,7 @@ func (s *AdminService) UpdateProduct(id uuid.UUID, name string, category product
 	p := product.Product{
 		ID:       id,
 		Name:     name,
-		Category: category,
+		Category: validatedCategory,
 		Price:    price,
 		Stock:    stock,
 	}

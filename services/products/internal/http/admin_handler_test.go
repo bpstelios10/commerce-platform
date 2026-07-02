@@ -72,7 +72,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, created.ID)
 	assert.Equal(t, "iPad", created.Name)
-	assert.Equal(t, product.ProductCategory("ACCESSORY"), created.Category)
+	assert.Equal(t, "ACCESSORY", created.Category)
 	assert.Equal(t, float64(999), created.Price)
 	assert.Equal(t, 10, created.Stock)
 	assert.Equal(t, "/products/"+created.ID.String(), res.Header().Get("Location"))
@@ -210,7 +210,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, repository.SecondUUID, p.ID)
 	assert.Equal(t, "iPhone 15", p.Name)
-	assert.Equal(t, product.ProductCategory("CLOTHES"), p.Category)
+	assert.Equal(t, "CLOTHES", p.Category)
 	assert.Equal(t, 1500.0, p.Price)
 	assert.Equal(t, 20, p.Stock)
 }
@@ -300,7 +300,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 	p, exists := repo.FindByID(repository.FirstUUID)
 	assert.True(t, exists)
 	assert.Equal(t, "MacBook Pro", p.Name)
-	assert.Equal(t, product.ProductCategory("ACCESSORY"), p.Category)
+	assert.Equal(t, "ACCESSORY", p.Category)
 	assert.Equal(t, 2500.0, p.Price)
 }
 
@@ -371,7 +371,7 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 	assert.Equal(t, product.Product{
 		ID:       repository.SecondUUID,
 		Name:     "iPhone",
-		Category: product.ProductCategory("ACCESSORY"),
+		Category: "ACCESSORY",
 		Price:    1200.0,
 		Stock:    5,
 	}, p)

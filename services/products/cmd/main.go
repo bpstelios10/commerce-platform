@@ -30,7 +30,7 @@ func main() {
 	product1 := product.Product{
 		ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
 		Name:     "MacBook Pro",
-		Category: product.ProductCategory("ACCESSORY"),
+		Category: "ACCESSORY",
 		Price:    2500,
 	}
 
@@ -51,7 +51,7 @@ func main() {
 		"1": {
 			ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002"),
 			Name:     "MacBook Pro",
-			Category: product.ProductCategory("ACCESSORY"),
+			Category: "ACCESSORY",
 			Price:    2500,
 		},
 	}

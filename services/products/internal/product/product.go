@@ -3,11 +3,11 @@ package product
 import "github.com/google/uuid"
 
 type Product struct {
-	ID       uuid.UUID       `json:"id"`
-	Name     string          `json:"name"`
-	Category ProductCategory `json:"category"`
-	Price    float64         `json:"price"`
-	Stock    int             `json:"stock"`
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	Category string    `json:"category"`
+	Price    float64   `json:"price"`
+	Stock    int       `json:"stock"`
 }
 
 func (p Product) DisplayName() string {
