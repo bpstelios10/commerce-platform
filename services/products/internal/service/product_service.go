@@ -3,6 +3,7 @@ package service
 import (
 	"commerce-platform/services/products/internal/product"
 	"log/slog"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -24,6 +25,32 @@ func NewProductService(repository ProductRepository) *ProductService {
 
 func (s *ProductService) GetProducts() []product.Product {
 	return s.repository.FindAll()
+}
+
+func (s *ProductService) SearchProducts(query string, maxPrice *float64, category string) []product.Product {
+	products := s.repository.FindAll()
+	query = strings.ToLower(strings.TrimSpace(query))
+	category = strings.ToLower(strings.TrimSpace(category))
+
+	filtered := make([]product.Product, 0, len(products))
+
+	for _, p := range products {
+		if query != "" && !strings.Contains(strings.ToLower(p.Name), query) {
+			continue
+		}
+
+		if maxPrice != nil && p.Price > *maxPrice {
+			continue
+		}
+
+		if category != "" && strings.ToLower(p.Category) != category {
+			continue
+		}
+
+		filtered = append(filtered, p)
+	}
+
+	return filtered
 }
 
 func (s *ProductService) GetProductByID(id uuid.UUID) (product.Product, error) {

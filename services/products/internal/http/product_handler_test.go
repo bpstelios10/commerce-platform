@@ -153,3 +153,114 @@ func TestGetProduct_WhenBadUUID_Returns400(t *testing.T) {
 		res.Body.String(),
 	)
 }
+
+func TestSearchProducts_WhenOnlyQueryProvided_ReturnsMatches(t *testing.T) {
+	r, _ := setupProductHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products/search?query=hoodie",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+
+	var products []map[string]any
+	err := json.Unmarshal(res.Body.Bytes(), &products)
+	assert.NoError(t, err)
+	assert.Len(t, products, 1)
+	assert.Equal(t, repository.ThirdUUID.String(), products[0]["id"])
+}
+
+func TestSearchProducts_WhenQueryAndMaxPriceProvided_ReturnsCombinedMatches(t *testing.T) {
+	r, _ := setupProductHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products/search?query=necklace&maxPrice=200.0",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+
+	var products []map[string]any
+	err := json.Unmarshal(res.Body.Bytes(), &products)
+	assert.NoError(t, err)
+	assert.Len(t, products, 1)
+	assert.Equal(t, repository.FourthUUID.String(), products[0]["id"])
+}
+
+func TestSearchProducts_WhenOnlyCategoryProvided_ReturnsCategoryMatches(t *testing.T) {
+	r, _ := setupProductHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products/search?category=accessory",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+
+	var products []map[string]any
+	err := json.Unmarshal(res.Body.Bytes(), &products)
+	assert.NoError(t, err)
+	assert.Len(t, products, 2)
+}
+
+func TestSearchProducts_WhenAllCriteriaProvided_ReturnsCombinedMatches(t *testing.T) {
+	r, _ := setupProductHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products/search?query=hoodie&maxPrice=100.0&category=clothes",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+
+	var products []map[string]any
+	err := json.Unmarshal(res.Body.Bytes(), &products)
+	assert.NoError(t, err)
+	assert.Len(t, products, 1)
+	assert.Equal(t, repository.ThirdUUID.String(), products[0]["id"])
+}
+
+func TestSearchProducts_WhenMaxPriceInvalid_Returns400(t *testing.T) {
+	r, _ := setupProductHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products/search?maxPrice=abc",
+		nil,
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "VALIDATION_ERROR",
+			"message": "maxPrice must be a valid number."
+		}`,
+		res.Body.String(),
+	)
+}
