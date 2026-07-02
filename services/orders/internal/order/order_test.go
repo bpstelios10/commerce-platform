@@ -21,3 +21,15 @@ func TestIsValid_WhenInvalidStatus_ReturnsFalse(t *testing.T) {
 		assert.False(t, s.IsValid(), "expected %q to be invalid", s)
 	}
 }
+
+func TestNormalize_WhenLowercaseStatus_ReturnsUppercase(t *testing.T) {
+	assert.Equal(t, PAID, OrderStatus("paid").Normalize())
+}
+
+func TestNormalize_WhenMixedCaseStatus_ReturnsUppercase(t *testing.T) {
+	assert.Equal(t, CANCELLED, OrderStatus("cAnCeLlEd").Normalize())
+}
+
+func TestNormalize_WhenEmptyStatus_ReturnsEmpty(t *testing.T) {
+	assert.Equal(t, OrderStatus(""), OrderStatus("").Normalize())
+}
