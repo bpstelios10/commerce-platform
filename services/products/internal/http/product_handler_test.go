@@ -46,14 +46,16 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 
 	expectedProducts := []map[string]any{
 		{
-			"id":    repository.FirstUUID.String(),
-			"name":  "MacBook Pro",
-			"price": 2500.0,
+			"id":       repository.FirstUUID.String(),
+			"name":     "MacBook Pro",
+			"category": "ACCESSORY",
+			"price":    2500.0,
 		},
 		{
-			"id":    repository.SecondUUID.String(),
-			"name":  "iPhone",
-			"price": 1200.0,
+			"id":       repository.SecondUUID.String(),
+			"name":     "iPhone",
+			"category": "ACCESSORY",
+			"price":    1200.0,
 		},
 	}
 
@@ -79,6 +81,7 @@ func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 		`{
 			"id": "`+repository.FirstUUID.String()+`",
 			"name": "MacBook Pro",
+			"category": "ACCESSORY",
 			"price": 2500
 		}`,
 		res.Body.String(),

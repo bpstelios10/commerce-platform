@@ -24,6 +24,12 @@ func HandleError(err error) error {
 			err.Error(),
 		)
 
+	case service.ErrInvalidCategory:
+		return status.Error(
+			codes.InvalidArgument,
+			err.Error(),
+		)
+
 	case validation.ErrInvalidUUID:
 		return status.Error(
 			codes.InvalidArgument,

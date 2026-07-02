@@ -13,7 +13,9 @@ func setup(t *testing.T) (*AdminService, *repository.InMemoryProductRepository) 
 	t.Helper()
 	repo := repository.NewInMemoryProductRepository()
 	productService := NewProductService(repo)
-	svc := NewAdminService(productService, repo)
+	categoryRepo := repository.NewInMemoryProductCategoryRepository()
+	categoryService := NewProductCategoryService(categoryRepo)
+	svc := NewAdminService(productService, categoryService, repo)
 
 	return svc, repo
 }
@@ -21,7 +23,7 @@ func setup(t *testing.T) (*AdminService, *repository.InMemoryProductRepository) 
 func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 	svc, repo := setup(t)
 
-	p, err := svc.CreateProduct("MacBook Pro M4", 2501.0)
+	p, err := svc.CreateProduct("MacBook Pro M4", product.ProductCategory("ACCESSORY"), 2501.0)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, p)
@@ -29,10 +31,24 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
-		ID:    p.ID,
-		Name:  "MacBook Pro M4",
-		Price: 2501.0,
+		ID:       p.ID,
+		Name:     "MacBook Pro M4",
+		Category: product.ProductCategory("ACCESSORY"),
+		Price:    2501.0,
 	}, p)
+}
+
+func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
+	svc, repo := setup(t)
+
+	p, err := svc.CreateProduct("MacBook Pro M4", product.ProductCategory("UNKNOWN"), 2501.0)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidCategory)
+	assert.Empty(t, p)
+
+	products := repo.FindAll()
+	assert.Len(t, products, 2)
 }
 
 func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
@@ -44,7 +60,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 
 	assert.False(t, exists)
 
-	updated, err := svc.UpdateProduct(id, "whatever", 1201.0)
+	updated, err := svc.UpdateProduct(id, "whatever", product.ProductCategory("ACCESSORY"), 1201.0)
 	p, exists := repo.FindByID(id)
 
 	assert.Error(t, err)
@@ -62,25 +78,47 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
-		ID:    repository.SecondUUID,
-		Name:  "iPhone",
-		Price: 1200.0,
+		ID:       repository.SecondUUID,
+		Name:     "iPhone",
+		Category: product.ProductCategory("ACCESSORY"),
+		Price:    1200.0,
 	}, p)
 
-	updated, err := svc.UpdateProduct(repository.SecondUUID, "iPhone 7", 1201.0)
+	updated, err := svc.UpdateProduct(repository.SecondUUID, "iPhone 7", product.ProductCategory("CLOTHES"), 1201.0)
 	p, exists = repo.FindByID(repository.SecondUUID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, product.Product{
-		ID:    repository.SecondUUID,
-		Name:  "iPhone 7",
-		Price: 1201.0,
+		ID:       repository.SecondUUID,
+		Name:     "iPhone 7",
+		Category: product.ProductCategory("CLOTHES"),
+		Price:    1201.0,
 	}, updated)
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
-		ID:    repository.SecondUUID,
-		Name:  "iPhone 7",
-		Price: 1201.0,
+		ID:       repository.SecondUUID,
+		Name:     "iPhone 7",
+		Category: product.ProductCategory("CLOTHES"),
+		Price:    1201.0,
+	}, p)
+}
+
+func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
+	svc, repo := setup(t)
+
+	updated, err := svc.UpdateProduct(repository.SecondUUID, "iPhone 7", product.ProductCategory("UNKNOWN"), 1201.0)
+	p, exists := repo.FindByID(repository.SecondUUID)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidCategory)
+	assert.Empty(t, updated)
+
+	assert.True(t, exists)
+	assert.Equal(t, product.Product{
+		ID:       repository.SecondUUID,
+		Name:     "iPhone",
+		Category: product.ProductCategory("ACCESSORY"),
+		Price:    1200.0,
 	}, p)
 }
 

@@ -19,6 +19,9 @@ func validateCreateProduct(req CreateProductRequest) error {
 	if len(strings.TrimSpace(req.Name)) == 0 {
 		validationError.Errors = append(validationError.Errors, "name cannot be blank.")
 	}
+	if len(strings.TrimSpace(req.Category)) == 0 {
+		validationError.Errors = append(validationError.Errors, "category cannot be blank.")
+	}
 	if req.Price <= 0 {
 		validationError.Errors = append(validationError.Errors, "price must be > 0.")
 	}
@@ -37,6 +40,9 @@ func validateUpdateProduct(req UpdateProductRequest) error {
 
 	if len(strings.TrimSpace(req.Name)) == 0 {
 		validationError.Errors = append(validationError.Errors, "name cannot be blank.")
+	}
+	if len(strings.TrimSpace(req.Category)) == 0 {
+		validationError.Errors = append(validationError.Errors, "category cannot be blank.")
 	}
 	if req.Price <= 0 {
 		validationError.Errors = append(validationError.Errors, "price must be > 0.")

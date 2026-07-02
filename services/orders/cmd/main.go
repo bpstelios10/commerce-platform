@@ -30,11 +30,11 @@ func main() {
 	healthHandler.RegisterRoutes(r)
 
 	repo := repository.NewInMemoryOrderRepository()
-	productsClient := grpcx.MustNewProductsGrpcClient("localhost:9090")
+	productsClient := grpcx.MustNewProductsGrpcClient("localhost:8092")
 	svc := service.NewOrderService(repo, productsClient)
 	orderHandler := httpx.NewOrderHandler(svc)
 	orderHandler.RegisterRoutes(r)
 
-	log.Println("http server running on :8081")
-	log.Fatal(http.ListenAndServe(":8081", r))
+	log.Println("http server running on :8083")
+	log.Fatal(http.ListenAndServe(":8083", r))
 }

@@ -70,6 +70,7 @@ type GetProductByIDResponse struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Price         float64                `protobuf:"fixed64,3,opt,name=price,proto3" json:"price,omitempty"`
+	Category      string                 `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -125,17 +126,25 @@ func (x *GetProductByIDResponse) GetPrice() float64 {
 	return 0
 }
 
+func (x *GetProductByIDResponse) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
 var File_product_proto protoreflect.FileDescriptor
 
 const file_product_proto_rawDesc = "" +
 	"\n" +
 	"\rproduct.proto\x12\aproduct\"'\n" +
 	"\x15GetProductByIDRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"n\n" +
 	"\x16GetProductByIDResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05price\x18\x03 \x01(\x01R\x05price2c\n" +
+	"\x05price\x18\x03 \x01(\x01R\x05price\x12\x1a\n" +
+	"\bcategory\x18\x04 \x01(\tR\bcategory2c\n" +
 	"\x0eProductService\x12Q\n" +
 	"\x0eGetProductByID\x12\x1e.product.GetProductByIDRequest\x1a\x1f.product.GetProductByIDResponseB3Z1commerce-platform/services/products/internal/grpcb\x06proto3"
 

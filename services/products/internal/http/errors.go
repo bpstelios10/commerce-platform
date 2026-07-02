@@ -40,6 +40,14 @@ func HandleError(w http.ResponseWriter, err error) {
 			err.Error(),
 		)
 
+	case service.ErrInvalidCategory:
+		writeError(
+			w,
+			http.StatusBadRequest,
+			"INVALID_CATEGORY",
+			err.Error(),
+		)
+
 	case validation.ErrInvalidUUID:
 		writeError(
 			w,

@@ -29,14 +29,16 @@ func NewInMemoryProductRepository() *InMemoryProductRepository {
 	return &InMemoryProductRepository{
 		products: map[uuid.UUID]product.Product{
 			FirstUUID: {
-				ID:    FirstUUID,
-				Name:  "MacBook Pro",
-				Price: 2500,
+				ID:       FirstUUID,
+				Name:     "MacBook Pro",
+				Category: product.ProductCategory("ACCESSORY"),
+				Price:    2500,
 			},
 			SecondUUID: {
-				ID:    SecondUUID,
-				Name:  "iPhone",
-				Price: 1200,
+				ID:       SecondUUID,
+				Name:     "iPhone",
+				Category: product.ProductCategory("ACCESSORY"),
+				Price:    1200,
 			},
 		},
 	}

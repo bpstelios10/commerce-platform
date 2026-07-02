@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.35.0
-// source: services/products/internal/grpc/product.proto
+// source: product.proto
 
 package grpc
 
@@ -117,5 +117,5 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "services/products/internal/grpc/product.proto",
+	Metadata: "product.proto",
 }

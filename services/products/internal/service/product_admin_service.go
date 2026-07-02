@@ -14,20 +14,27 @@ type ProductWriter interface {
 }
 
 type AdminService struct {
-	productService *ProductService
-	repo           ProductWriter
+	productService  *ProductService
+	categoryService *ProductCategoryService
+	repo            ProductWriter
 }
 
-func NewAdminService(productService *ProductService, repo ProductWriter) *AdminService {
-	return &AdminService{productService: productService, repo: repo}
+func NewAdminService(productService *ProductService, categoryService *ProductCategoryService, repo ProductWriter) *AdminService {
+	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 
-func (s *AdminService) CreateProduct(name string, price float64) (product.Product, error) {
+func (s *AdminService) CreateProduct(name string, category product.ProductCategory, price float64) (product.Product, error) {
+	category = category.Normalize()
+	if err := s.categoryService.Validate(category); err != nil {
+		return product.Product{}, err
+	}
+
 	id, _ := uuid.NewV7()
 	p := product.Product{
-		ID:    id,
-		Name:  name,
-		Price: price,
+		ID:       id,
+		Name:     name,
+		Category: category,
+		Price:    price,
 	}
 
 	slog.Info("creating product", "product", p)
@@ -37,17 +44,23 @@ func (s *AdminService) CreateProduct(name string, price float64) (product.Produc
 	return p, nil
 }
 
-func (s *AdminService) UpdateProduct(id uuid.UUID, name string, price float64) (product.Product, error) {
+func (s *AdminService) UpdateProduct(id uuid.UUID, name string, category product.ProductCategory, price float64) (product.Product, error) {
 	if _, err := s.productService.GetProductByID(id); err != nil {
+		return product.Product{}, err
+	}
+
+	category = category.Normalize()
+	if err := s.categoryService.Validate(category); err != nil {
 		return product.Product{}, err
 	}
 
 	slog.Info("updating product with", "productId", id)
 
 	p := product.Product{
-		ID:    id,
-		Name:  name,
-		Price: price,
+		ID:       id,
+		Name:     name,
+		Category: category,
+		Price:    price,
 	}
 
 	s.repo.Update(p)

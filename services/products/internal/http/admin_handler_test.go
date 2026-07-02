@@ -19,7 +19,9 @@ func setupAdminHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryProductR
 	t.Helper()
 	repo := repository.NewInMemoryProductRepository()
 	productService := service.NewProductService(repo)
-	adminSvc := service.NewAdminService(productService, repo)
+	categoryRepo := repository.NewInMemoryProductCategoryRepository()
+	categoryService := service.NewProductCategoryService(categoryRepo)
+	adminSvc := service.NewAdminService(productService, categoryService, repo)
 	handler := NewAdminHandler(adminSvc)
 
 	r := chi.NewRouter()
@@ -52,6 +54,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 		"/admin/products",
 		bytes.NewBufferString(`{
 			"name": "iPad",
+			"category": "ACCESSORY",
 			"price": 999
 		}`),
 	)
@@ -68,6 +71,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, created.ID)
 	assert.Equal(t, "iPad", created.Name)
+	assert.Equal(t, product.ProductCategory("ACCESSORY"), created.Category)
 	assert.Equal(t, float64(999), created.Price)
 	assert.Equal(t, "/products/"+created.ID.String(), res.Header().Get("Location"))
 
@@ -76,6 +80,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, created.ID, p.ID)
 	assert.Equal(t, created.Name, p.Name)
+	assert.Equal(t, created.Category, p.Category)
 	assert.Equal(t, created.Price, p.Price)
 }
 
@@ -114,6 +119,7 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"id": "",
 			"name": "",
+			"category": "",
 			"price": 0
 		}`),
 	)
@@ -127,10 +133,41 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "name cannot be blank.; price must be > 0."
+			"message": "name cannot be blank.; category cannot be blank.; price must be > 0."
 		}`,
 		res.Body.String(),
 	)
+}
+
+func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
+	r, repo := setupAdminHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/admin/products",
+		bytes.NewBufferString(`{
+			"name": "iPad",
+			"category": "UNKNOWN",
+			"price": 999
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_CATEGORY",
+			"message": "invalid category"
+		}`,
+		res.Body.String(),
+	)
+
+	products := repo.FindAll()
+	assert.Len(t, products, 2)
 }
 
 func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
@@ -141,6 +178,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 		"/admin/products/"+repository.SecondUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
+			"category": "CLOTHES",
 			"price": 1500
 		}`),
 	)
@@ -155,6 +193,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 		`{
 			"id": "`+repository.SecondUUID.String()+`",
 			"name": "iPhone 15",
+			"category": "CLOTHES",
 			"price": 1500
 		}`,
 		res.Body.String(),
@@ -164,6 +203,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.True(t, exists)
 	assert.Equal(t, repository.SecondUUID, p.ID)
 	assert.Equal(t, "iPhone 15", p.Name)
+	assert.Equal(t, product.ProductCategory("CLOTHES"), p.Category)
 	assert.Equal(t, 1500.0, p.Price)
 }
 
@@ -175,6 +215,7 @@ func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
 		"/admin/products/1234",
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
+			"category": "CLOTHES",
 			"price": 1500
 		}`),
 	)
@@ -228,6 +269,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		"/admin/products/"+repository.FirstUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "",
+			"category": "",
 			"price": 0
 		}`),
 	)
@@ -241,7 +283,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "name cannot be blank.; price must be > 0."
+			"message": "name cannot be blank.; category cannot be blank.; price must be > 0."
 		}`,
 		res.Body.String(),
 	)
@@ -249,6 +291,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 	p, exists := repo.FindByID(repository.FirstUUID)
 	assert.True(t, exists)
 	assert.Equal(t, "MacBook Pro", p.Name)
+	assert.Equal(t, product.ProductCategory("ACCESSORY"), p.Category)
 	assert.Equal(t, 2500.0, p.Price)
 }
 
@@ -261,6 +304,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		"/admin/products/"+id.String(),
 		bytes.NewBufferString(`{
 			"name": "non-existing-product",
+			"category": "ACCESSORY",
 			"price": 1000.1
 		}`),
 	)
@@ -282,6 +326,43 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	p, exists := repo.FindByID(id)
 	assert.False(t, exists)
 	assert.Empty(t, p)
+}
+
+func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
+	r, repo := setupAdminHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodPut,
+		"/admin/products/"+repository.SecondUUID.String(),
+		bytes.NewBufferString(`{
+			"name": "iPhone 15",
+			"category": "UNKNOWN",
+			"price": 1500
+		}`),
+	)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_CATEGORY",
+			"message": "invalid category"
+		}`,
+		res.Body.String(),
+	)
+
+	p, exists := repo.FindByID(repository.SecondUUID)
+	assert.True(t, exists)
+	assert.Equal(t, product.Product{
+		ID:       repository.SecondUUID,
+		Name:     "iPhone",
+		Category: product.ProductCategory("ACCESSORY"),
+		Price:    1200.0,
+	}, p)
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {

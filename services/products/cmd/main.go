@@ -28,9 +28,10 @@ func main() {
 	slog.SetDefault(logger)
 
 	product1 := product.Product{
-		ID:    uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
-		Name:  "MacBook Pro",
-		Price: 2500,
+		ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
+		Name:     "MacBook Pro",
+		Category: product.ProductCategory("ACCESSORY"),
+		Price:    2500,
 	}
 
 	slog.Info(product1.DisplayName())
@@ -48,9 +49,10 @@ func main() {
 	slog.Info("--- TESTING CODE ---")
 	products := map[string]product.Product{
 		"1": {
-			ID:    uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002"),
-			Name:  "MacBook Pro",
-			Price: 2500,
+			ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002"),
+			Name:     "MacBook Pro",
+			Category: product.ProductCategory("ACCESSORY"),
+			Price:    2500,
 		},
 	}
 
@@ -77,14 +79,16 @@ func main() {
 	healthHandler := httpx.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
 
-	adminProductService := service.NewAdminService(productService, productRepo)
+	categoryRepo := repository.NewInMemoryProductCategoryRepository()
+	categoryService := service.NewProductCategoryService(categoryRepo)
+	adminProductService := service.NewAdminService(productService, categoryService, productRepo)
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
 	// this starts a go routine, like lightweight thread (in parallel).
 	go func() {
-		log.Println("http server running on :8080")
-		http.ListenAndServe(":8080", r)
+		log.Println("http server running on :8082")
+		http.ListenAndServe(":8082", r)
 	}()
 
 	slog.Info("--- and gRPC ---")
@@ -96,10 +100,10 @@ func main() {
 	)
 
 	// start gRPC
-	lis, err := net.Listen("tcp", ":9090")
+	lis, err := net.Listen("tcp", ":8092")
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("grpc server running on :9090")
+	log.Println("grpc server running on :8092")
 	grpcServer.Serve(lis)
 }
