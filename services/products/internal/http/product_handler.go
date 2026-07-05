@@ -57,6 +57,8 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(product)
 }
 
+// TODO if i have a category but the other 2 filters dont much, then return something? maybe like 10 products
+// and then the AI can ask for more params to re-run the search
 func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("query")
 	category := r.URL.Query().Get("category")

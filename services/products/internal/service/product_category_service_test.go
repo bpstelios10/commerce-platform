@@ -24,3 +24,11 @@ func TestProductCategoryService_Validate_WhenCategoryDoesNotExist_ReturnsInvalid
 	assert.Empty(t, normalized)
 	assert.ErrorIs(t, err, ErrInvalidCategory)
 }
+
+func TestProductCategoryService_GetProductCategories_ReturnsAllCategories(t *testing.T) {
+	repo := repository.NewInMemoryProductCategoryRepository()
+	svc := NewProductCategoryService(repo)
+	categories := svc.GetProductCategories()
+
+	assert.NotEmpty(t, categories)
+}

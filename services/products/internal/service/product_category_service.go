@@ -4,6 +4,7 @@ import "strings"
 
 type ProductCategoryRepository interface {
 	Exists(category string) bool
+	GetAll() []string
 }
 
 type ProductCategoryService struct {
@@ -21,4 +22,8 @@ func (s *ProductCategoryService) Validate(category string) (string, error) {
 	}
 
 	return normalized, nil
+}
+
+func (s *ProductCategoryService) GetProductCategories() []string {
+	return s.repo.GetAll()
 }

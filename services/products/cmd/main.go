@@ -81,6 +81,9 @@ func main() {
 
 	categoryRepo := repository.NewInMemoryProductCategoryRepository()
 	categoryService := service.NewProductCategoryService(categoryRepo)
+	categoryHandler := httpx.NewProductCategoryHandler(categoryService)
+	categoryHandler.RegisterRoutes(r)
+
 	adminProductService := service.NewAdminService(productService, categoryService, productRepo)
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
