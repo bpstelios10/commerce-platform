@@ -44,17 +44,16 @@ func TestNew_UsesFallbackFieldsAndInfoLevelByDefault(t *testing.T) {
 	assert.Contains(t, out, "msg=hello-default")
 	assert.Contains(t, out, "service=N/D")
 	assert.Contains(t, out, "env=local")
-	assert.Contains(t, out, "component=N/D")
+	assert.NotContains(t, out, "component")
 	assert.NotContains(t, out, "debug-should-not-appear")
 }
 
 func TestNew_UsesProvidedFieldsAndLevel(t *testing.T) {
 	out := captureStdout(t, func() {
 		logger := New(Config{
-			Service:   "orders",
-			Env:       "dev",
-			Component: "payment",
-			Level:     slog.LevelDebug,
+			Service: "orders",
+			Env:     "dev",
+			Level:   slog.LevelDebug,
 		})
 		logger.Debug("hello-debug")
 	})
@@ -74,6 +73,93 @@ func TestNew_UsesProvidedFieldsAndLevel(t *testing.T) {
 	assert.Equal(t, "DEBUG", entry["level"])
 	assert.Equal(t, "hello-debug", entry["msg"])
 	assert.Equal(t, "orders", entry["service"])
-	assert.Equal(t, "payment", entry["component"])
+	assert.Equal(t, "dev", entry["env"])
+}
+
+func TestNewAndSetDefault_UsesProvidedFieldsAndLevel(t *testing.T) {
+	out := captureStdout(t, func() {
+		NewAndSetDefault(Config{
+			Service: "orders",
+			Env:     "dev",
+			Level:   slog.LevelDebug,
+		})
+		slog.Debug("hello-debug")
+	})
+
+	scanner := bufio.NewScanner(strings.NewReader(out))
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	assert.NoError(t, scanner.Err())
+	assert.Len(t, lines, 1)
+
+	var entry map[string]any
+	err := json.Unmarshal([]byte(lines[0]), &entry)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "DEBUG", entry["level"])
+	assert.Equal(t, "hello-debug", entry["msg"])
+	assert.Equal(t, "orders", entry["service"])
+	assert.Equal(t, "dev", entry["env"])
+}
+
+func TestGetLogger_whenLoggerWithComponent(t *testing.T) {
+	out := captureStdout(t, func() {
+		NewAndSetDefault(Config{
+			Service: "orders",
+			Env:     "dev",
+			Level:   slog.LevelDebug,
+		})
+		logger := GetLogger("test")
+		logger.Debug("hello-test-debug")
+	})
+
+	scanner := bufio.NewScanner(strings.NewReader(out))
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	assert.NoError(t, scanner.Err())
+	assert.Len(t, lines, 1)
+
+	var entry map[string]any
+	err := json.Unmarshal([]byte(lines[0]), &entry)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "DEBUG", entry["level"])
+	assert.Equal(t, "hello-test-debug", entry["msg"])
+	assert.Equal(t, "orders", entry["service"])
+	assert.Equal(t, "test", entry["component"])
+	assert.Equal(t, "dev", entry["env"])
+}
+
+func TestGetLogger_whenLoggerWithoutComponent(t *testing.T) {
+	out := captureStdout(t, func() {
+		NewAndSetDefault(Config{
+			Service: "orders",
+			Env:     "dev",
+			Level:   slog.LevelDebug,
+		})
+		logger := GetLogger("")
+		logger.Debug("hello-test-debug")
+	})
+
+	scanner := bufio.NewScanner(strings.NewReader(out))
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	assert.NoError(t, scanner.Err())
+	assert.Len(t, lines, 1)
+
+	var entry map[string]any
+	err := json.Unmarshal([]byte(lines[0]), &entry)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "DEBUG", entry["level"])
+	assert.Equal(t, "hello-test-debug", entry["msg"])
+	assert.Equal(t, "orders", entry["service"])
+	assert.Equal(t, "N/D", entry["component"])
 	assert.Equal(t, "dev", entry["env"])
 }

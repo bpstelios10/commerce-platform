@@ -8,10 +8,9 @@ import (
 )
 
 type Config struct {
-	Service   string
-	Env       string
-	Component string
-	Level     slog.Level
+	Service string
+	Env     string
+	Level   slog.Level
 }
 
 func New(cfg Config) *slog.Logger {
@@ -21,10 +20,6 @@ func New(cfg Config) *slog.Logger {
 
 	if cfg.Env == "" {
 		cfg.Env = "local"
-	}
-
-	if cfg.Component == "" {
-		cfg.Component = "N/D"
 	}
 
 	if cfg.Level == 0 {
@@ -55,8 +50,20 @@ func New(cfg Config) *slog.Logger {
 	logger := slog.New(handler).With(
 		"service", cfg.Service,
 		"env", cfg.Env,
-		"component", cfg.Component,
 	)
 
 	return logger
+}
+
+func NewAndSetDefault(cfg Config) {
+	logger := New(cfg)
+	slog.SetDefault(logger)
+}
+
+func GetLogger(component string) *slog.Logger {
+	if component == "" {
+		component = "N/D"
+	}
+
+	return slog.Default().With("component", component)
 }

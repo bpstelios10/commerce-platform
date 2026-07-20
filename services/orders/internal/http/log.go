@@ -1,7 +1,10 @@
 package http
 
-import "log/slog"
+import (
+	"commerce-platform/shared/logger"
+	"log/slog"
+)
 
 func log() *slog.Logger {
-	return slog.Default().With("component", "http")
+	return logger.GetLogger("http")
 }
