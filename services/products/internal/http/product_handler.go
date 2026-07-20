@@ -12,11 +12,13 @@ import (
 )
 
 type ProductHandler struct {
+	logger         *slog.Logger
 	productService *service.ProductService
 }
 
 func NewProductHandler(productService *service.ProductService) *ProductHandler {
 	return &ProductHandler{
+		logger:         log(),
 		productService: productService,
 	}
 }
@@ -30,7 +32,7 @@ func (h *ProductHandler) RegisterRoutes(r chi.Router) {
 func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 	products := h.productService.GetProducts()
 
-	slog.Info("products retrieved", "count", len(products))
+	h.log().Info("products retrieved", "count", len(products))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
@@ -51,7 +53,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("product was found, with", "productId", idPathParam)
+	h.log().Info("product was found, with", "productId", idPathParam)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
@@ -73,11 +75,16 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 		maxPrice = &parsed
 	}
 
-	slog.Info("products search request", "query", query, "maxPrice", maxPrice, "category", category)
+	h.log().Info("products search request", "query", query, "maxPrice", maxPrice, "category", category)
 
 	products := h.productService.SearchProducts(query, maxPrice, category)
-	slog.Info("products found", "products", products)
+	h.log().Info("products found", "products", products)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
+}
+
+func (h *ProductHandler) log() *slog.Logger {
+	// here i could add more things, related to this class only. or else just use log()
+	return h.logger
 }

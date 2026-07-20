@@ -1,7 +1,6 @@
 package httpx
 
 import (
-	"log/slog"
 	"strings"
 )
 
@@ -30,7 +29,7 @@ func validateCreateProduct(req CreateProductRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		slog.Warn("invalid create product request", "errors", validationError.Errors)
+		log().Warn("invalid create product request", "errors", validationError.Errors)
 
 		return validationError
 	}
@@ -55,7 +54,7 @@ func validateUpdateProduct(req UpdateProductRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		slog.Warn("invalid update product request", "errors", validationError.Errors)
+		log().Warn("invalid update product request", "errors", validationError.Errors)
 
 		return validationError
 	}

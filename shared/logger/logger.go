@@ -3,6 +3,8 @@ package logger
 import (
 	"log/slog"
 	"os"
+	"path/filepath"
+	"strconv"
 )
 
 type Config struct {
@@ -30,7 +32,16 @@ func New(cfg Config) *slog.Logger {
 	}
 
 	opts := &slog.HandlerOptions{
-		Level: cfg.Level,
+		Level:     cfg.Level,
+		AddSource: true,
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.SourceKey {
+				if src, ok := a.Value.Any().(*slog.Source); ok {
+					return slog.String(slog.SourceKey, filepath.Base(src.File)+":"+strconv.Itoa(src.Line))
+				}
+			}
+			return a
+		},
 	}
 
 	var handler slog.Handler

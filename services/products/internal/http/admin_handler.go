@@ -2,7 +2,6 @@ package httpx
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"commerce-platform/services/products/internal/service"
@@ -35,7 +34,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		slog.Warn("validation error occurred while creating product", "error", err)
+		log().Warn("validation error occurred while creating product", "error", err)
 		HandleError(w, service.ErrInvalidProduct)
 		return
 	}
@@ -45,7 +44,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("create product request received", "request", req)
+	log().Info("create product request received", "request", req)
 
 	p, err := h.adminService.CreateProduct(req.Name, req.Category, req.Price, *req.Stock)
 	if err != nil {
@@ -66,12 +65,12 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, err)
 		return
 	}
-	slog.Info("update product request received", "ProductId", validUUID)
+	log().Info("update product request received", "ProductId", validUUID)
 
 	var req UpdateProductRequest
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		slog.Warn("validation error occurred while updating product", "error", err)
+		log().Warn("validation error occurred while updating product", "error", err)
 		HandleError(w, service.ErrInvalidProduct)
 		return
 	}
@@ -81,7 +80,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("update product", "request", req)
+	log().Info("update product", "request", req)
 
 	p, err := h.adminService.UpdateProduct(validUUID, req.Name, req.Category, req.Price, *req.Stock)
 	if err != nil {
@@ -101,7 +100,7 @@ func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		HandleError(w, err)
 		return
 	}
-	slog.Info("delete product request received", "ProductId", validUUID)
+	log().Info("delete product request received", "ProductId", validUUID)
 
 	h.adminService.DeleteProduct(validUUID)
 

@@ -139,5 +139,6 @@ func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) log() *slog.Logger {
+	// here i could add more things, related to this class only. or else just use log()
 	return h.logger
 }

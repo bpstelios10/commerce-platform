@@ -3,7 +3,6 @@ package httpx
 import (
 	"commerce-platform/services/products/internal/service"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -26,7 +25,7 @@ func (h *ProductCategoryHandler) RegisterRoutes(r chi.Router) {
 func (h *ProductCategoryHandler) GetProductCategories(w http.ResponseWriter, r *http.Request) {
 	categories := h.productCategoryService.GetProductCategories()
 
-	slog.Info("product categories retrieved", "count", len(categories))
+	log().Info("product categories retrieved", "count", len(categories))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(categories)
