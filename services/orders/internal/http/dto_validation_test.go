@@ -2,6 +2,7 @@ package http
 
 import (
 	"commerce-platform/services/orders/internal/order"
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -96,7 +97,7 @@ func TestValidateCreateOrder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			err := validateCreateOrder(tt.request)
+			err := validateCreateOrder(context.Background(), tt.request)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -252,7 +253,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			err := validateUpdateOrder(tt.request)
+			err := validateUpdateOrder(context.Background(), tt.request)
 
 			if tt.expectError {
 				assert.Error(t, err)

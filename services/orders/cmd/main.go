@@ -19,7 +19,7 @@ func main() {
 	logger := logger.New(logger.Config{
 		Service: "orders",
 		Env:     "local",
-		Level:   slog.LevelInfo,
+		Level:   zerolog.InfoLevel,
 	})
 	// set the default slog to point to logger, just in case
 	slogHandler := zerolog.NewSlogHandler(logger)

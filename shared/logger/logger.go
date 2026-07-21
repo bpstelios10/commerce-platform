@@ -1,8 +1,8 @@
 package logger
 
 import (
+	"context"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,7 +14,7 @@ import (
 type Config struct {
 	Service string
 	Env     string
-	Level   slog.Level
+	Level   zerolog.Level
 }
 
 func New(cfg Config) zerolog.Logger {
@@ -24,10 +24,6 @@ func New(cfg Config) zerolog.Logger {
 
 	if cfg.Env == "" {
 		cfg.Env = "local"
-	}
-
-	if cfg.Level == 0 {
-		cfg.Level = slog.LevelInfo
 	}
 
 	var output io.Writer
@@ -56,10 +52,10 @@ func New(cfg Config) zerolog.Logger {
 	return logger
 }
 
-func GetLogger(component string) *slog.Logger {
+func GetLogger(ctx context.Context, component string) zerolog.Logger {
 	if component == "" {
 		component = "N/D"
 	}
 
-	return slog.Default().With("component", component)
+	return zerolog.Ctx(ctx).With().Str("component", component).Logger()
 }
