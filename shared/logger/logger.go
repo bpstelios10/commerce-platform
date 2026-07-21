@@ -1,10 +1,14 @@
 package logger
 
 import (
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
@@ -13,7 +17,7 @@ type Config struct {
 	Level   slog.Level
 }
 
-func New(cfg Config) *slog.Logger {
+func New(cfg Config) zerolog.Logger {
 	if cfg.Service == "" {
 		cfg.Service = "N/D"
 	}
@@ -26,38 +30,30 @@ func New(cfg Config) *slog.Logger {
 		cfg.Level = slog.LevelInfo
 	}
 
-	opts := &slog.HandlerOptions{
-		Level:     cfg.Level,
-		AddSource: true,
-		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.SourceKey {
-				if src, ok := a.Value.Any().(*slog.Source); ok {
-					return slog.String(slog.SourceKey, filepath.Base(src.File)+":"+strconv.Itoa(src.Line))
-				}
-			}
-			return a
-		},
-	}
-
-	var handler slog.Handler
-
+	var output io.Writer
 	if cfg.Env == "local" {
-		handler = slog.NewTextHandler(os.Stdout, opts)
+		output = zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: time.RFC3339,
+		}
 	} else {
-		handler = slog.NewJSONHandler(os.Stdout, opts)
+		output = os.Stdout
+		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	}
 
-	logger := slog.New(handler).With(
-		"service", cfg.Service,
-		"env", cfg.Env,
-	)
+	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+		return filepath.Base(file) + ":" + strconv.Itoa(line)
+	}
+
+	logger := zerolog.New(output).With().
+		Timestamp().
+		Caller().
+		Str("service", cfg.Service).
+		Str("env", cfg.Env).
+		Logger()
+	zerolog.SetGlobalLevel(zerolog.Level(cfg.Level))
 
 	return logger
-}
-
-func NewAndSetDefault(cfg Config) {
-	logger := New(cfg)
-	slog.SetDefault(logger)
 }
 
 func GetLogger(component string) *slog.Logger {

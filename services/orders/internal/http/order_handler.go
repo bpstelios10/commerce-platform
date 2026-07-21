@@ -4,20 +4,17 @@ import (
 	"commerce-platform/services/orders/internal/service"
 	"commerce-platform/services/orders/internal/validation"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type OrderHandler struct {
-	logger       *slog.Logger
 	orderService *service.OrderService
 }
 
 func NewOrderHandler(orderService *service.OrderService) *OrderHandler {
 	return &OrderHandler{
-		logger:       log(),
 		orderService: orderService,
 	}
 }
@@ -31,54 +28,63 @@ func (h *OrderHandler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	orders := h.orderService.GetOrders()
 
-	h.log().Info("orders retrieved", "count", len(orders))
+	logger.Info().Int("count", len(orders)).Msg("orders retrieved")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(orders)
 }
 
 func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	idParam := chi.URLParam(r, "id")
 	id, err := validation.GetValidUUID(idParam)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
 
 	o, err := h.orderService.GetOrderByID(id)
 
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
 
-	h.log().Info("order was found, with", "orderId", id)
+	logger.Info().Str("order_id", id.String()).Msg("order was found")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(o)
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	var req CreateOrderRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		h.log().Warn("validation error occurred while creating order", "error", err)
-		HandleError(w, service.ErrInvalidOrder)
+		logger.Warn().Err(err).Msg("validation error occurred while creating order")
+		HandleError(ctx, w, service.ErrInvalidOrder)
 		return
 	}
 
-	if err = validateCreateOrder(req); err != nil {
-		HandleError(w, err)
+	if err = validateCreateOrder(ctx, req); err != nil {
+		HandleError(ctx, w, err)
 		return
 	}
 
-	h.log().Info("create order request received", "request", req)
+	logger.Info().Interface("request", req).Msg("create order request received")
 	o, err := h.orderService.CreateOrder(r.Context(), req.ProductID, req.Quantity)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
 
@@ -89,34 +95,37 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	idParam := chi.URLParam(r, "id")
 	id, err := validation.GetValidUUID(idParam)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
-	h.log().Info("update order request received", "orderId", id)
+	logger.Info().Str("order_id", id.String()).Msg("update order request received")
 
 	var req UpdateOrderRequest
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		h.log().Warn("validation error occurred while updating order", "error", err)
-		HandleError(w, service.ErrInvalidOrder)
+		logger.Warn().Err(err).Msg("validation error occurred while updating order")
+		HandleError(ctx, w, service.ErrInvalidOrder)
 		return
 	}
 
 	// normalize status - to uppercase
 	req.Status = req.Status.Normalize()
-	if err = validateUpdateOrder(req); err != nil {
-		HandleError(w, err)
+	if err = validateUpdateOrder(ctx, req); err != nil {
+		HandleError(ctx, w, err)
 		return
 	}
 
-	h.log().Info("update order", "request", req)
+	logger.Info().Interface("request", req).Msg("update order")
 	o, err := h.orderService.UpdateOrder(r.Context(), id, req.ProductID, req.Quantity, req.Status)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
 
@@ -126,19 +135,18 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	idParam := chi.URLParam(r, "id")
 	id, err := validation.GetValidUUID(idParam)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
 
+	logger.Info().Str("order_id", id.String()).Msg("delete order request received")
 	h.orderService.DeleteOrder(id)
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *OrderHandler) log() *slog.Logger {
-	// here i could add more things, related to this class only. or else just use log()
-	return h.logger
 }

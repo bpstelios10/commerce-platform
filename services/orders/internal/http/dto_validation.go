@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"strings"
 )
 
@@ -12,7 +13,8 @@ func (e ValidationError) Error() string {
 	return strings.Join(e.Errors, "; ")
 }
 
-func validateCreateOrder(req CreateOrderRequest) error {
+func validateCreateOrder(ctx context.Context, req CreateOrderRequest) error {
+	logger := log(ctx)
 	validationError := ValidationError{}
 
 	if len(strings.TrimSpace(req.ProductID)) == 0 {
@@ -23,7 +25,7 @@ func validateCreateOrder(req CreateOrderRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		log().Warn("invalid create order request", "errors", validationError.Errors)
+		logger.Warn().Strs("errors", validationError.Errors).Msg("invalid create order request")
 
 		return validationError
 	}
@@ -31,7 +33,8 @@ func validateCreateOrder(req CreateOrderRequest) error {
 	return nil
 }
 
-func validateUpdateOrder(req UpdateOrderRequest) error {
+func validateUpdateOrder(ctx context.Context, req UpdateOrderRequest) error {
+	logger := log(ctx)
 	validationError := ValidationError{}
 
 	if len(strings.TrimSpace(req.ProductID)) == 0 {
@@ -45,7 +48,7 @@ func validateUpdateOrder(req UpdateOrderRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		log().Warn("invalid update order request", "errors", validationError.Errors)
+		logger.Warn().Strs("errors", validationError.Errors).Msg("invalid update order request")
 
 		return validationError
 	}

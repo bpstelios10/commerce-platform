@@ -1,10 +1,11 @@
 package http
 
 import (
-	"commerce-platform/shared/logger"
-	"log/slog"
+	"context"
+
+	"github.com/rs/zerolog"
 )
 
-func log() *slog.Logger {
-	return logger.GetLogger("http")
+func log(ctx context.Context) zerolog.Logger {
+	return zerolog.Ctx(ctx).With().Str("component", "http").Logger()
 }

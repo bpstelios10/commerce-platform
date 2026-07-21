@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"log/slog"
 	"net/http"
 
@@ -12,6 +11,7 @@ import (
 	"commerce-platform/shared/logger"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 )
 
 func main() {
@@ -21,10 +21,13 @@ func main() {
 		Env:     "local",
 		Level:   slog.LevelInfo,
 	})
-	slog.SetDefault(logger)
+	// set the default slog to point to logger, just in case
+	slogHandler := zerolog.NewSlogHandler(logger)
+	slog.SetDefault(slog.New(slogHandler))
 
-	slog.Info("Commerce Platform - ORDERS")
+	logger.Info().Msg("Commerce Platform - ORDERS")
 	r := chi.NewRouter()
+	r.Use(httpx.RequestContextMiddleware(logger))
 
 	healthHandler := httpx.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
@@ -35,6 +38,6 @@ func main() {
 	orderHandler := httpx.NewOrderHandler(svc)
 	orderHandler.RegisterRoutes(r)
 
-	log.Println("http server running on :8083")
-	log.Fatal(http.ListenAndServe(":8083", r))
+	logger.Info().Msg("http server running on :8083")
+	logger.Fatal().Err(http.ListenAndServe(":8083", r)).Msg("http server stopped")
 }
