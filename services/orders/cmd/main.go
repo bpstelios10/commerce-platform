@@ -8,7 +8,7 @@ import (
 	httpx "commerce-platform/services/orders/internal/http"
 	"commerce-platform/services/orders/internal/repository"
 	"commerce-platform/services/orders/internal/service"
-	"commerce-platform/shared/logger"
+	loggerx "commerce-platform/shared/logger"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
@@ -16,7 +16,7 @@ import (
 
 func main() {
 	// import shared logger
-	logger := logger.New(logger.Config{
+	logger := loggerx.New(loggerx.Config{
 		Service: "orders",
 		Env:     "local",
 		Level:   zerolog.InfoLevel,
@@ -27,7 +27,7 @@ func main() {
 
 	logger.Info().Msg("Commerce Platform - ORDERS")
 	r := chi.NewRouter()
-	r.Use(httpx.RequestContextMiddleware(logger))
+	r.Use(loggerx.RequestContextMiddleware(logger))
 
 	healthHandler := httpx.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
