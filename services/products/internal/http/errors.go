@@ -3,12 +3,14 @@ package httpx
 import (
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 )
 
-func HandleError(w http.ResponseWriter, err error) {
+func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
+	logger := log(ctx)
 	var validationErr ValidationError
 
 	if errors.As(err, &validationErr) {
@@ -56,7 +58,7 @@ func HandleError(w http.ResponseWriter, err error) {
 		)
 
 	default:
-		log().Warn("unexpected error handled, with", "error", err)
+		logger.Warn().Err(err).Msg("unexpected error handled, with")
 		writeError(
 			w,
 			http.StatusInternalServerError,

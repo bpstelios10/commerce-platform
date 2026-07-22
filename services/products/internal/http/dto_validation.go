@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"strings"
 )
 
@@ -12,7 +13,8 @@ func (e ValidationError) Error() string {
 	return strings.Join(e.Errors, "; ")
 }
 
-func validateCreateProduct(req CreateProductRequest) error {
+func validateCreateProduct(ctx context.Context, req CreateProductRequest) error {
+	logger := log(ctx)
 	validationError := ValidationError{}
 
 	if len(strings.TrimSpace(req.Name)) == 0 {
@@ -29,7 +31,7 @@ func validateCreateProduct(req CreateProductRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		log().Warn("invalid create product request", "errors", validationError.Errors)
+		logger.Warn().Strs("errors", validationError.Errors).Msg("invalid create product request")
 
 		return validationError
 	}
@@ -37,7 +39,8 @@ func validateCreateProduct(req CreateProductRequest) error {
 	return nil
 }
 
-func validateUpdateProduct(req UpdateProductRequest) error {
+func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error {
+	logger := log(ctx)
 	validationError := ValidationError{}
 
 	if len(strings.TrimSpace(req.Name)) == 0 {
@@ -54,7 +57,7 @@ func validateUpdateProduct(req UpdateProductRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		log().Warn("invalid update product request", "errors", validationError.Errors)
+		logger.Warn().Strs("errors", validationError.Errors).Msg("invalid update product request")
 
 		return validationError
 	}

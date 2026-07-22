@@ -4,7 +4,6 @@ import (
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -12,13 +11,11 @@ import (
 )
 
 type ProductHandler struct {
-	logger         *slog.Logger
 	productService *service.ProductService
 }
 
 func NewProductHandler(productService *service.ProductService) *ProductHandler {
 	return &ProductHandler{
-		logger:         log(),
 		productService: productService,
 	}
 }
@@ -30,30 +27,36 @@ func (h *ProductHandler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	products := h.productService.GetProducts()
 
-	h.log().Info("products retrieved", "count", len(products))
+	logger.Info().Int("count", len(products)).Msg("products retrieved")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
 }
 
 func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	idPathParam := chi.URLParam(r, "id")
 	validUUID, err := validation.GetValidUUID(idPathParam)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
 
 	product, err := h.productService.GetProductByID(validUUID)
 
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
 
-	h.log().Info("product was found, with", "productId", idPathParam)
+	logger.Info().Str("productId", idPathParam).Msg("product was found, with")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
@@ -62,6 +65,9 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 // TODO if i have a category but the other 2 filters dont much, then return something? maybe like 10 products
 // and then the AI can ask for more params to re-run the search
 func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	query := r.URL.Query().Get("query")
 	category := r.URL.Query().Get("category")
 
@@ -69,22 +75,21 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 	if maxPriceParam := r.URL.Query().Get("maxPrice"); maxPriceParam != "" {
 		parsed, err := strconv.ParseFloat(maxPriceParam, 64)
 		if err != nil {
-			HandleError(w, ValidationError{Errors: []string{"maxPrice must be a valid number."}})
+			HandleError(ctx, w, ValidationError{Errors: []string{"maxPrice must be a valid number."}})
 			return
 		}
 		maxPrice = &parsed
 	}
 
-	h.log().Info("products search request", "query", query, "maxPrice", maxPrice, "category", category)
+	logger.Info().
+		Str("query", query).
+		Interface("maxPrice", maxPrice).
+		Str("category", category).
+		Msg("products search request")
 
 	products := h.productService.SearchProducts(query, maxPrice, category)
-	h.log().Info("products found", "products", products)
+	logger.Info().Interface("products", products).Msg("products found")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
-}
-
-func (h *ProductHandler) log() *slog.Logger {
-	// here i could add more things, related to this class only. or else just use log()
-	return h.logger
 }

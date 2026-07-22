@@ -23,9 +23,12 @@ func (h *ProductCategoryHandler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *ProductCategoryHandler) GetProductCategories(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	categories := h.productCategoryService.GetProductCategories()
 
-	log().Info("product categories retrieved", "count", len(categories))
+	logger.Info().Int("count", len(categories)).Msg("product categories retrieved")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(categories)

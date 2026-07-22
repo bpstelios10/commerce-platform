@@ -11,21 +11,24 @@ import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
-	"commerce-platform/shared/logger"
+	loggerx "commerce-platform/shared/logger"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 )
 
 func main() {
 	// import shared logger
-	logger := logger.New(logger.Config{
+	logger := loggerx.New(loggerx.Config{
 		Service: "products",
 		Env:     "local",
-		Level:   slog.LevelInfo,
+		Level:   zerolog.InfoLevel,
 	})
-	slog.SetDefault(logger)
+	// set the default slog to point to logger, just in case
+	slogHandler := zerolog.NewSlogHandler(logger)
+	slog.SetDefault(slog.New(slogHandler))
 
 	product1 := product.Product{
 		ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
@@ -34,19 +37,19 @@ func main() {
 		Price:    2500,
 	}
 
-	slog.Info(product1.DisplayName())
+	logger.Info().Msg(product1.DisplayName())
 
 	product1.Rename("MacBook Pro M4")
 
-	slog.Info(product1.Name)
+	logger.Info().Msg(product1.Name)
 
 	product1.ApplyDiscount(10)
 
-	slog.Info("product1", "price", product1.Price)
+	logger.Info().Msgf("product1: price=%v", product1.Price)
 
-	slog.Info("product1", "is expensive", product1.IsExpensive())
+	logger.Info().Msgf("product1: is expensive=%v", product1.IsExpensive())
 
-	slog.Info("--- TESTING CODE ---")
+	logger.Info().Msg("--- TESTING CODE ---")
 	products := map[string]product.Product{
 		"1": {
 			ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002"),
@@ -57,20 +60,22 @@ func main() {
 	}
 
 	p, found := products["1"]
-	slog.Info("product found", "product", p, "found", found)
+	logger.Info().Msgf("product found: product=%v, found=%v", p, found)
 
 	p2, found2 := products["999"]
-	slog.Info("product found", "product", p2, "found", found2)
+	logger.Info().Msgf("product found: product=%v, found=%v", p2, found2)
 
 	// if i set the type, then i cant inject it to admin-service
 	// var productRepo service.ProductRepository
 	productRepo := repository.NewInMemoryProductRepository()
 
-	slog.Info("products loaded", "products", productRepo.FindAll())
+	logger.Info().Msgf("products loaded: %v", productRepo.FindAll())
 
-	slog.Info("--- REAL LOGIC REST---")
+	logger.Info().Msg("--- REAL LOGIC REST---")
 
+	logger.Info().Msg("Commerce Platform - PRODUCTS")
 	r := chi.NewRouter()
+	r.Use(loggerx.RequestContextMiddleware(logger))
 
 	productService := service.NewProductService(productRepo)
 	productHandler := httpx.NewProductHandler(productService)

@@ -30,25 +30,28 @@ func (h *AdminHandler) GetAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	var req CreateProductRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		log().Warn("validation error occurred while creating product", "error", err)
-		HandleError(w, service.ErrInvalidProduct)
+		logger.Warn().Err(err).Msg("validation error occurred while creating product")
+		HandleError(ctx, w, service.ErrInvalidProduct)
 		return
 	}
 
-	if err := validateCreateProduct(req); err != nil {
-		HandleError(w, err)
+	if err := validateCreateProduct(ctx, req); err != nil {
+		HandleError(ctx, w, err)
 		return
 	}
 
-	log().Info("create product request received", "request", req)
+	logger.Info().Interface("request", req).Msg("create product request received")
 
 	p, err := h.adminService.CreateProduct(req.Name, req.Category, req.Price, *req.Stock)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
 
@@ -59,32 +62,35 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	id := chi.URLParam(r, "id")
 	validUUID, err := validation.GetValidUUID(id)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
-	log().Info("update product request received", "ProductId", validUUID)
+	logger.Info().Interface("ProductId", validUUID).Msg("update product request received")
 
 	var req UpdateProductRequest
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		log().Warn("validation error occurred while updating product", "error", err)
-		HandleError(w, service.ErrInvalidProduct)
+		logger.Warn().Err(err).Msg("validation error occurred while updating product")
+		HandleError(ctx, w, service.ErrInvalidProduct)
 		return
 	}
 
-	if err := validateUpdateProduct(req); err != nil {
-		HandleError(w, err)
+	if err := validateUpdateProduct(ctx, req); err != nil {
+		HandleError(ctx, w, err)
 		return
 	}
 
-	log().Info("update product", "request", req)
+	logger.Info().Interface("request", req).Msg("update product")
 
 	p, err := h.adminService.UpdateProduct(validUUID, req.Name, req.Category, req.Price, *req.Stock)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
 
@@ -94,13 +100,16 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := log(ctx)
+
 	id := chi.URLParam(r, "id")
 	validUUID, err := validation.GetValidUUID(id)
 	if err != nil {
-		HandleError(w, err)
+		HandleError(ctx, w, err)
 		return
 	}
-	log().Info("delete product request received", "ProductId", validUUID)
+	logger.Info().Interface("ProductId", validUUID).Msg("delete product request received")
 
 	h.adminService.DeleteProduct(validUUID)
 

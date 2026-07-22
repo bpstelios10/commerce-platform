@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -183,7 +184,7 @@ func TestValidateCreateProduct(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			err := validateCreateProduct(tt.request)
+			err := validateCreateProduct(context.Background(), tt.request)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -370,7 +371,7 @@ func TestValidateUpdateProduct(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			err := validateUpdateProduct(tt.request)
+			err := validateUpdateProduct(context.Background(), tt.request)
 
 			if tt.expectError {
 				assert.Error(t, err)
