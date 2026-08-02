@@ -7,7 +7,7 @@ import (
 )
 
 func TestIsValid_WhenValidStatus_ReturnsTrue(t *testing.T) {
-	validStatuses := []OrderStatus{CREATED, PAID, RETURNED, CANCELLED}
+	validStatuses := []OrderStatus{CREATED, PAID, RETURNED, CANCELED}
 
 	for _, s := range validStatuses {
 		assert.True(t, s.IsValid(), "expected %q to be valid", s)
@@ -27,7 +27,7 @@ func TestNormalize_WhenLowercaseStatus_ReturnsUppercase(t *testing.T) {
 }
 
 func TestNormalize_WhenMixedCaseStatus_ReturnsUppercase(t *testing.T) {
-	assert.Equal(t, CANCELLED, OrderStatus("cAnCeLlEd").Normalize())
+	assert.Equal(t, CANCELED, OrderStatus("cAnCelEd").Normalize())
 }
 
 func TestNormalize_WhenEmptyStatus_ReturnsEmpty(t *testing.T) {

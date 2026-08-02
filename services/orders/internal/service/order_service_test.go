@@ -99,7 +99,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	svc, repo, _ := setup(t)
 	id, _ := uuid.NewV7()
 
-	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELLED)
+	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELED)
 
 	assert.Error(t, err)
 

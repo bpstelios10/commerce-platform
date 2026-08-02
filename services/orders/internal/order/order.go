@@ -9,10 +9,10 @@ import (
 type OrderStatus string
 
 const (
-	CREATED   OrderStatus = "CREATED"
-	PAID      OrderStatus = "PAID"
-	RETURNED  OrderStatus = "RETURNED"
-	CANCELLED OrderStatus = "CANCELLED"
+	CREATED  OrderStatus = "CREATED"
+	PAID     OrderStatus = "PAID"
+	RETURNED OrderStatus = "RETURNED"
+	CANCELED OrderStatus = "CANCELED"
 )
 
 type Order struct {
@@ -24,7 +24,7 @@ type Order struct {
 
 func (s OrderStatus) IsValid() bool {
 	switch s {
-	case CREATED, PAID, RETURNED, CANCELLED:
+	case CREATED, PAID, RETURNED, CANCELED:
 		return true
 	}
 	return false
