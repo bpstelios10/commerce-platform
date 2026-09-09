@@ -2,15 +2,17 @@ package service
 
 import (
 	"commerce-platform/services/products/internal/product"
-	"log/slog"
+	"commerce-platform/shared/logger"
+	"context"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 type ProductRepository interface {
-	FindAll() []product.Product
-	FindByID(id uuid.UUID) (product.Product, bool)
+	FindAll(ctx context.Context) []product.Product
+	FindByID(ctx context.Context, id uuid.UUID) (product.Product, bool)
 }
 
 type ProductService struct {
@@ -23,12 +25,12 @@ func NewProductService(repository ProductRepository) *ProductService {
 	}
 }
 
-func (s *ProductService) GetProducts() []product.Product {
-	return s.repository.FindAll()
+func (s *ProductService) GetProducts(ctx context.Context) []product.Product {
+	return s.repository.FindAll(ctx)
 }
 
-func (s *ProductService) SearchProducts(query string, maxPrice *float64, category string) []product.Product {
-	products := s.repository.FindAll()
+func (s *ProductService) SearchProducts(ctx context.Context, query string, maxPrice *float64, category string) []product.Product {
+	products := s.repository.FindAll(ctx)
 	query = strings.ToLower(strings.TrimSpace(query))
 	category = strings.ToLower(strings.TrimSpace(category))
 
@@ -53,11 +55,16 @@ func (s *ProductService) SearchProducts(query string, maxPrice *float64, categor
 	return filtered
 }
 
-func (s *ProductService) GetProductByID(id uuid.UUID) (product.Product, error) {
-	p, found := s.repository.FindByID(id)
+func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
+	p, found := s.repository.FindByID(ctx, id)
 	if !found {
-		slog.Warn("product error for", "productId", id, "error", ErrProductNotFound)
+		logger := log(ctx)
+		logger.Warn().Str("product_id", id.String()).Msg("product not found")
 		return product.Product{}, ErrProductNotFound
 	}
 	return p, nil
+}
+
+func log(ctx context.Context) zerolog.Logger {
+	return logger.GetLogger(ctx, "products.service")
 }

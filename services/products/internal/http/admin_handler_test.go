@@ -5,6 +5,7 @@ import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -78,7 +79,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	assert.Equal(t, "/products/"+created.ID.String(), res.Header().Get("Location"))
 
 	// verify it was actually persisted
-	p, exists := repo.FindByID(created.ID)
+	p, exists := repo.FindByID(context.Background(), created.ID)
 	assert.True(t, exists)
 	assert.Equal(t, created.ID, p.ID)
 	assert.Equal(t, created.Name, p.Name)
@@ -171,7 +172,7 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		res.Body.String(),
 	)
 
-	products := repo.FindAll()
+	products := repo.FindAll(context.Background())
 	assert.Len(t, products, 4)
 }
 
@@ -206,7 +207,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 		res.Body.String(),
 	)
 
-	p, exists := repo.FindByID(repository.SecondUUID)
+	p, exists := repo.FindByID(context.Background(), repository.SecondUUID)
 	assert.True(t, exists)
 	assert.Equal(t, repository.SecondUUID, p.ID)
 	assert.Equal(t, "iPhone 15", p.Name)
@@ -297,7 +298,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		res.Body.String(),
 	)
 
-	p, exists := repo.FindByID(repository.FirstUUID)
+	p, exists := repo.FindByID(context.Background(), repository.FirstUUID)
 	assert.True(t, exists)
 	assert.Equal(t, "MacBook Pro", p.Name)
 	assert.Equal(t, "ACCESSORY", p.Category)
@@ -333,7 +334,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		res.Body.String(),
 	)
 
-	p, exists := repo.FindByID(id)
+	p, exists := repo.FindByID(context.Background(), id)
 	assert.False(t, exists)
 	assert.Empty(t, p)
 }
@@ -366,7 +367,7 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		res.Body.String(),
 	)
 
-	p, exists := repo.FindByID(repository.SecondUUID)
+	p, exists := repo.FindByID(context.Background(), repository.SecondUUID)
 	assert.True(t, exists)
 	assert.Equal(t, product.Product{
 		ID:       repository.SecondUUID,
@@ -391,7 +392,7 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, res.Code)
 
-	_, exists := repo.FindByID(repository.SecondUUID)
+	_, exists := repo.FindByID(context.Background(), repository.SecondUUID)
 	assert.False(t, exists)
 }
 
@@ -418,6 +419,6 @@ func TestDeleteProduct_WhenBadUUID_Returns400(t *testing.T) {
 		res.Body.String(),
 	)
 
-	products := repo.FindAll()
+	products := repo.FindAll(context.Background())
 	assert.Len(t, products, 4)
 }

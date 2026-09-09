@@ -1,11 +1,14 @@
 package repository
 
 import (
+	"context"
 	"sync"
 
 	"commerce-platform/services/products/internal/product"
+	"commerce-platform/shared/logger"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 // InMemoryProductRepository is shared across goroutines (one instance, called from
@@ -62,7 +65,7 @@ func NewInMemoryProductRepository() *InMemoryProductRepository {
 	}
 }
 
-func (r *InMemoryProductRepository) FindAll() []product.Product {
+func (r *InMemoryProductRepository) FindAll(ctx context.Context) []product.Product {
 	// read-only: RLock allows concurrent readers.
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -76,7 +79,7 @@ func (r *InMemoryProductRepository) FindAll() []product.Product {
 	return products
 }
 
-func (r *InMemoryProductRepository) FindByID(id uuid.UUID) (product.Product, bool) {
+func (r *InMemoryProductRepository) FindByID(ctx context.Context, id uuid.UUID) (product.Product, bool) {
 	// read-only: RLock.
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -85,26 +88,36 @@ func (r *InMemoryProductRepository) FindByID(id uuid.UUID) (product.Product, boo
 	return p, found
 }
 
-func (r *InMemoryProductRepository) Save(p product.Product) {
+func (r *InMemoryProductRepository) Save(ctx context.Context, p product.Product) {
 	// mutates the map: exclusive Lock.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	r.products[p.ID] = p
+	logger := log(ctx)
+	logger.Info().Str("product_id", p.ID.String()).Str("category", p.Category).Msg("product saved")
 }
 
-func (r *InMemoryProductRepository) Update(p product.Product) {
+func (r *InMemoryProductRepository) Update(ctx context.Context, p product.Product) {
 	// mutates the map: exclusive Lock.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	r.products[p.ID] = p
+	logger := log(ctx)
+	logger.Info().Str("product_id", p.ID.String()).Str("category", p.Category).Msg("product updated")
 }
 
-func (r *InMemoryProductRepository) Delete(id uuid.UUID) {
+func (r *InMemoryProductRepository) Delete(ctx context.Context, id uuid.UUID) {
 	// mutates the map: exclusive Lock.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	delete(r.products, id)
+	logger := log(ctx)
+	logger.Info().Str("product_id", id.String()).Msg("product deleted")
+}
+
+func log(ctx context.Context) zerolog.Logger {
+	return logger.GetLogger(ctx, "products.repository")
 }

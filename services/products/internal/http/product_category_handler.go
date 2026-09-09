@@ -26,7 +26,7 @@ func (h *ProductCategoryHandler) GetProductCategories(w http.ResponseWriter, r *
 	ctx := r.Context()
 	logger := log(ctx)
 
-	categories := h.productCategoryService.GetProductCategories()
+	categories := h.productCategoryService.GetProductCategories(ctx)
 
 	logger.Info().Int("count", len(categories)).Msg("product categories retrieved")
 

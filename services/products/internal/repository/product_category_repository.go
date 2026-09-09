@@ -1,10 +1,9 @@
 package repository
 
 import (
+	"context"
 	"strings"
 	"sync"
-
-	"log/slog"
 )
 
 type InMemoryProductCategoryRepository struct {
@@ -24,18 +23,19 @@ func NewInMemoryProductCategoryRepository() *InMemoryProductCategoryRepository {
 	}
 }
 
-func (r *InMemoryProductCategoryRepository) Exists(category string) bool {
+func (r *InMemoryProductCategoryRepository) Exists(ctx context.Context, category string) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	normalized := strings.ToUpper(strings.TrimSpace(category))
 	_, found := r.categories[normalized]
-	slog.Info("does product category exist?", "category", category, "exists", found)
+	logger := log(ctx)
+	logger.Info().Str("category", normalized).Bool("exists", found).Msg("checked product category")
 
 	return found
 }
 
-func (r *InMemoryProductCategoryRepository) GetAll() []string {
+func (r *InMemoryProductCategoryRepository) GetAll(ctx context.Context) []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -43,7 +43,8 @@ func (r *InMemoryProductCategoryRepository) GetAll() []string {
 	for category := range r.categories {
 		categoriesNames = append(categoriesNames, category)
 	}
-	slog.Info("product categories retrieved", "categories", categoriesNames)
+	logger := log(ctx)
+	logger.Info().Strs("categories", categoriesNames).Msg("product categories retrieved")
 
 	return categoriesNames
 }

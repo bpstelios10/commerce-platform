@@ -31,7 +31,7 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := log(ctx)
 
-	orders := h.orderService.GetOrders()
+	orders := h.orderService.GetOrders(ctx)
 
 	logger.Info().Int("count", len(orders)).Msg("orders retrieved")
 
@@ -50,7 +50,7 @@ func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	o, err := h.orderService.GetOrderByID(id)
+	o, err := h.orderService.GetOrderByID(ctx, id)
 
 	if err != nil {
 		HandleError(ctx, w, err)
@@ -82,7 +82,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info().Interface("request", req).Msg("create order request received")
-	o, err := h.orderService.CreateOrder(r.Context(), req.ProductID, req.Quantity)
+	o, err := h.orderService.CreateOrder(ctx, req.ProductID, req.Quantity)
 	if err != nil {
 		HandleError(ctx, w, err)
 		return
@@ -123,7 +123,7 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info().Interface("request", req).Msg("update order")
-	o, err := h.orderService.UpdateOrder(r.Context(), id, req.ProductID, req.Quantity, req.Status)
+	o, err := h.orderService.UpdateOrder(ctx, id, req.ProductID, req.Quantity, req.Status)
 	if err != nil {
 		HandleError(ctx, w, err)
 		return
@@ -146,7 +146,7 @@ func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info().Str("order_id", id.String()).Msg("delete order request received")
-	h.orderService.DeleteOrder(id)
+	h.orderService.DeleteOrder(ctx, id)
 
 	w.WriteHeader(http.StatusNoContent)
 }
