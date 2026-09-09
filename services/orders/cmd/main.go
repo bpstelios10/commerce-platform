@@ -20,6 +20,7 @@ func main() {
 		Env:     "local",
 		Level:   zerolog.InfoLevel,
 	})
+	loggerx.SetAsDefault(logger)
 
 	logger.Info().Msg("Commerce Platform - ORDERS")
 	r := chi.NewRouter()

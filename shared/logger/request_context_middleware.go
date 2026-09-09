@@ -23,6 +23,7 @@ func RequestContextMiddleware(baseLogger zerolog.Logger) func(http.Handler) http
 				Str("request_id", reqID).
 				Logger()
 			ctx := reqLogger.WithContext(r.Context())
+			ctx = ContextWithRequestID(ctx, reqID)
 
 			w.Header().Set("X-Request-Id", reqID)
 

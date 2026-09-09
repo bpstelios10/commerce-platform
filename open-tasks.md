@@ -71,12 +71,16 @@ Tracked as its own section since it's a multi-step effort, done one item at a ti
 - [x] **1. Kill the slog/zerolog split.** Removed all `log/slog` usage from repository,
       service, and `main.go` (both services) — everything now logs through the shared
       zerolog logger, threaded via `context.Context` (repository/service methods now take
-      `ctx` as their first parameter). `shared/logger.New` sets `zerolog.DefaultContextLogger`
-      so code paths without a request-scoped logger in context (e.g. gRPC, until item 2 lands)
-      fall back to the base service logger instead of a disabled one.
-- [ ] **2. Propagate the request ID across the gRPC boundary.** Orders sends `request_id` as
-      outgoing gRPC metadata; products reads it in a unary server interceptor and injects it
-      into its request-scoped logger.
+      `ctx` as their first parameter). `shared/logger.SetAsDefault` (called once from each
+      `main.go`) sets `zerolog.DefaultContextLogger` so code paths without a request-scoped
+      logger in context (e.g. gRPC, until item 2 landed) fall back to the base service logger
+      instead of a disabled one; kept out of `New` itself so `New` stays side-effect-free and
+      safe to call repeatedly in tests.
+- [x] **2. Propagate the request ID across the gRPC boundary.** Orders forwards `request_id`
+      as outgoing gRPC metadata (`shared/logger.RequestIDMetadataKey`); products reads it in a
+      new `LoggingUnaryInterceptor` ([interceptor.go](services/products/internal/grpc/interceptor.go))
+      and injects it into its request-scoped logger, generating one if absent (mirrors the HTTP
+      middleware behavior). Registered via `grpc.UnaryInterceptor(...)` in products' `main.go`.
 - [ ] **3. Add one canonical access-log line per request/RPC.** HTTP middleware and a new gRPC
       unary interceptor (products) log method/route, status/code, and duration for every
       request — separate from ad hoc business-event logs in handlers.
