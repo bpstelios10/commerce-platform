@@ -60,3 +60,23 @@ func TestRequestContextMiddleware_WhenRequestIdNotProvided_ReturnsNewInResponseH
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, parsed)
 }
+
+func TestRequestContextMiddleware_AttachesRequestIDToContext(t *testing.T) {
+	base := New(Config{Service: "orders", Env: "local", Level: 0})
+
+	var requestIDFromCtx string
+	r := chi.NewRouter()
+	r.Use(RequestContextMiddleware(base))
+	r.Get("/dummy", func(w http.ResponseWriter, r *http.Request) {
+		requestIDFromCtx, _ = RequestIDFromContext(r.Context())
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/dummy", nil)
+	req.Header.Set("X-Request-Id", "test-request-id")
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, "test-request-id", requestIDFromCtx)
+}

@@ -4,8 +4,11 @@ import (
 	"context"
 	"log"
 
+	"commerce-platform/shared/logger"
+
 	googlegrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 // ProductsGrpcClient adapts the generated ProductServiceClient to the
@@ -27,6 +30,11 @@ func NewProductsGrpcClient(addr string) (*ProductsGrpcClient, error) {
 }
 
 func (c *ProductsGrpcClient) GetProductByID(ctx context.Context, id string) (*GetProductByIDResponse, error) {
+	// forward the caller's request ID so products can correlate its logs with this request.
+	if requestID, ok := logger.RequestIDFromContext(ctx); ok {
+		ctx = metadata.AppendToOutgoingContext(ctx, logger.RequestIDMetadataKey, requestID)
+	}
+
 	return c.client.GetProductByID(ctx, &GetProductByIDRequest{Id: id})
 }
 

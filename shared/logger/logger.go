@@ -49,12 +49,15 @@ func New(cfg Config) zerolog.Logger {
 		Logger()
 	zerolog.SetGlobalLevel(zerolog.Level(cfg.Level))
 
-	// Fallback for code paths that log via GetLogger(ctx, ...) but run outside a
-	// request context that had a logger attached (e.g. gRPC handlers, startup code).
-	// Without this, zerolog.Ctx(ctx) on a bare context returns a disabled logger.
-	zerolog.DefaultContextLogger = &logger
-
 	return logger
+}
+
+// SetAsDefault installs logger as the process-wide fallback used by GetLogger(ctx, ...)
+// when ctx has no request-scoped logger attached (e.g. gRPC calls without a logging
+// interceptor, or startup code). Call this once from main, after New; New itself stays
+// side-effect-free so it's safe to call repeatedly in tests.
+func SetAsDefault(logger zerolog.Logger) {
+	zerolog.DefaultContextLogger = &logger
 }
 
 func GetLogger(ctx context.Context, component string) zerolog.Logger {

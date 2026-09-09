@@ -25,6 +25,7 @@ func main() {
 		Env:     "local",
 		Level:   zerolog.InfoLevel,
 	})
+	loggerx.SetAsDefault(logger)
 
 	product1 := product.Product{
 		ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
@@ -97,7 +98,7 @@ func main() {
 
 	logger.Info().Msg("--- and gRPC ---")
 	grpcHandler := grpcx.NewProductGrpcHandler(productService)
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(grpcx.LoggingUnaryInterceptor(logger)))
 	grpcx.RegisterProductServiceServer(
 		grpcServer,
 		grpcHandler,
