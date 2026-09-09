@@ -2,15 +2,15 @@ package service
 
 import (
 	"commerce-platform/services/products/internal/product"
-	"log/slog"
+	"context"
 
 	"github.com/google/uuid"
 )
 
 type ProductWriter interface {
-	Save(product.Product)
-	Update(product.Product)
-	Delete(id uuid.UUID)
+	Save(ctx context.Context, p product.Product)
+	Update(ctx context.Context, p product.Product)
+	Delete(ctx context.Context, id uuid.UUID)
 }
 
 type AdminService struct {
@@ -23,8 +23,8 @@ func NewAdminService(productService *ProductService, categoryService *ProductCat
 	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 
-func (s *AdminService) CreateProduct(name string, category string, price float64, stock int) (product.Product, error) {
-	validatedCategory, err := s.categoryService.Validate(category)
+func (s *AdminService) CreateProduct(ctx context.Context, name string, category string, price float64, stock int) (product.Product, error) {
+	validatedCategory, err := s.categoryService.Validate(ctx, category)
 	if err != nil {
 		return product.Product{}, err
 	}
@@ -38,24 +38,26 @@ func (s *AdminService) CreateProduct(name string, category string, price float64
 		Stock:    stock,
 	}
 
-	slog.Info("creating product", "product", p)
+	logger := log(ctx)
+	logger.Info().Str("product_id", p.ID.String()).Str("category", p.Category).Msg("creating product")
 
-	s.repo.Save(p)
+	s.repo.Save(ctx, p)
 
 	return p, nil
 }
 
-func (s *AdminService) UpdateProduct(id uuid.UUID, name string, category string, price float64, stock int) (product.Product, error) {
-	if _, err := s.productService.GetProductByID(id); err != nil {
+func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, price float64, stock int) (product.Product, error) {
+	if _, err := s.productService.GetProductByID(ctx, id); err != nil {
 		return product.Product{}, err
 	}
 
-	validatedCategory, err := s.categoryService.Validate(category)
+	validatedCategory, err := s.categoryService.Validate(ctx, category)
 	if err != nil {
 		return product.Product{}, err
 	}
 
-	slog.Info("updating product with", "productId", id)
+	logger := log(ctx)
+	logger.Info().Str("product_id", id.String()).Msg("updating product")
 
 	p := product.Product{
 		ID:       id,
@@ -65,12 +67,13 @@ func (s *AdminService) UpdateProduct(id uuid.UUID, name string, category string,
 		Stock:    stock,
 	}
 
-	s.repo.Update(p)
+	s.repo.Update(ctx, p)
 	return p, nil
 }
 
-func (s *AdminService) DeleteProduct(id uuid.UUID) {
-	slog.Info("attempting to delete product with", "productId", id)
+func (s *AdminService) DeleteProduct(ctx context.Context, id uuid.UUID) {
+	logger := log(ctx)
+	logger.Info().Str("product_id", id.String()).Msg("attempting to delete product")
 
-	s.repo.Delete(id)
+	s.repo.Delete(ctx, id)
 }

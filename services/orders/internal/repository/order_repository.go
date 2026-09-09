@@ -1,12 +1,14 @@
 package repository
 
 import (
-	"log/slog"
+	"context"
 	"sync"
 
 	"commerce-platform/services/orders/internal/order"
+	"commerce-platform/shared/logger"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 var (
@@ -25,14 +27,12 @@ var (
 // We use RWMutex (not plain Mutex) so multiple reads can run in parallel; only writes
 // are exclusive. Rule of thumb: reads take RLock, writes take Lock.
 type InMemoryOrderRepository struct {
-	logger *slog.Logger
 	mu     sync.RWMutex
 	orders map[uuid.UUID]order.Order
 }
 
 func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 	return &InMemoryOrderRepository{
-		logger: slog.Default().With("component", "orders.repository"),
 		orders: map[uuid.UUID]order.Order{
 			FirstOrderID: {
 				ID:        FirstOrderID,
@@ -50,7 +50,7 @@ func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 	}
 }
 
-func (repo *InMemoryOrderRepository) FindAll() []order.Order {
+func (repo *InMemoryOrderRepository) FindAll(ctx context.Context) []order.Order {
 	// read-only: RLock allows concurrent readers.
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
@@ -64,7 +64,7 @@ func (repo *InMemoryOrderRepository) FindAll() []order.Order {
 	return orders
 }
 
-func (repo *InMemoryOrderRepository) FindByID(id uuid.UUID) (order.Order, bool) {
+func (repo *InMemoryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (order.Order, bool) {
 	// read-only: RLock.
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
@@ -74,33 +74,36 @@ func (repo *InMemoryOrderRepository) FindByID(id uuid.UUID) (order.Order, bool) 
 	return o, found
 }
 
-func (repo *InMemoryOrderRepository) Save(o order.Order) {
+func (repo *InMemoryOrderRepository) Save(ctx context.Context, o order.Order) {
 	// mutates the map: exclusive Lock.
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
 	repo.orders[o.ID] = o
-	repo.log().Info("order saved", "orderId", o.ID, "productId", o.ProductID)
+	logger := log(ctx)
+	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("order saved")
 }
 
-func (repo *InMemoryOrderRepository) Update(o order.Order) {
+func (repo *InMemoryOrderRepository) Update(ctx context.Context, o order.Order) {
 	// mutates the map: exclusive Lock.
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
 	repo.orders[o.ID] = o
-	repo.log().Info("order updated", "orderId", o.ID, "productId", o.ProductID)
+	logger := log(ctx)
+	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("order updated")
 }
 
-func (repo *InMemoryOrderRepository) Delete(id uuid.UUID) {
+func (repo *InMemoryOrderRepository) Delete(ctx context.Context, id uuid.UUID) {
 	// mutates the map: exclusive Lock.
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
 	delete(repo.orders, id)
-	repo.log().Info("order deleted", "orderId", id)
+	logger := log(ctx)
+	logger.Info().Str("order_id", id.String()).Msg("order deleted")
 }
 
-func (repo *InMemoryOrderRepository) log() *slog.Logger {
-	return repo.logger
+func log(ctx context.Context) zerolog.Logger {
+	return logger.GetLogger(ctx, "orders.repository")
 }

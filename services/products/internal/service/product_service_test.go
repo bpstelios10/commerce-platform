@@ -3,6 +3,7 @@ package service
 import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -13,7 +14,7 @@ func TestGetProducts_WhenProductExists_ReturnsProducts(t *testing.T) {
 	repo := repository.NewInMemoryProductRepository()
 	svc := NewProductService(repo)
 
-	p := svc.GetProducts()
+	p := svc.GetProducts(context.Background())
 
 	assert.Equal(t, 4, len(p))
 }
@@ -22,7 +23,7 @@ func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	repo := repository.NewInMemoryProductRepository()
 	svc := NewProductService(repo)
 
-	p, err := svc.GetProductByID(repository.FirstUUID)
+	p, err := svc.GetProductByID(context.Background(), repository.FirstUUID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, repository.FirstUUID, p.ID)
@@ -37,7 +38,7 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	svc := NewProductService(repo)
 	id, _ := uuid.NewV7()
 
-	p, err := svc.GetProductByID(id)
+	p, err := svc.GetProductByID(context.Background(), id)
 
 	assert.ErrorIs(t, err, ErrProductNotFound)
 	assert.Equal(t, product.Product{}, p)
@@ -47,7 +48,7 @@ func TestSearchProducts_WhenOnlyQueryProvided_FiltersByName(t *testing.T) {
 	repo := repository.NewInMemoryProductRepository()
 	svc := NewProductService(repo)
 
-	products := svc.SearchProducts("hoodie", nil, "")
+	products := svc.SearchProducts(context.Background(), "hoodie", nil, "")
 
 	assert.Len(t, products, 1)
 	assert.Equal(t, repository.ThirdUUID, products[0].ID)
@@ -58,7 +59,7 @@ func TestSearchProducts_WhenQueryAndMaxPriceProvided_FiltersByBoth(t *testing.T)
 	svc := NewProductService(repo)
 	maxPrice := 200.0
 
-	products := svc.SearchProducts("necklace", &maxPrice, "")
+	products := svc.SearchProducts(context.Background(), "necklace", &maxPrice, "")
 
 	assert.Len(t, products, 1)
 	assert.Equal(t, repository.FourthUUID, products[0].ID)
@@ -69,7 +70,7 @@ func TestSearchProducts_WhenOnlyMaxPriceProvided_FiltersByPriceAndKeepsEqualBoun
 	svc := NewProductService(repo)
 	maxPrice := 150.0
 
-	products := svc.SearchProducts("", &maxPrice, "")
+	products := svc.SearchProducts(context.Background(), "", &maxPrice, "")
 
 	assert.Len(t, products, 2)
 
@@ -82,7 +83,7 @@ func TestSearchProducts_WhenOnlyCategoryProvided_FiltersByCategory(t *testing.T)
 	repo := repository.NewInMemoryProductRepository()
 	svc := NewProductService(repo)
 
-	products := svc.SearchProducts("", nil, "accessory")
+	products := svc.SearchProducts(context.Background(), "", nil, "accessory")
 
 	assert.Len(t, products, 2)
 }
@@ -92,7 +93,7 @@ func TestSearchProducts_WhenAllCriteriaProvided_FiltersByCombinedCriteria(t *tes
 	svc := NewProductService(repo)
 	maxPrice := 100.0
 
-	products := svc.SearchProducts("hoodie", &maxPrice, "clothes")
+	products := svc.SearchProducts(context.Background(), "hoodie", &maxPrice, "clothes")
 
 	assert.Len(t, products, 1)
 	assert.Equal(t, repository.ThirdUUID, products[0].ID)

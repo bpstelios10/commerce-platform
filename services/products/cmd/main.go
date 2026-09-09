@@ -1,8 +1,7 @@
 package main
 
 import (
-	"log"
-	"log/slog"
+	"context"
 	"net"
 	"net/http"
 
@@ -26,9 +25,6 @@ func main() {
 		Env:     "local",
 		Level:   zerolog.InfoLevel,
 	})
-	// set the default slog to point to logger, just in case
-	slogHandler := zerolog.NewSlogHandler(logger)
-	slog.SetDefault(slog.New(slogHandler))
 
 	product1 := product.Product{
 		ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
@@ -69,7 +65,7 @@ func main() {
 	// var productRepo service.ProductRepository
 	productRepo := repository.NewInMemoryProductRepository()
 
-	logger.Info().Msgf("products loaded: %v", productRepo.FindAll())
+	logger.Info().Msgf("products loaded: %v", productRepo.FindAll(context.Background()))
 
 	logger.Info().Msg("--- REAL LOGIC REST---")
 
@@ -95,11 +91,11 @@ func main() {
 
 	// this starts a go routine, like lightweight thread (in parallel).
 	go func() {
-		log.Println("http server running on :8082")
-		http.ListenAndServe(":8082", r)
+		logger.Info().Msg("http server running on :8082")
+		logger.Fatal().Err(http.ListenAndServe(":8082", r)).Msg("http server stopped")
 	}()
 
-	slog.Info("--- and gRPC ---")
+	logger.Info().Msg("--- and gRPC ---")
 	grpcHandler := grpcx.NewProductGrpcHandler(productService)
 	grpcServer := grpc.NewServer()
 	grpcx.RegisterProductServiceServer(
@@ -110,8 +106,8 @@ func main() {
 	// start gRPC
 	lis, err := net.Listen("tcp", ":8092")
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal().Err(err).Msg("failed to listen for grpc")
 	}
-	log.Println("grpc server running on :8092")
-	grpcServer.Serve(lis)
+	logger.Info().Msg("grpc server running on :8092")
+	logger.Fatal().Err(grpcServer.Serve(lis)).Msg("grpc server stopped")
 }

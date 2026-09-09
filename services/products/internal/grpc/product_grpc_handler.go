@@ -24,7 +24,7 @@ func (h *ProductGrpcHandler) GetProductByID(ctx context.Context, req *GetProduct
 		return nil, HandleError(err)
 	}
 
-	p, err := h.service.GetProductByID(validUUID)
+	p, err := h.service.GetProductByID(ctx, validUUID)
 	if err != nil {
 		return nil, HandleError(err)
 	}

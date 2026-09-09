@@ -8,6 +8,29 @@ The objective is not only to learn Go syntax, but also the common ecosystem, too
 
 ---
 
+## Current status (last updated 2026-08-31)
+
+See [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md) for the full write-up. Quick reference:
+
+| Phase | Topic | Status |
+|---|---|---|
+| 1 | Go fundamentals | Done |
+| 2 | Product Service HTTP API | Done |
+| 3 | PostgreSQL integration | Not started — in-memory repositories only |
+| 4 | Configuration (env vars) | Not started — ports/addresses hardcoded in `main.go` |
+| 5 | Logging | Done — `shared/logger` (zerolog + slog bridge, request-scoped logger) |
+| 6 | Testing | Mostly done — handler/service/domain/validation covered; repository layer has no tests yet |
+| 7 | Docker | Not started |
+| 8 | gRPC | Partially done — `GetProductByID` only; `CreateProduct` not yet exposed over gRPC |
+| 9 | Order Service | Done |
+| 10 | REST client (switchable transport) | Not started — orders only calls products over gRPC |
+| 11 | Context propagation | Partially done — `context.Context` threaded through service calls; no deadlines/timeouts configured yet |
+| 12 | Kafka (publish) | Not started |
+| 13 | Kafka (consume) | Not started |
+| 14 | Concurrency | Partially done — `sync.RWMutex` on in-memory repos; no goroutines/channels/worker pools yet |
+
+---
+
 # Final Architecture
 
 Two microservices:

@@ -2,6 +2,7 @@ package service
 
 import (
 	"commerce-platform/services/products/internal/repository"
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,7 +11,7 @@ import (
 func TestProductCategoryService_Validate_WhenCategoryExists_ReturnsNil(t *testing.T) {
 	repo := repository.NewInMemoryProductCategoryRepository()
 	svc := NewProductCategoryService(repo)
-	normalized, err := svc.Validate("accessory")
+	normalized, err := svc.Validate(context.Background(), "accessory")
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ACCESSORY", normalized)
@@ -19,7 +20,7 @@ func TestProductCategoryService_Validate_WhenCategoryExists_ReturnsNil(t *testin
 func TestProductCategoryService_Validate_WhenCategoryDoesNotExist_ReturnsInvalidCategory(t *testing.T) {
 	repo := repository.NewInMemoryProductCategoryRepository()
 	svc := NewProductCategoryService(repo)
-	normalized, err := svc.Validate("UNKNOWN")
+	normalized, err := svc.Validate(context.Background(), "UNKNOWN")
 
 	assert.Empty(t, normalized)
 	assert.ErrorIs(t, err, ErrInvalidCategory)
@@ -28,7 +29,7 @@ func TestProductCategoryService_Validate_WhenCategoryDoesNotExist_ReturnsInvalid
 func TestProductCategoryService_GetProductCategories_ReturnsAllCategories(t *testing.T) {
 	repo := repository.NewInMemoryProductCategoryRepository()
 	svc := NewProductCategoryService(repo)
-	categories := svc.GetProductCategories()
+	categories := svc.GetProductCategories(context.Background())
 
 	assert.NotEmpty(t, categories)
 }

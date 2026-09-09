@@ -1,0 +1,90 @@
+# Open Tasks
+
+Tracks the follow-ups from [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md), plus a
+few extra items worth doing. Check items off as they're done; update
+[TECH.md](TECH.md)'s status table when a phase-related item lands.
+
+## High priority
+
+- [ ] Add tests for the in-memory repositories (`FindAll`/`FindByID`/`Save`/`Update`/`Delete`
+      in [order_repository.go](services/orders/internal/repository/order_repository.go) and
+      [product_repository.go](services/products/internal/repository/product_repository.go)),
+      including a `go test -race` case that hits the map from multiple goroutines concurrently.
+- [ ] Stop collapsing all gRPC errors into `ErrProductNotFound` in
+      `OrderService.validateProductExists` ([order_service.go](services/orders/internal/service/order_service.go)).
+      Map `codes.NotFound` → `ErrProductNotFound`; map everything else (`Unavailable`,
+      `DeadlineExceeded`, etc.) to a new `ErrProductServiceUnavailable` → HTTP 502/503.
+- [ ] Add graceful shutdown to both `cmd/main.go` entry points: `signal.NotifyContext`
+      (SIGINT/SIGTERM) + `http.Server.Shutdown(ctx)` + `grpcServer.GracefulStop()`, with a
+      bounded shutdown timeout.
+- [x] Fix silent HTTP bind failures in [products/cmd/main.go](services/products/cmd/main.go) —
+      the HTTP server ran in a bare `go func(){ http.ListenAndServe(...) }()`; a bind error
+      (e.g. port in use) was dropped. Fixed as part of the logging unification below: both the
+      HTTP and gRPC listeners now log via `logger.Fatal().Err(...)`, which logs and exits on error.
+
+## Medium priority
+
+- [ ] Externalize configuration: ports (`:8082`, `:8092`, `:8083`) and the orders→products
+      gRPC address (`localhost:8092`) are hardcoded in `main.go`. Load from env vars with
+      sane local defaults (unblocks Docker Compose too).
+- [ ] Extract duplicated `validation/uuid.go` (`GetValidUUID`/`ErrInvalidUUID`) — currently
+      copy-pasted in both `orders` and `products` — into `shared`.
+- [ ] Consider extracting the repository mutex/CRUD boilerplate (near-identical between the
+      two in-memory repos) into a generic `shared` helper, e.g. `InMemoryRepository[K, V]`.
+- [ ] Check/log the error returned by `json.NewEncoder(w).Encode(...)` in handlers instead of
+      discarding it (e.g. [order_handler.go](services/orders/internal/http/order_handler.go)).
+- [ ] Align package naming: rename orders' `http` package to `httpx` (matches products, and
+      stops shadowing the stdlib `net/http` import name inside the package).
+- [ ] Ring-fence the scratch/demo code in [products/cmd/main.go](services/products/cmd/main.go)
+      (manual map lookups, `ApplyDiscount` demo, etc.) — e.g. move behind a `-demo` flag or
+      into a separate example file — so it doesn't get mistaken for real bootstrap logic.
+- [ ] Add a `.golangci.yml` at the repo root so `make lint` is reproducible across machines
+      instead of depending on whatever's installed locally.
+- [ ] Add a CI pipeline (GitHub Actions) running `make test-all` and `make lint` on every PR.
+
+## Low priority
+
+- [ ] Add `coverage.out` (root-level, no prefix) to the `make clean` target — currently only
+      `coverage-{shared,orders,products}.out` are removed.
+- [ ] Add request timeouts: wrap HTTP servers with `http.TimeoutHandler` / set
+      `ReadHeaderTimeout` etc., and set a dial/call timeout on the orders→products gRPC client
+      (`context.WithTimeout` at the call site) — ties into TECH.md Phase 11 (context propagation).
+
+## Additional suggestions (beyond the original review)
+
+- [ ] Expose `CreateProduct` over gRPC too (currently HTTP-only), matching TECH.md Phase 8's
+      goal of `GetProduct()` + `CreateProduct()` both over gRPC.
+- [ ] Add a root `docker-compose.yml` once config is externalized (Phase 7) — even without
+      Postgres yet, this is useful for running both services + health checks with one command.
+- [ ] Add a basic OpenAPI/Swagger spec (or at least a `docs/api.md`) for the two REST APIs —
+      there's currently no request/response contract documented outside of the DTO structs.
+- [ ] Decide on `orders` repo's `Save` vs `Update` — they're currently identical upserts
+      (`repo.orders[o.ID] = o`); either differentiate them (e.g. `Save` rejects existing IDs)
+      or collapse to one method to avoid the false impression they behave differently.
+- [ ] Add an integration-style test that boots both services (or fakes the gRPC boundary) to
+      exercise the orders→products call path end-to-end, not just via mocked `ProductsClient`.
+
+## Logging (Google/K8s/Uber-standard pass)
+
+Tracked as its own section since it's a multi-step effort, done one item at a time.
+
+- [x] **1. Kill the slog/zerolog split.** Removed all `log/slog` usage from repository,
+      service, and `main.go` (both services) — everything now logs through the shared
+      zerolog logger, threaded via `context.Context` (repository/service methods now take
+      `ctx` as their first parameter). `shared/logger.New` sets `zerolog.DefaultContextLogger`
+      so code paths without a request-scoped logger in context (e.g. gRPC, until item 2 lands)
+      fall back to the base service logger instead of a disabled one.
+- [ ] **2. Propagate the request ID across the gRPC boundary.** Orders sends `request_id` as
+      outgoing gRPC metadata; products reads it in a unary server interceptor and injects it
+      into its request-scoped logger.
+- [ ] **3. Add one canonical access-log line per request/RPC.** HTTP middleware and a new gRPC
+      unary interceptor (products) log method/route, status/code, and duration for every
+      request — separate from ad hoc business-event logs in handlers.
+- [ ] **4. Standardize log field names** across both services (snake_case: `order_id`,
+      `product_id`, `request_id`, `category`) — most fields fixed while doing item 1, but do a
+      full sweep once items 2–3 land and touch the remaining handler/log call sites.
+- [ ] **5. Make log level configurable via env var**, replacing the hardcoded
+      `zerolog.InfoLevel` in both `cmd/main.go` files.
+- [ ] *(Deferred, own future phase)* Full OpenTelemetry trace/span propagation instead of the
+      hand-rolled `request_id` — bigger lift (SDK, exporters), tracked separately in
+      [TECH.md](TECH.md) rather than bundled into this pass.

@@ -49,7 +49,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().Interface("request", req).Msg("create product request received")
 
-	p, err := h.adminService.CreateProduct(req.Name, req.Category, req.Price, *req.Stock)
+	p, err := h.adminService.CreateProduct(ctx, req.Name, req.Category, req.Price, *req.Stock)
 	if err != nil {
 		HandleError(ctx, w, err)
 		return
@@ -71,7 +71,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		HandleError(ctx, w, err)
 		return
 	}
-	logger.Info().Interface("ProductId", validUUID).Msg("update product request received")
+	logger.Info().Str("product_id", validUUID.String()).Msg("update product request received")
 
 	var req UpdateProductRequest
 	err = json.NewDecoder(r.Body).Decode(&req)
@@ -88,7 +88,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().Interface("request", req).Msg("update product")
 
-	p, err := h.adminService.UpdateProduct(validUUID, req.Name, req.Category, req.Price, *req.Stock)
+	p, err := h.adminService.UpdateProduct(ctx, validUUID, req.Name, req.Category, req.Price, *req.Stock)
 	if err != nil {
 		HandleError(ctx, w, err)
 		return
@@ -109,9 +109,9 @@ func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		HandleError(ctx, w, err)
 		return
 	}
-	logger.Info().Interface("ProductId", validUUID).Msg("delete product request received")
+	logger.Info().Str("product_id", validUUID.String()).Msg("delete product request received")
 
-	h.adminService.DeleteProduct(validUUID)
+	h.adminService.DeleteProduct(ctx, validUUID)
 
 	w.WriteHeader(http.StatusNoContent)
 }

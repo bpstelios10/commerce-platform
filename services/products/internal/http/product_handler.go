@@ -30,7 +30,7 @@ func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := log(ctx)
 
-	products := h.productService.GetProducts()
+	products := h.productService.GetProducts(ctx)
 
 	logger.Info().Int("count", len(products)).Msg("products retrieved")
 
@@ -49,14 +49,14 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := h.productService.GetProductByID(validUUID)
+	product, err := h.productService.GetProductByID(ctx, validUUID)
 
 	if err != nil {
 		HandleError(ctx, w, err)
 		return
 	}
 
-	logger.Info().Str("productId", idPathParam).Msg("product was found, with")
+	logger.Info().Str("product_id", validUUID.String()).Msg("product was found")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
@@ -87,8 +87,8 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 		Str("category", category).
 		Msg("products search request")
 
-	products := h.productService.SearchProducts(query, maxPrice, category)
-	logger.Info().Interface("products", products).Msg("products found")
+	products := h.productService.SearchProducts(ctx, query, maxPrice, category)
+	logger.Info().Int("count", len(products)).Msg("products found")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)

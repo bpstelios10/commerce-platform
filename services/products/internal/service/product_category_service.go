@@ -1,10 +1,13 @@
 package service
 
-import "strings"
+import (
+	"context"
+	"strings"
+)
 
 type ProductCategoryRepository interface {
-	Exists(category string) bool
-	GetAll() []string
+	Exists(ctx context.Context, category string) bool
+	GetAll(ctx context.Context) []string
 }
 
 type ProductCategoryService struct {
@@ -15,15 +18,15 @@ func NewProductCategoryService(repo ProductCategoryRepository) *ProductCategoryS
 	return &ProductCategoryService{repo: repo}
 }
 
-func (s *ProductCategoryService) Validate(category string) (string, error) {
+func (s *ProductCategoryService) Validate(ctx context.Context, category string) (string, error) {
 	normalized := strings.ToUpper(strings.TrimSpace(category))
-	if !s.repo.Exists(normalized) {
+	if !s.repo.Exists(ctx, normalized) {
 		return "", ErrInvalidCategory
 	}
 
 	return normalized, nil
 }
 
-func (s *ProductCategoryService) GetProductCategories() []string {
-	return s.repo.GetAll()
+func (s *ProductCategoryService) GetProductCategories(ctx context.Context) []string {
+	return s.repo.GetAll(ctx)
 }

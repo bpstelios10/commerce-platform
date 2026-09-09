@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log/slog"
 	"net/http"
 
 	grpcx "commerce-platform/services/orders/internal/grpc"
@@ -21,9 +20,6 @@ func main() {
 		Env:     "local",
 		Level:   zerolog.InfoLevel,
 	})
-	// set the default slog to point to logger, just in case
-	slogHandler := zerolog.NewSlogHandler(logger)
-	slog.SetDefault(slog.New(slogHandler))
 
 	logger.Info().Msg("Commerce Platform - ORDERS")
 	r := chi.NewRouter()

@@ -40,7 +40,7 @@ func setup(t *testing.T) (*OrderService, *repository.InMemoryOrderRepository, *m
 func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
 	svc, _, _ := setup(t)
 
-	orders := svc.GetOrders()
+	orders := svc.GetOrders(context.Background())
 
 	assert.Len(t, orders, 2)
 }
@@ -48,7 +48,7 @@ func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
 func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 	svc, _, _ := setup(t)
 
-	o, err := svc.GetOrderByID(repository.FirstOrderID)
+	o, err := svc.GetOrderByID(context.Background(), repository.FirstOrderID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, repository.FirstOrderID, o.ID)
@@ -61,7 +61,7 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	svc, _, _ := setup(t)
 	id, _ := uuid.NewV7()
 
-	o, err := svc.GetOrderByID(id)
+	o, err := svc.GetOrderByID(context.Background(), id)
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrOrderNotFound)
@@ -74,7 +74,7 @@ func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
 	o, err := svc.CreateOrder(context.Background(), repository.FirstProductID, 10)
 
 	assert.NoError(t, err)
-	o, exists := repo.FindByID(o.ID)
+	o, exists := repo.FindByID(context.Background(), o.ID)
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        o.ID,
@@ -91,7 +91,7 @@ func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrProductNotFound)
 	assert.Empty(t, o)
-	orders := repo.FindAll()
+	orders := repo.FindAll(context.Background())
 	assert.Len(t, orders, 2)
 }
 
@@ -103,7 +103,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 
 	assert.Error(t, err)
 
-	o, exists := repo.FindByID(id)
+	o, exists := repo.FindByID(context.Background(), id)
 
 	assert.False(t, exists)
 	assert.ErrorIs(t, err, ErrOrderNotFound)
@@ -114,7 +114,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	svc, repo, _ := setup(t)
 
-	o, exists := repo.FindByID(repository.FirstOrderID)
+	o, exists := repo.FindByID(context.Background(), repository.FirstOrderID)
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        repository.FirstOrderID,
@@ -125,7 +125,7 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 
 	updated, err := svc.UpdateOrder(context.Background(), repository.FirstOrderID, repository.FirstProductID, 11, order.PAID)
 
-	o, exists = repo.FindByID(repository.FirstOrderID)
+	o, exists = repo.FindByID(context.Background(), repository.FirstOrderID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, order.Order{
@@ -152,7 +152,7 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	assert.Empty(t, updated)
 
 	// order unchanged
-	o, exists := repo.FindByID(repository.FirstOrderID)
+	o, exists := repo.FindByID(context.Background(), repository.FirstOrderID)
 	assert.True(t, exists)
 	assert.Equal(t, order.Order{
 		ID:        repository.FirstOrderID,
@@ -167,15 +167,15 @@ func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
 	id, _ := uuid.NewV7()
 
 	// order does not exist
-	_, exists := repo.FindByID(id)
+	_, exists := repo.FindByID(context.Background(), id)
 	assert.False(t, exists)
 
-	svc.DeleteOrder(id)
-	_, exists = repo.FindByID(id)
+	svc.DeleteOrder(context.Background(), id)
+	_, exists = repo.FindByID(context.Background(), id)
 
 	assert.False(t, exists)
 
-	orders := repo.FindAll()
+	orders := repo.FindAll(context.Background())
 	assert.Len(t, orders, 2)
 }
 
@@ -183,14 +183,14 @@ func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 	svc, repo, _ := setup(t)
 
 	// order exists
-	_, exists := repo.FindByID(repository.SecondOrderID)
+	_, exists := repo.FindByID(context.Background(), repository.SecondOrderID)
 	assert.True(t, exists)
 
-	svc.DeleteOrder(repository.SecondOrderID)
-	_, exists = repo.FindByID(repository.SecondOrderID)
+	svc.DeleteOrder(context.Background(), repository.SecondOrderID)
+	_, exists = repo.FindByID(context.Background(), repository.SecondOrderID)
 
 	assert.False(t, exists)
 
-	orders := repo.FindAll()
+	orders := repo.FindAll(context.Background())
 	assert.Len(t, orders, 1)
 }
