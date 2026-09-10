@@ -81,9 +81,13 @@ Tracked as its own section since it's a multi-step effort, done one item at a ti
       new `LoggingUnaryInterceptor` ([interceptor.go](services/products/internal/grpc/interceptor.go))
       and injects it into its request-scoped logger, generating one if absent (mirrors the HTTP
       middleware behavior). Registered via `grpc.UnaryInterceptor(...)` in products' `main.go`.
-- [ ] **3. Add one canonical access-log line per request/RPC.** HTTP middleware and a new gRPC
-      unary interceptor (products) log method/route, status/code, and duration for every
-      request — separate from ad hoc business-event logs in handlers.
+- [x] **3. Add one canonical access-log line per request/RPC.** HTTP middleware
+      ([request_context_middleware.go](shared/logger/request_context_middleware.go)) now wraps
+      the `http.ResponseWriter` to capture the status code and logs one "request completed"
+      line per request (method, path, status, duration). Products' `LoggingUnaryInterceptor`
+      ([interceptor.go](services/products/internal/grpc/interceptor.go)) does the same for gRPC,
+      logging one "rpc completed" line (method, status code, duration) per call — both separate
+      from whatever business-event logs individual handlers add.
 - [ ] **4. Standardize log field names** across both services (snake_case: `order_id`,
       `product_id`, `request_id`, `category`) — most fields fixed while doing item 1, but do a
       full sweep once items 2–3 land and touch the remaining handler/log call sites.

@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -79,4 +80,51 @@ func TestRequestContextMiddleware_AttachesRequestIDToContext(t *testing.T) {
 	r.ServeHTTP(res, req)
 
 	assert.Equal(t, "test-request-id", requestIDFromCtx)
+}
+
+func TestRequestContextMiddleware_LogsOneCanonicalLineWithMethodPathStatusAndDuration(t *testing.T) {
+	out := captureStdout(t, func() {
+		base := New(Config{Service: "orders", Env: "dev", Level: 0})
+
+		r := chi.NewRouter()
+		r.Use(RequestContextMiddleware(base))
+		r.Get("/dummy/{id}", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusTeapot)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/dummy/123", nil)
+		res := httptest.NewRecorder()
+
+		r.ServeHTTP(res, req)
+	})
+
+	var entry map[string]any
+	assert.NoError(t, json.Unmarshal([]byte(out), &entry))
+	assert.Equal(t, "request completed", entry["message"])
+	assert.Equal(t, http.MethodGet, entry["method"])
+	assert.Equal(t, "/dummy/123", entry["path"])
+	assert.Equal(t, float64(http.StatusTeapot), entry["status"])
+	assert.Contains(t, entry, "duration")
+	assert.Contains(t, entry, "request_id")
+}
+
+func TestRequestContextMiddleware_WhenHandlerNeverCallsWriteHeader_LogsStatus200(t *testing.T) {
+	out := captureStdout(t, func() {
+		base := New(Config{Service: "orders", Env: "dev", Level: 0})
+
+		r := chi.NewRouter()
+		r.Use(RequestContextMiddleware(base))
+		r.Get("/dummy", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("ok"))
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/dummy", nil)
+		res := httptest.NewRecorder()
+
+		r.ServeHTTP(res, req)
+	})
+
+	var entry map[string]any
+	assert.NoError(t, json.Unmarshal([]byte(out), &entry))
+	assert.Equal(t, float64(http.StatusOK), entry["status"])
 }
