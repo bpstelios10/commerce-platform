@@ -11,7 +11,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	googlegrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func captureStdout(t *testing.T, fn func()) string {
@@ -35,12 +37,10 @@ func captureStdout(t *testing.T, fn func()) string {
 	return string(bytes)
 }
 
-func TestLoggingUnaryInterceptor_WhenNoRequestIDInMetadata_GeneratesOne(t *testing.T) {
+func TestLoggingUnaryInterceptor_WhenNoRequestIDInMetadata_GeneratesOneAndLogsCompletion(t *testing.T) {
 	var requestIDInHandlerCtx string
 	handler := func(ctx context.Context, req any) (any, error) {
 		requestIDInHandlerCtx, _ = logger.RequestIDFromContext(ctx)
-		l := logger.GetLogger(ctx, "test")
-		l.Info().Msg("handled")
 		return nil, nil
 	}
 
@@ -48,7 +48,7 @@ func TestLoggingUnaryInterceptor_WhenNoRequestIDInMetadata_GeneratesOne(t *testi
 		baseLogger := logger.New(logger.Config{Service: "products", Env: "dev"})
 		interceptor := LoggingUnaryInterceptor(baseLogger)
 
-		_, err := interceptor(context.Background(), nil, &googlegrpc.UnaryServerInfo{}, handler)
+		_, err := interceptor(context.Background(), nil, &googlegrpc.UnaryServerInfo{FullMethod: "/product.ProductService/GetProductByID"}, handler)
 		assert.NoError(t, err)
 	})
 
@@ -57,14 +57,16 @@ func TestLoggingUnaryInterceptor_WhenNoRequestIDInMetadata_GeneratesOne(t *testi
 	var entry map[string]any
 	assert.NoError(t, json.Unmarshal([]byte(out), &entry))
 	assert.Equal(t, requestIDInHandlerCtx, entry["request_id"])
+	assert.Equal(t, "/product.ProductService/GetProductByID", entry["method"])
+	assert.Equal(t, codes.OK.String(), entry["code"])
+	assert.Contains(t, entry, "duration")
+	assert.Equal(t, "rpc completed", entry["message"])
 }
 
 func TestLoggingUnaryInterceptor_WhenRequestIDInMetadata_ReusesIt(t *testing.T) {
 	var requestIDInHandlerCtx string
 	handler := func(ctx context.Context, req any) (any, error) {
 		requestIDInHandlerCtx, _ = logger.RequestIDFromContext(ctx)
-		l := logger.GetLogger(ctx, "test")
-		l.Info().Msg("handled")
 		return nil, nil
 	}
 
@@ -86,4 +88,22 @@ func TestLoggingUnaryInterceptor_WhenRequestIDInMetadata_ReusesIt(t *testing.T) 
 	var entry map[string]any
 	assert.NoError(t, json.Unmarshal([]byte(out), &entry))
 	assert.Equal(t, "test-request-id", entry["request_id"])
+}
+
+func TestLoggingUnaryInterceptor_WhenHandlerReturnsError_LogsItsStatusCode(t *testing.T) {
+	handler := func(ctx context.Context, req any) (any, error) {
+		return nil, status.Error(codes.NotFound, "product not found")
+	}
+
+	out := captureStdout(t, func() {
+		baseLogger := logger.New(logger.Config{Service: "products", Env: "dev"})
+		interceptor := LoggingUnaryInterceptor(baseLogger)
+
+		_, err := interceptor(context.Background(), nil, &googlegrpc.UnaryServerInfo{}, handler)
+		assert.Error(t, err)
+	})
+
+	var entry map[string]any
+	assert.NoError(t, json.Unmarshal([]byte(out), &entry))
+	assert.Equal(t, codes.NotFound.String(), entry["code"])
 }
