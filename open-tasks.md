@@ -88,11 +88,18 @@ Tracked as its own section since it's a multi-step effort, done one item at a ti
       ([interceptor.go](services/products/internal/grpc/interceptor.go)) does the same for gRPC,
       logging one "rpc completed" line (method, status code, duration) per call — both separate
       from whatever business-event logs individual handlers add.
-- [ ] **4. Standardize log field names** across both services (snake_case: `order_id`,
-      `product_id`, `request_id`, `category`) — most fields fixed while doing item 1, but do a
-      full sweep once items 2–3 land and touch the remaining handler/log call sites.
-- [ ] **5. Make log level configurable via env var**, replacing the hardcoded
-      `zerolog.InfoLevel` in both `cmd/main.go` files.
+- [x] **4. Standardize log field names** across both services (snake_case: `order_id`,
+      `product_id`, `request_id`, `category`) — full sweep of every `.Str`/`.Int`/`.Interface`/
+      `.Bool`/`.Strs` log call across both services found field names were already snake_case
+      from items 1–3, except one leftover: `Interface("maxPrice", ...)` in
+      [product_handler.go](services/products/internal/http/product_handler.go)'s
+      `SearchProducts`, fixed to `max_price` (the `maxPrice` HTTP query parameter itself is
+      the API contract and was left unchanged).
+- [x] **5. Make log level configurable via env var.** Added `shared/logger.LevelFromEnv`
+      (parses a level name via `zerolog.ParseLevel`, falls back to a default if unset/invalid);
+      both `cmd/main.go` files now use `loggerx.LevelFromEnv("LOG_LEVEL", zerolog.InfoLevel)`
+      instead of a hardcoded level. Set `LOG_LEVEL=debug` (or `warn`/`error`) to change
+      verbosity per environment without a rebuild.
 - [ ] *(Deferred, own future phase)* Full OpenTelemetry trace/span propagation instead of the
       hand-rolled `request_id` — bigger lift (SDK, exporters), tracked separately in
       [TECH.md](TECH.md) rather than bundled into this pass.

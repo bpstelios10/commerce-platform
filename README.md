@@ -42,6 +42,12 @@ interfaces via constructors (`NewXxx`).
 [services/orders/cmd/main.go](services/orders/cmd/main.go) — see
 [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md) for the plan to externalize this).
 
+## Configuration
+
+| Env var     | Default | Description |
+|-------------|---------|-------------|
+| `LOG_LEVEL` | `info`  | zerolog level name (`debug`, `info`, `warn`, `error`, ...), read on startup by both services. |
+
 ## Quick start
 
 All common tasks are wired up in the [Makefile](Makefile):
