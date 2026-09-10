@@ -83,7 +83,7 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 
 	logger.Info().
 		Str("query", query).
-		Interface("maxPrice", maxPrice).
+		Interface("max_price", maxPrice).
 		Str("category", category).
 		Msg("products search request")
 

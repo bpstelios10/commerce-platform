@@ -18,7 +18,7 @@ func main() {
 	logger := loggerx.New(loggerx.Config{
 		Service: "orders",
 		Env:     "local",
-		Level:   zerolog.InfoLevel,
+		Level:   loggerx.LevelFromEnv("LOG_LEVEL", zerolog.InfoLevel),
 	})
 	loggerx.SetAsDefault(logger)
 
