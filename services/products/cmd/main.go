@@ -4,8 +4,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"os/signal"
-	"syscall"
 	"time"
 
 	grpcx "commerce-platform/services/products/internal/grpc"
@@ -22,8 +20,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// shutdownTimeout bounds how long we wait for in-flight requests/RPCs to drain
-// before forcing the process to exit.
 const shutdownTimeout = 10 * time.Second
 
 func main() {
@@ -114,9 +110,6 @@ func main() {
 		logger.Fatal().Err(err).Msg("failed to listen for grpc")
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
 	go func() {
 		logger.Info().Msg("http server running on :8082")
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -131,18 +124,18 @@ func main() {
 		}
 	}()
 
-	<-ctx.Done()
-	stop()
-	logger.Info().Msg("shutdown signal received, draining connections")
+	if err := shutdownx.WaitForTerminationAndShutdown(
+		context.Background(), shutdownTimeout, func(shutdownCtx context.Context) error {
+			logger.Info().Msg("shutdown signal received, draining connections")
+			if err := httpServer.Shutdown(shutdownCtx); err != nil {
+				logger.Error().Err(err).Msg("http server did not shut down cleanly")
+				return err
+			}
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-	defer cancel()
-
-	if err := httpServer.Shutdown(shutdownCtx); err != nil {
-		logger.Error().Err(err).Msg("http server did not shut down cleanly")
+			shutdownx.StopGracefullyOrForcefully(shutdownCtx, grpcServer.GracefulStop, grpcServer.Stop)
+			logger.Info().Msg("products service stopped")
+			return nil
+		}); err != nil {
+		logger.Error().Err(err).Msg("products service shutdown failed")
 	}
-
-	shutdownx.GracefulStopWithTimeout(shutdownCtx, grpcServer.GracefulStop, grpcServer.Stop)
-
-	logger.Info().Msg("products service stopped")
 }

@@ -18,7 +18,7 @@ few extra items worth doing. Check items off as they're done; update
       (SIGINT/SIGTERM) + `http.Server.Shutdown(ctx)` + `grpcServer.GracefulStop()`, with a
       bounded shutdown timeout (`shutdownTimeout = 10s`; gRPC falls back to a forceful
       `Stop()` if `GracefulStop()` doesn't finish in time, via the tested
-      [shared/shutdown.GracefulStopWithTimeout](shared/shutdown/shutdown.go)). Manually
+      [shared/shutdown.StopGracefullyOrForcefully](shared/shutdown/shutdown.go)). Manually
       verified with `kill -TERM` against both running binaries — clean exit, no dropped/hung
       connections. (Full signal-handling flow in `main()` itself is intentionally not unit
       tested — extracting real signals/ports into a test is unconventional/fragile; the

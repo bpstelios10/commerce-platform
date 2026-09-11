@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"net/http"
-	"os/signal"
-	"syscall"
 	"time"
 
 	grpcx "commerce-platform/services/orders/internal/grpc"
@@ -12,6 +10,7 @@ import (
 	"commerce-platform/services/orders/internal/repository"
 	"commerce-platform/services/orders/internal/service"
 	loggerx "commerce-platform/shared/logger"
+	shutdownx "commerce-platform/shared/shutdown"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
@@ -43,9 +42,6 @@ func main() {
 
 	srv := &http.Server{Addr: ":8083", Handler: r}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
 	go func() {
 		logger.Info().Msg("http server running on :8083")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -53,16 +49,17 @@ func main() {
 		}
 	}()
 
-	<-ctx.Done()
-	stop()
-	logger.Info().Msg("shutdown signal received, draining connections")
+	if err := shutdownx.WaitForTerminationAndShutdown(
+		context.Background(), shutdownTimeout, func(shutdownCtx context.Context) error {
+			logger.Info().Msg("shutdown signal received, draining connections")
+			if err := srv.Shutdown(shutdownCtx); err != nil {
+				logger.Error().Err(err).Msg("http server did not shut down cleanly")
+				return err
+			}
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-	defer cancel()
-
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		logger.Error().Err(err).Msg("http server did not shut down cleanly")
+			logger.Info().Msg("http server stopped")
+			return nil
+		}); err != nil {
+		logger.Error().Err(err).Msg("orders service shutdown failed")
 	}
-
-	logger.Info().Msg("http server stopped")
 }
