@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
 	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 
 	grpcx "commerce-platform/services/orders/internal/grpc"
 	httpx "commerce-platform/services/orders/internal/http"
@@ -12,6 +16,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 )
+
+const shutdownTimeout = 10 * time.Second
 
 func main() {
 	// import shared logger
@@ -35,6 +41,28 @@ func main() {
 	orderHandler := httpx.NewOrderHandler(svc)
 	orderHandler.RegisterRoutes(r)
 
-	logger.Info().Msg("http server running on :8083")
-	logger.Fatal().Err(http.ListenAndServe(":8083", r)).Msg("http server stopped")
+	srv := &http.Server{Addr: ":8083", Handler: r}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		logger.Info().Msg("http server running on :8083")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal().Err(err).Msg("http server failed")
+		}
+	}()
+
+	<-ctx.Done()
+	stop()
+	logger.Info().Msg("shutdown signal received, draining connections")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error().Err(err).Msg("http server did not shut down cleanly")
+	}
+
+	logger.Info().Msg("http server stopped")
 }

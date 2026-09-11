@@ -14,8 +14,15 @@ few extra items worth doing. Check items off as they're done; update
       `OrderService.validateProductExists` ([order_service.go](services/orders/internal/service/order_service.go)).
       Map `codes.NotFound` → `ErrProductNotFound`; map everything else (`Unavailable`,
       `DeadlineExceeded`, etc.) to a new `ErrProductServiceUnavailable` → HTTP 502/503.
-- [ ] Add graceful shutdown to both `cmd/main.go` entry points: `signal.NotifyContext`
+- [x] Add graceful shutdown to both `cmd/main.go` entry points: `signal.NotifyContext`
       (SIGINT/SIGTERM) + `http.Server.Shutdown(ctx)` + `grpcServer.GracefulStop()`, with a
+      bounded shutdown timeout (`shutdownTimeout = 10s`; gRPC falls back to a forceful
+      `Stop()` if `GracefulStop()` doesn't finish in time, via the tested
+      [shared/shutdown.GracefulStopWithTimeout](shared/shutdown/shutdown.go)). Manually
+      verified with `kill -TERM` against both running binaries — clean exit, no dropped/hung
+      connections. (Full signal-handling flow in `main()` itself is intentionally not unit
+      tested — extracting real signals/ports into a test is unconventional/fragile; the
+      testable timeout-fallback logic is covered instead.)
       bounded shutdown timeout.
 - [x] Fix silent HTTP bind failures in [products/cmd/main.go](services/products/cmd/main.go) —
       the HTTP server ran in a bare `go func(){ http.ListenAndServe(...) }()`; a bind error

@@ -4,6 +4,9 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 
 	grpcx "commerce-platform/services/products/internal/grpc"
 	httpx "commerce-platform/services/products/internal/http"
@@ -11,12 +14,17 @@ import (
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
 	loggerx "commerce-platform/shared/logger"
+	shutdownx "commerce-platform/shared/shutdown"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 )
+
+// shutdownTimeout bounds how long we wait for in-flight requests/RPCs to drain
+// before forcing the process to exit.
+const shutdownTimeout = 10 * time.Second
 
 func main() {
 	// import shared logger
@@ -90,11 +98,7 @@ func main() {
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
-	// this starts a go routine, like lightweight thread (in parallel).
-	go func() {
-		logger.Info().Msg("http server running on :8082")
-		logger.Fatal().Err(http.ListenAndServe(":8082", r)).Msg("http server stopped")
-	}()
+	httpServer := &http.Server{Addr: ":8082", Handler: r}
 
 	logger.Info().Msg("--- and gRPC ---")
 	grpcHandler := grpcx.NewProductGrpcHandler(productService)
@@ -109,6 +113,36 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to listen for grpc")
 	}
-	logger.Info().Msg("grpc server running on :8092")
-	logger.Fatal().Err(grpcServer.Serve(lis)).Msg("grpc server stopped")
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		logger.Info().Msg("http server running on :8082")
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal().Err(err).Msg("http server failed")
+		}
+	}()
+
+	go func() {
+		logger.Info().Msg("grpc server running on :8092")
+		if err := grpcServer.Serve(lis); err != nil {
+			logger.Fatal().Err(err).Msg("grpc server failed")
+		}
+	}()
+
+	<-ctx.Done()
+	stop()
+	logger.Info().Msg("shutdown signal received, draining connections")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		logger.Error().Err(err).Msg("http server did not shut down cleanly")
+	}
+
+	shutdownx.GracefulStopWithTimeout(shutdownCtx, grpcServer.GracefulStop, grpcServer.Stop)
+
+	logger.Info().Msg("products service stopped")
 }
