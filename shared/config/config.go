@@ -11,8 +11,11 @@ type Config struct {
 	Profile string
 
 	Server struct {
-		HTTPPort int `yaml:"http-port"`
-		GRPCPort int `yaml:"grpc-port"`
+		HTTPPort         int `yaml:"http-port"`
+		GRPCPort         int `yaml:"grpc-port"`
+		GracefulShutdown struct {
+			Timeout int `yaml:"timeout"`
+		} `yaml:"graceful-shutdown"`
 	} `yaml:"server"`
 
 	Environment string `yaml:"environment"`

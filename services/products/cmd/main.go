@@ -23,8 +23,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const shutdownTimeout = 10 * time.Second
-
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -32,6 +30,7 @@ func main() {
 	}
 	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
 	grpcPort := ":" + fmt.Sprint(cfg.Server.GRPCPort)
+	shutdownTimeout := time.Duration(cfg.Server.GracefulShutdown.Timeout) * time.Second
 
 	// import shared logger
 	logger := loggerx.New(loggerx.Config{

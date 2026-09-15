@@ -1,5 +1,7 @@
 server:
   http-port: 8083
+  graceful-shutdown:
+    timeout: 10
 
 environment: local
 

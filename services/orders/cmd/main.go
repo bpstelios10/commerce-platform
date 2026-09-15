@@ -19,8 +19,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const shutdownTimeout = 10 * time.Second
-
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -28,6 +26,7 @@ func main() {
 	}
 	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
 	productsGrpcClient := cfg.Products.GrpcClient
+	shutdownTimeout := time.Duration(cfg.Server.GracefulShutdown.Timeout) * time.Second
 
 	// import shared logger
 	logger := loggerx.New(loggerx.Config{
