@@ -1,0 +1,9 @@
+server:
+  http-port: 8080
+  graceful-shutdown:
+    timeout: 10
+
+environment: base
+
+products:
+  grpc-client: localhost:8092

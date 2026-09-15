@@ -1,0 +1,8 @@
+environment: test
+
+server:
+  graceful-shutdown:
+    timeout: 3
+
+products:
+  grpc-client: products:9092
