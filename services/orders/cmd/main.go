@@ -27,6 +27,7 @@ func main() {
 		log.Fatalf("failed to load configuration: %v", err)
 	}
 	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
+	productsGrpcClient := cfg.Products.GrpcClient
 
 	// import shared logger
 	logger := loggerx.New(loggerx.Config{
@@ -44,7 +45,7 @@ func main() {
 	healthHandler.RegisterRoutes(r)
 
 	repo := repository.NewInMemoryOrderRepository()
-	productsClient := grpcx.MustNewProductsGrpcClient("localhost:8092")
+	productsClient := grpcx.MustNewProductsGrpcClient(productsGrpcClient)
 	svc := service.NewOrderService(repo, productsClient)
 	orderHandler := httpx.NewOrderHandler(svc)
 	orderHandler.RegisterRoutes(r)

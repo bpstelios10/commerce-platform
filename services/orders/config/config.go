@@ -10,8 +10,18 @@ import (
 //go:embed base.yaml local.yaml test.yaml
 var configFiles embed.FS
 
-func Load() (commonconfig.Config, error) {
+type Config struct {
+	commonconfig.Config `yaml:",inline"`
+
+	Products struct {
+		GrpcClient string `yaml:"grpc-client"`
+	} `yaml:"products"`
+}
+
+func Load() (Config, error) {
+	var cfg Config
 	profile := os.Getenv("ACTIVE_PROFILE")
 
-	return commonconfig.Load(configFiles, profile)
+	err := commonconfig.Load(configFiles, profile, &cfg)
+	return cfg, err
 }

@@ -11,7 +11,9 @@ import (
 var configFiles embed.FS
 
 func Load() (commonconfig.Config, error) {
+	var cfg commonconfig.Config
 	profile := os.Getenv("ACTIVE_PROFILE")
 
-	return commonconfig.Load(configFiles, profile)
+	err := commonconfig.Load(configFiles, profile, &cfg)
+	return cfg, err
 }
