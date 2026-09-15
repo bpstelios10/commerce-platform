@@ -17,7 +17,7 @@ See [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md) for the full write-up. Quick refe
 | 1 | Go fundamentals | Done |
 | 2 | Product Service HTTP API | Done |
 | 3 | PostgreSQL integration | Not started — in-memory repositories only |
-| 4 | Configuration (env vars) | Not started — ports/addresses hardcoded in `main.go` |
+| 4 | Configuration (env vars) | Done — `shared/config` |
 | 5 | Logging | Done — `shared/logger` (zerolog + slog bridge, request-scoped logger) |
 | 6 | Testing | Mostly done — handler/service/domain/validation covered; repository layer has no tests yet |
 | 7 | Docker | Not started |
@@ -187,20 +187,21 @@ Idiomatic database access in Go.
 
 ### Goal
 
-Externalize configuration.
+Load shared and service-specific startup configuration.
 
 ### Technologies
 
-- Environment Variables
+- Embedded YAML files
+- `ACTIVE_PROFILE` environment variable
 
 ### Concepts
 
-- Startup configuration
-- Dependency injection
+- Composition through struct embedding
+- Base configuration with profile overlays
 
 ### Deliverable
 
-Database configuration loaded from env vars.
+`base.yaml` is always loaded. When `ACTIVE_PROFILE` is empty, the active profile is `default`; otherwise `<profile>.yaml` overlays the base values. Each service can embed `shared/config.Config` and add its own YAML fields, while the shared loader populates the complete service config.
 
 ---
 

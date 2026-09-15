@@ -15,7 +15,7 @@ HTTP with `chi`.
 ```
 services/products/   REST + gRPC server, in-memory repository
 services/orders/      REST server, gRPC client of products
-shared/               Cross-service logging (zerolog + slog bridge)
+shared/               Cross-service logging (zerolog + slog bridge), graceful-shutdown, properties-loading
 protos/               .proto definitions (source of truth for generated gRPC code)
 ```
 

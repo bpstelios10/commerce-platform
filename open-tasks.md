@@ -31,7 +31,7 @@ few extra items worth doing. Check items off as they're done; update
 
 ## Medium priority
 
-- [ ] Externalize configuration: ports (`:8082`, `:8092`, `:8083`) and the orders→products
+- [x] Externalize configuration: ports (`:8082`, `:8092`, `:8083`) and the orders→products
       gRPC address (`localhost:8092`) are hardcoded in `main.go`. Load from env vars with
       sane local defaults (unblocks Docker Compose too).
 - [ ] Extract duplicated `validation/uuid.go` (`GetValidUUID`/`ErrInvalidUUID`) — currently
