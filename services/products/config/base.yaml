@@ -2,4 +2,4 @@ server:
   http-port: 8082
   grpc-port: 8092
 
-environment: base
+environment: local

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"time"
@@ -25,10 +26,17 @@ import (
 const shutdownTimeout = 10 * time.Second
 
 func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load configuration: %v", err)
+	}
+	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
+	grpcPort := ":" + fmt.Sprint(cfg.Server.GRPCPort)
+
 	// import shared logger
 	logger := loggerx.New(loggerx.Config{
 		Service: "products",
-		Env:     "local",
+		Env:     cfg.Environment,
 		Level:   loggerx.LevelFromEnv("LOG_LEVEL", zerolog.InfoLevel),
 	})
 	loggerx.SetAsDefault(logger)
@@ -96,13 +104,6 @@ func main() {
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
-	cfg, err := config.Load()
-	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to load configuration")
-	}
-	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
-	grpcPort := ":" + fmt.Sprint(cfg.Server.GRPCPort)
-
 	httpServer := &http.Server{Addr: httpPort, Handler: r}
 
 	logger.Info().Msg("--- and gRPC ---")
@@ -120,14 +121,16 @@ func main() {
 	}
 
 	go func() {
-		logger.Info().Msgf("http server running on %s", httpPort)
+		logger.Info().Msgf("HTTP server running on %s", httpPort)
+		logger.Info().Msgf("Active Profile: %s", cfg.Profile)
+
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal().Err(err).Msg("http server failed")
 		}
 	}()
 
 	go func() {
-		logger.Info().Msgf("grpc server running on %s", grpcPort)
+		logger.Info().Msgf("GRPC server running on %s", grpcPort)
 		if err := grpcServer.Serve(lis); err != nil {
 			logger.Fatal().Err(err).Msg("grpc server failed")
 		}

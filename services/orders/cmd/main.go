@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -21,10 +22,16 @@ import (
 const shutdownTimeout = 10 * time.Second
 
 func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load configuration: %v", err)
+	}
+	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
+
 	// import shared logger
 	logger := loggerx.New(loggerx.Config{
 		Service: "orders",
-		Env:     "local",
+		Env:     cfg.Environment,
 		Level:   loggerx.LevelFromEnv("LOG_LEVEL", zerolog.InfoLevel),
 	})
 	loggerx.SetAsDefault(logger)
@@ -42,16 +49,12 @@ func main() {
 	orderHandler := httpx.NewOrderHandler(svc)
 	orderHandler.RegisterRoutes(r)
 
-	cfg, err := config.Load()
-	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to load configuration")
-	}
-	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
-
 	srv := &http.Server{Addr: httpPort, Handler: r}
 
 	go func() {
-		logger.Info().Msgf("http server running on %s", httpPort)
+		logger.Info().Msgf("HTTP server running on %s", httpPort)
+		logger.Info().Msgf("Active Profile: %s", cfg.Profile)
+
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal().Err(err).Msg("http server failed")
 		}

@@ -33,7 +33,7 @@ interfaces via constructors (`NewXxx`).
 ## Ports
 
 | Service  | Protocol | Port |
-|----------|----------|------|
+| -------- | -------- | ---- |
 | products | HTTP     | 8082 |
 | products | gRPC     | 8092 |
 | orders   | HTTP     | 8083 |
@@ -44,8 +44,8 @@ interfaces via constructors (`NewXxx`).
 
 ## Configuration
 
-| Env var     | Default | Description |
-|-------------|---------|-------------|
+| Env var     | Default | Description                                                                                   |
+| ----------- | ------- | --------------------------------------------------------------------------------------------- |
 | `LOG_LEVEL` | `info`  | zerolog level name (`debug`, `info`, `warn`, `error`, ...), read on startup by both services. |
 
 ## Quick start
@@ -53,18 +53,22 @@ interfaces via constructors (`NewXxx`).
 All common tasks are wired up in the [Makefile](Makefile):
 
 ```bash
-make run-all          # run both services (products in background, orders in foreground)
-make run-products      # run only products (HTTP :8082, gRPC :8092)
+make run-all            # run both services (products in background, orders in foreground)
+make run-products       # run only products (HTTP :8082, gRPC :8092)
 make run-orders         # run only orders (HTTP :8083)
 
-make test-all          # run tests for shared + orders + products
+ACTIVE_PROFILE=test make run-all      # run both services on the given environment
+ACTIVE_PROFILE=test make run-products # run only products on the given environment
+ACTIVE_PROFILE=test make run-orders   # run only orders on the given environment
+
+make test-all           # run tests for shared + orders + products
 make test-orders        # run tests for orders only
 make test-products      # run tests for products only
 make test-v             # same as test-all, verbose
 make coverage           # run tests with coverage and open HTML reports
 
 make lint               # golangci-lint across all modules
-make tidy                # go mod tidy in every module + go work sync
+make tidy               # go mod tidy in every module + go work sync
 make build              # build orders/products binaries into bin/
 make clean              # remove build artifacts and coverage files
 ```

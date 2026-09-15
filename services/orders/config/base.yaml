@@ -1,4 +1,4 @@
 server:
   http-port: 8083
 
-environment: base
+environment: local

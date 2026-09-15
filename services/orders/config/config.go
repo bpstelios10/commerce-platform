@@ -12,6 +12,8 @@ import (
 var configFiles embed.FS
 
 type Config struct {
+	Profile string
+
 	Server struct {
 		HTTPPort int `yaml:"http-port"`
 		GRPCPort int `yaml:"grpc-port"`
@@ -27,12 +29,14 @@ func Load() (Config, error) {
 		return cfg, err
 	}
 
-	env := os.Getenv("APP_ENV")
-	if env == "" {
-		env = "local"
+	profile := os.Getenv("ACTIVE_PROFILE")
+	if profile == "" {
+		cfg.Profile = "default"
+		return cfg, nil
 	}
 
-	if err := loadFile(fmt.Sprintf("%s.yaml", env), &cfg); err != nil {
+	cfg.Profile = profile
+	if err := loadFile(fmt.Sprintf("%s.yaml", profile), &cfg); err != nil {
 		return cfg, err
 	}
 
