@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
 
+	"commerce-platform/services/products/config"
 	grpcx "commerce-platform/services/products/internal/grpc"
 	httpx "commerce-platform/services/products/internal/http"
 	"commerce-platform/services/products/internal/product"
@@ -94,7 +96,14 @@ func main() {
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
-	httpServer := &http.Server{Addr: ":8082", Handler: r}
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to load configuration")
+	}
+	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
+	grpcPort := ":" + fmt.Sprint(cfg.Server.GRPCPort)
+
+	httpServer := &http.Server{Addr: httpPort, Handler: r}
 
 	logger.Info().Msg("--- and gRPC ---")
 	grpcHandler := grpcx.NewProductGrpcHandler(productService)
@@ -105,20 +114,20 @@ func main() {
 	)
 
 	// start gRPC
-	lis, err := net.Listen("tcp", ":8092")
+	lis, err := net.Listen("tcp", grpcPort)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to listen for grpc")
 	}
 
 	go func() {
-		logger.Info().Msg("http server running on :8082")
+		logger.Info().Msgf("http server running on %s", httpPort)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal().Err(err).Msg("http server failed")
 		}
 	}()
 
 	go func() {
-		logger.Info().Msg("grpc server running on :8092")
+		logger.Info().Msgf("grpc server running on %s", grpcPort)
 		if err := grpcServer.Serve(lis); err != nil {
 			logger.Fatal().Err(err).Msg("grpc server failed")
 		}

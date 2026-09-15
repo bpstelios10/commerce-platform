@@ -51,7 +51,7 @@ func main() {
 	srv := &http.Server{Addr: httpPort, Handler: r}
 
 	go func() {
-		logger.Info().Msg("http server running on " + httpPort)
+		logger.Info().Msgf("http server running on %s", httpPort)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal().Err(err).Msg("http server failed")
 		}
