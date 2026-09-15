@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
+	"commerce-platform/services/orders/config"
 	grpcx "commerce-platform/services/orders/internal/grpc"
 	httpx "commerce-platform/services/orders/internal/http"
 	"commerce-platform/services/orders/internal/repository"
@@ -40,10 +42,16 @@ func main() {
 	orderHandler := httpx.NewOrderHandler(svc)
 	orderHandler.RegisterRoutes(r)
 
-	srv := &http.Server{Addr: ":8083", Handler: r}
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to load configuration")
+	}
+	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
+
+	srv := &http.Server{Addr: httpPort, Handler: r}
 
 	go func() {
-		logger.Info().Msg("http server running on :8083")
+		logger.Info().Msg("http server running on " + httpPort)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal().Err(err).Msg("http server failed")
 		}
