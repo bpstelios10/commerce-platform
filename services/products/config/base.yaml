@@ -5,3 +5,10 @@ server:
     timeout: 10
 
 environment: local
+
+database:
+  host: localhost
+  port: 5432
+  name: products
+  user: commerce
+  password: commerce

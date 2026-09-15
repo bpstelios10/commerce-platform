@@ -7,3 +7,10 @@ environment: local
 
 products:
   grpc-client: localhost:8092
+
+database:
+  host: localhost
+  port: 5432
+  name: orders
+  user: commerce
+  password: commerce
