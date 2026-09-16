@@ -14,6 +14,7 @@ import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
+	"commerce-platform/services/products/migrations"
 	"commerce-platform/shared/database"
 	loggerx "commerce-platform/shared/logger"
 	shutdownx "commerce-platform/shared/shutdown"
@@ -49,6 +50,12 @@ func main() {
 	}
 	if err := db.Ping(ctx); err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect to postgres")
+	}
+
+	// ---- Migrations ----
+	err = database.RunMigrations(cfg.Database, migrations.Files)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to run database migrations")
 	}
 	defer db.Close()
 
