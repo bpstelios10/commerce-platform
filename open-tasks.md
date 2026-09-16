@@ -23,7 +23,6 @@ few extra items worth doing. Check items off as they're done; update
       connections. (Full signal-handling flow in `main()` itself is intentionally not unit
       tested — extracting real signals/ports into a test is unconventional/fragile; the
       testable timeout-fallback logic is covered instead.)
-      bounded shutdown timeout.
 - [x] Fix silent HTTP bind failures in [products/cmd/main.go](services/products/cmd/main.go) —
       the HTTP server ran in a bare `go func(){ http.ListenAndServe(...) }()`; a bind error
       (e.g. port in use) was dropped. Fixed as part of the logging unification below: both the

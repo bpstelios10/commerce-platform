@@ -18,9 +18,9 @@ See [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md) for the full write-up. Quick refe
 | 2 | Product Service HTTP API | Done |
 | 3 | PostgreSQL integration | In progress — Postgres connection + `golang-migrate` migrations run at startup (`shared/database`, `services/*/migrations`); repositories are still in-memory, not yet reading/writing Postgres |
 | 4 | Configuration (env vars) | Done — `shared/config` |
-| 5 | Logging | Done — `shared/logger` (zerolog + slog bridge, request-scoped logger) |
+| 5 | Logging | Done — `shared/logger` (zerolog, request-scoped logger, canonical access logs) |
 | 6 | Testing | Mostly done — handler/service/domain/validation covered; repository layer has no tests yet |
-| 7 | Docker | Not started |
+| 7 | Docker | Partially done — `docker-compose.yml` runs Postgres; the Go services themselves aren't containerized yet (still run via `make run-*`) |
 | 8 | gRPC | Partially done — `GetProductByID` only; `CreateProduct` not yet exposed over gRPC |
 | 9 | Order Service | Done |
 | 10 | REST client (switchable transport) | Not started — orders only calls products over gRPC |
@@ -28,6 +28,10 @@ See [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md) for the full write-up. Quick refe
 | 12 | Kafka (publish) | Not started |
 | 13 | Kafka (consume) | Not started |
 | 14 | Concurrency | Partially done — `sync.RWMutex` on in-memory repos; no goroutines/channels/worker pools yet |
+| 15 | Metrics | Not started |
+| 16 | Distributed tracing | Not started |
+| 17 | Integration testing | Not started |
+| 18 | Production hardening | Partially done — graceful shutdown done (`shared/shutdown`); basic `/health` liveness endpoint exists; no distinct readiness checks or retry policies yet |
 
 ---
 

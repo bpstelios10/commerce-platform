@@ -1,8 +1,8 @@
 package config
 
 import (
-	"embed"
 	"fmt"
+	"io/fs"
 
 	"gopkg.in/yaml.v3"
 )
@@ -39,7 +39,7 @@ type ProfileConfig interface {
 	SetProfile(profile string)
 }
 
-func Load(files embed.FS, profile string, cfg ProfileConfig) error {
+func Load(files fs.FS, profile string, cfg ProfileConfig) error {
 	if err := loadFile(files, "base.yaml", cfg); err != nil {
 		return err
 	}
@@ -53,8 +53,8 @@ func Load(files embed.FS, profile string, cfg ProfileConfig) error {
 	return loadFile(files, fmt.Sprintf("%s.yaml", profile), cfg)
 }
 
-func loadFile(files embed.FS, fileName string, cfg any) error {
-	data, err := files.ReadFile(fileName)
+func loadFile(files fs.FS, fileName string, cfg any) error {
+	data, err := fs.ReadFile(files, fileName)
 	if err != nil {
 		return err
 	}

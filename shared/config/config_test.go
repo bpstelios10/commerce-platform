@@ -1,9 +1,8 @@
 package config
 
 import (
-	"commerce-platform/shared/config/testdata"
-	"embed"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,10 +16,34 @@ type extendedConfig struct {
 	} `yaml:"products"`
 }
 
+var testFiles = fstest.MapFS{
+	"base.yaml": &fstest.MapFile{Data: []byte(`
+server:
+  http-port: 8080
+  graceful-shutdown:
+    timeout: 10
+
+environment: base
+
+products:
+  grpc-client: localhost:8092
+`)},
+	"test.yaml": &fstest.MapFile{Data: []byte(`
+environment: test
+
+server:
+  graceful-shutdown:
+    timeout: 3
+
+products:
+  grpc-client: products:9092
+`)},
+}
+
 func TestLoad_WhenProfileIsEmpty_LoadsBaseConfigAndUsesDefaultProfile(t *testing.T) {
 	var cfg extendedConfig
 
-	err := Load(testdata.Files, "", &cfg)
+	err := Load(testFiles, "", &cfg)
 
 	require.NoError(t, err)
 	assert.Equal(t, "default", cfg.Profile)
@@ -33,7 +56,7 @@ func TestLoad_WhenProfileIsEmpty_LoadsBaseConfigAndUsesDefaultProfile(t *testing
 func TestLoad_WhenProfileIsSet_OverlaysProfileConfig(t *testing.T) {
 	var cfg extendedConfig
 
-	err := Load(testdata.Files, "test", &cfg)
+	err := Load(testFiles, "test", &cfg)
 
 	require.NoError(t, err)
 	assert.Equal(t, "test", cfg.Profile)
@@ -46,7 +69,7 @@ func TestLoad_WhenProfileIsSet_OverlaysProfileConfig(t *testing.T) {
 func TestLoad_WhenProfileFileDoesNotExist_ReturnsError(t *testing.T) {
 	var cfg extendedConfig
 
-	err := Load(testdata.Files, "missing", &cfg)
+	err := Load(testFiles, "missing", &cfg)
 
 	assert.Error(t, err)
 	assert.Equal(t, "missing", cfg.Profile)
@@ -55,7 +78,7 @@ func TestLoad_WhenProfileFileDoesNotExist_ReturnsError(t *testing.T) {
 func TestLoad_WhenBaseFileDoesNotExist_ReturnsError(t *testing.T) {
 	var cfg extendedConfig
 
-	err := Load(embed.FS{}, "", &cfg)
+	err := Load(fstest.MapFS{}, "", &cfg)
 
 	assert.Error(t, err)
 }
