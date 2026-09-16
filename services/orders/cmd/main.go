@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"commerce-platform/shared/database"
+
 	"commerce-platform/services/orders/config"
 	grpcx "commerce-platform/services/orders/internal/grpc"
 	httpx "commerce-platform/services/orders/internal/http"
@@ -35,6 +37,17 @@ func main() {
 		Level:   loggerx.LevelFromEnv("LOG_LEVEL", zerolog.InfoLevel),
 	})
 	loggerx.SetAsDefault(logger)
+
+	// ---- Database Health Check and Connection ----
+	ctx := context.Background()
+	db, err := database.NewPostgreClient(ctx, cfg.Database)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to connect to postgres")
+	}
+	if err := db.Ping(ctx); err != nil {
+		logger.Fatal().Err(err).Msg("failed to connect to postgres")
+	}
+	defer db.Close()
 
 	logger.Info().Msg("Commerce Platform - ORDERS")
 	r := chi.NewRouter()
