@@ -38,15 +38,65 @@ interfaces via constructors (`NewXxx`).
 | products | gRPC     | 8092 |
 | orders   | HTTP     | 8083 |
 
-`orders` calls `products` over gRPC at `localhost:8092` (hardcoded in
-[services/orders/cmd/main.go](services/orders/cmd/main.go) — see
-[TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md) for the plan to externalize this).
+`orders` calls `products` over gRPC at the address configured under
+`products.grpc-client` in [services/orders/config](services/orders/config)
+(`localhost:8092` by default).
 
 ## Configuration
 
 | Env var     | Default | Description                                                                                   |
 | ----------- | ------- | --------------------------------------------------------------------------------------------- |
 | `LOG_LEVEL` | `info`  | zerolog level name (`debug`, `info`, `warn`, `error`, ...), read on startup by both services. |
+
+Per-service settings (ports, database, gRPC client address) live in
+`services/<name>/config/*.yaml`, selected via `ACTIVE_PROFILE` (defaults to
+`local`; `test.yaml` is used by `go test`).
+
+## Database (PostgreSQL)
+
+Both services connect to Postgres on startup, ping it, and run their own
+`golang-migrate` migrations (`services/<name>/migrations/*.sql`) before serving
+traffic — each service owns its own database (`orders`, `products`) in one
+Postgres instance, created by [database/postgres/init.sql](database/postgres/init.sql).
+
+**Start Postgres before the services** (it's the only thing defined in
+[docker-compose.yml](docker-compose.yml) — the Go services are not
+containerized, run them with `make run-*` as shown below):
+
+```bash
+docker compose up -d          # start Postgres in the background
+docker compose ps             # check it's healthy
+docker compose down           # stop it (add -v to also wipe the data volume)
+```
+
+Default credentials (overridable via `POSTGRES_DB`/`POSTGRES_USER`/`POSTGRES_PASSWORD`,
+matching `services/<name>/config/local.yaml`): user `commerce`, password `commerce`.
+
+**Inspect the database** with `psql` inside the container:
+
+```bash
+docker exec -it commerce-postgres sh    # shell inside the container
+psql -U commerce                        # then start psql (connects to the `commerce` maintenance db)
+```
+
+or in one step from the host:
+
+```bash
+docker exec -it commerce-postgres psql -U commerce -d products
+```
+
+Useful `psql` commands once connected:
+
+```sql
+\l                       -- list databases (expect: commerce, orders, products)
+\c products              -- switch to the products database
+\dt                      -- list tables in the current database
+SELECT * FROM products;  -- inspect rows
+\c orders
+\dt
+SELECT * FROM orders;
+\q                       -- quit psql
+```
 
 ## Quick start
 

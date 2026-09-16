@@ -16,7 +16,7 @@ See [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md) for the full write-up. Quick refe
 |---|---|---|
 | 1 | Go fundamentals | Done |
 | 2 | Product Service HTTP API | Done |
-| 3 | PostgreSQL integration | Not started — in-memory repositories only |
+| 3 | PostgreSQL integration | In progress — Postgres connection + `golang-migrate` migrations run at startup (`shared/database`, `services/*/migrations`); repositories are still in-memory, not yet reading/writing Postgres |
 | 4 | Configuration (env vars) | Done — `shared/config` |
 | 5 | Logging | Done — `shared/logger` (zerolog + slog bridge, request-scoped logger) |
 | 6 | Testing | Mostly done — handler/service/domain/validation covered; repository layer has no tests yet |
