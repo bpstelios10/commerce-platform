@@ -14,6 +14,7 @@ import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
+	"commerce-platform/shared/database"
 	loggerx "commerce-platform/shared/logger"
 	shutdownx "commerce-platform/shared/shutdown"
 
@@ -39,6 +40,17 @@ func main() {
 		Level:   loggerx.LevelFromEnv("LOG_LEVEL", zerolog.InfoLevel),
 	})
 	loggerx.SetAsDefault(logger)
+
+	// ---- Database Health Check and Connection ----
+	ctx := context.Background()
+	db, err := database.NewPostgreClient(ctx, cfg.Database)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to connect to postgres")
+	}
+	if err := db.Ping(ctx); err != nil {
+		logger.Fatal().Err(err).Msg("failed to connect to postgres")
+	}
+	defer db.Close()
 
 	product1 := product.Product{
 		ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
