@@ -16,7 +16,7 @@ type OrderRepository interface {
 	FindAll(ctx context.Context) ([]order.Order, error)
 	FindByID(ctx context.Context, id uuid.UUID) (order.Order, error)
 	Save(ctx context.Context, o order.Order) error
-	Update(ctx context.Context, o order.Order)
+	Update(ctx context.Context, o order.Order) error
 	Delete(ctx context.Context, id uuid.UUID)
 }
 
@@ -105,7 +105,11 @@ func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID 
 	logger := log(ctx)
 	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("updating order")
 
-	s.orderRepository.Update(ctx, o)
+	err := s.orderRepository.Update(ctx, o)
+	if err != nil {
+		logger.Error().Err(err).Msg("error updating order")
+		return order.Order{}, err
+	}
 	return o, nil
 }
 

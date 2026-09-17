@@ -201,6 +201,21 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	}, o)
 }
 
+func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
+	svc, repo, _ := setup(t)
+	ctx := context.Background()
+	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
+
+	updated, err := svc.UpdateOrder(ctxWithError, repository.FirstOrderID, repository.FirstProductID, 10, order.CANCELED)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "unexpected error")
+	assert.Empty(t, updated)
+	orders, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, orders, 2)
+}
+
 func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
 	svc, repo, _ := setup(t)
 	id, _ := uuid.NewV7()

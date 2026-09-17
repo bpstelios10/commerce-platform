@@ -110,7 +110,23 @@ func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) err
 	return err
 }
 
-func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) {
+func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) error {
+	const query = `
+		UPDATE orders
+		SET product_id = $1, quantity = $2, status = $3
+		WHERE id = $4
+	`
+
+	_, err := repo.db.Exec(
+		ctx,
+		query,
+		o.ProductID,
+		o.Quantity,
+		o.Status,
+		o.ID,
+	)
+
+	return err
 }
 
 func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) {
