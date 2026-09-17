@@ -31,7 +31,11 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := log(ctx)
 
-	orders := h.orderService.GetOrders(ctx)
+	orders, err := h.orderService.GetOrders(ctx)
+	if err != nil {
+		HandleError(ctx, w, err)
+		return
+	}
 
 	logger.Info().Int("count", len(orders)).Msg("orders retrieved")
 

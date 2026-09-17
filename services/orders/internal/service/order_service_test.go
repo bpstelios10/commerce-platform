@@ -40,9 +40,22 @@ func setup(t *testing.T) (*OrderService, *repository.InMemoryOrderRepository, *m
 func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
 	svc, _, _ := setup(t)
 
-	orders := svc.GetOrders(context.Background())
+	orders, err := svc.GetOrders(context.Background())
 
+	assert.NoError(t, err)
 	assert.Len(t, orders, 2)
+}
+
+func TestGetOrders__WhenOtherError_ReturnsError(t *testing.T) {
+	svc, _, _ := setup(t)
+	ctx := context.Background()
+	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
+
+	orders, err := svc.GetOrders(ctxWithError)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "unexpected error")
+	assert.Empty(t, orders)
 }
 
 func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
@@ -65,6 +78,16 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrOrderNotFound)
+	assert.Empty(t, o)
+}
+
+func TestGetOrderByID_WhenOtherError_ReturnsError(t *testing.T) {
+	svc, _, _ := setup(t)
+
+	o, err := svc.GetOrderByID(context.Background(), repository.ErrornousUUID)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "unexpected error")
 	assert.Empty(t, o)
 }
 
@@ -91,7 +114,8 @@ func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrProductNotFound)
 	assert.Empty(t, o)
-	orders := repo.FindAll(context.Background())
+	orders, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, orders, 2)
 }
 
@@ -175,7 +199,8 @@ func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
 
 	assert.ErrorIs(t, err, repository.ErrNotFound)
 
-	orders := repo.FindAll(context.Background())
+	orders, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, orders, 2)
 }
 
@@ -191,6 +216,7 @@ func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 
 	assert.ErrorIs(t, err, repository.ErrNotFound)
 
-	orders := repo.FindAll(context.Background())
+	orders, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, orders, 1)
 }

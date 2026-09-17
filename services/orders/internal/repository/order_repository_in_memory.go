@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"commerce-platform/services/orders/internal/order"
@@ -17,6 +18,9 @@ var (
 
 	FirstOrderID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d011")
 	SecondOrderID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d012")
+
+	ErrornousID   = "01a0b072-db8f-742a-a289-0e290e1fb902"
+	ErrornousUUID = uuid.MustParse(ErrornousID)
 )
 
 // InMemoryOrderRepository is shared across goroutines (one instance, called from
@@ -50,7 +54,12 @@ func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 	}
 }
 
-func (repo *InMemoryOrderRepository) FindAll(ctx context.Context) []order.Order {
+func (repo *InMemoryOrderRepository) FindAll(ctx context.Context) ([]order.Order, error) {
+	// dummy way to create unexpected error for tests
+	if ctx.Value("errorEnabler") != nil {
+		return nil, errors.New(ctx.Value("errorEnabler").(string))
+	}
+
 	// read-only: RLock allows concurrent readers.
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
@@ -61,10 +70,15 @@ func (repo *InMemoryOrderRepository) FindAll(ctx context.Context) []order.Order 
 		orders = append(orders, o)
 	}
 
-	return orders
+	return orders, nil
 }
 
 func (repo *InMemoryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
+	// dummy way to create unexpected error for tests
+	if id == ErrornousUUID {
+		return order.Order{}, errors.New("unexpected error")
+	}
+
 	// read-only: RLock.
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()

@@ -13,7 +13,7 @@ import (
 )
 
 type OrderRepository interface {
-	FindAll(ctx context.Context) []order.Order
+	FindAll(ctx context.Context) ([]order.Order, error)
 	FindByID(ctx context.Context, id uuid.UUID) (order.Order, error)
 	Save(ctx context.Context, o order.Order)
 	Update(ctx context.Context, o order.Order)
@@ -33,13 +33,19 @@ func NewOrderService(repository OrderRepository, productsClient ProductsClient) 
 	return &OrderService{orderRepository: repository, productsClient: productsClient}
 }
 
-func (s *OrderService) GetOrders(ctx context.Context) []order.Order {
-	return s.orderRepository.FindAll(ctx)
+func (s *OrderService) GetOrders(ctx context.Context) ([]order.Order, error) {
+	orders, err := s.orderRepository.FindAll(ctx)
+	if err != nil {
+		logger := log(ctx)
+		logger.Warn().Err(err).Msg("find all orders failed")
+		return nil, err
+	}
+
+	return orders, nil
 }
 
 func (s *OrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
 	o, err := s.orderRepository.FindByID(ctx, id)
-
 	if err != nil {
 		logger := log(ctx)
 		logger.Warn().Str("order_id", id.String()).Err(err).Msg("error finding order")

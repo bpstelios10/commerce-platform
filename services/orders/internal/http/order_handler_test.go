@@ -84,6 +84,31 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 	assert.ElementsMatch(t, expectedOrders, resOrders)
 }
 
+func TestGetOrder_WhenErrorHappens_Returns500(t *testing.T) {
+	r, _ := setupOrderHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/orders",
+		nil,
+	)
+	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "unexpected error"))
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusInternalServerError, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INTERNAL_SERVER_ERROR",
+			"message": "internal server error"
+		}`,
+		res.Body.String(),
+	)
+}
+
 func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 	r, _ := setupOrderHandlerTest(t)
 
@@ -222,7 +247,8 @@ func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		res.Body.String(),
 	)
 
-	orders := repo.FindAll(context.Background())
+	orders, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, orders, 2)
 }
 
@@ -556,6 +582,7 @@ func TestDeleteOrder_WhenBadUUID_Returns400(t *testing.T) {
 		res.Body.String(),
 	)
 
-	orders := repo.FindAll(context.Background())
+	orders, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, orders, 2)
 }

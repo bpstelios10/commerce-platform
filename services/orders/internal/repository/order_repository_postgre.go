@@ -18,6 +18,7 @@ type PostgreOrderRepository struct {
 }
 
 type DB interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
@@ -25,19 +26,49 @@ func NewPostgreOrderRepository(db DB) *PostgreOrderRepository {
 	return &PostgreOrderRepository{db: db}
 }
 
-func (repo *PostgreOrderRepository) FindAll(ctx context.Context) []order.Order {
+func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order, error) {
+	const query = `
+		SELECT id, product_id, quantity, status, created_at
+		FROM orders
+	`
+
+	rows, err := repo.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("query orders: %w", err)
+	}
+	defer rows.Close()
+
 	var orders []order.Order
 
-	return orders
+	for rows.Next() {
+		var o order.Order
+
+		if err := rows.Scan(
+			&o.ID,
+			&o.ProductID,
+			&o.Quantity,
+			&o.Status,
+			// &o.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan order: %w", err)
+		}
+
+		orders = append(orders, o)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate orders: %w", err)
+	}
+
+	return orders, nil
 }
 
 func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id string) (order.Order, error) {
 	const query = `
-		SELECT id, customer_id, status, created_at, updated_at
+		SELECT id, product_id, quantity, status, created_at
 		FROM orders
 		WHERE id = $1
 	`
-
 	var o order.Order
 
 	err := repo.db.QueryRow(ctx, query, id).Scan(
