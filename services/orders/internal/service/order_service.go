@@ -3,8 +3,10 @@ package service
 import (
 	"commerce-platform/services/orders/internal/grpc"
 	"commerce-platform/services/orders/internal/order"
+	"commerce-platform/services/orders/internal/repository"
 	"commerce-platform/shared/logger"
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -12,7 +14,7 @@ import (
 
 type OrderRepository interface {
 	FindAll(ctx context.Context) []order.Order
-	FindByID(ctx context.Context, id uuid.UUID) (order.Order, bool)
+	FindByID(ctx context.Context, id uuid.UUID) (order.Order, error)
 	Save(ctx context.Context, o order.Order)
 	Update(ctx context.Context, o order.Order)
 	Delete(ctx context.Context, id uuid.UUID)
@@ -36,12 +38,17 @@ func (s *OrderService) GetOrders(ctx context.Context) []order.Order {
 }
 
 func (s *OrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
-	o, found := s.orderRepository.FindByID(ctx, id)
+	o, err := s.orderRepository.FindByID(ctx, id)
 
-	if !found {
+	if err != nil {
 		logger := log(ctx)
-		logger.Warn().Str("order_id", id.String()).Msg("order not found")
-		return order.Order{}, ErrOrderNotFound
+		logger.Warn().Str("order_id", id.String()).Err(err).Msg("error finding order")
+
+		if errors.Is(err, repository.ErrNotFound) {
+			return order.Order{}, ErrOrderNotFound
+		}
+
+		return order.Order{}, err
 	}
 
 	return o, nil

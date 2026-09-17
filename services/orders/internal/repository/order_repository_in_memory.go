@@ -64,14 +64,18 @@ func (repo *InMemoryOrderRepository) FindAll(ctx context.Context) []order.Order 
 	return orders
 }
 
-func (repo *InMemoryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (order.Order, bool) {
+func (repo *InMemoryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
 	// read-only: RLock.
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	o, found := repo.orders[id]
 
-	return o, found
+	if !found {
+		return order.Order{}, ErrNotFound
+	}
+
+	return o, nil
 }
 
 func (repo *InMemoryOrderRepository) Save(ctx context.Context, o order.Order) {

@@ -190,8 +190,8 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.Equal(t, "/orders/"+created.ID.String(), res.Header().Get("Location"))
 
 	// verify it was actually persisted
-	p, exists := repo.FindByID(context.Background(), created.ID)
-	assert.True(t, exists)
+	p, err := repo.FindByID(context.Background(), created.ID)
+	assert.NoError(t, err)
 	assert.Equal(t, created.ID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 }
@@ -282,8 +282,8 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
 
-	p, exists := repo.FindByID(context.Background(), repository.FirstOrderID)
-	assert.True(t, exists)
+	p, err := repo.FindByID(context.Background(), repository.FirstOrderID)
+	assert.NoError(t, err)
 	assert.Equal(t, repository.FirstOrderID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
@@ -315,8 +315,8 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 		res.Body.String(),
 	)
 
-	p, exists = repo.FindByID(context.Background(), repository.FirstOrderID)
-	assert.True(t, exists)
+	p, err = repo.FindByID(context.Background(), repository.FirstOrderID)
+	assert.NoError(t, err)
 	assert.Equal(t, repository.FirstOrderID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
@@ -326,8 +326,8 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing.T) {
 	r, repo := setupOrderHandlerTest(t)
 
-	p, exists := repo.FindByID(context.Background(), repository.FirstOrderID)
-	assert.True(t, exists)
+	p, err := repo.FindByID(context.Background(), repository.FirstOrderID)
+	assert.NoError(t, err)
 	assert.Equal(t, repository.FirstOrderID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
@@ -359,8 +359,8 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 		res.Body.String(),
 	)
 
-	p, exists = repo.FindByID(context.Background(), repository.FirstOrderID)
-	assert.True(t, exists)
+	p, err = repo.FindByID(context.Background(), repository.FirstOrderID)
+	assert.NoError(t, err)
 	assert.Equal(t, repository.FirstOrderID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
@@ -395,8 +395,8 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	)
 
 	// order unchanged
-	p, exists := repo.FindByID(context.Background(), repository.FirstOrderID)
-	assert.True(t, exists)
+	p, err := repo.FindByID(context.Background(), repository.FirstOrderID)
+	assert.NoError(t, err)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, order.CREATED, p.Status)
 }
@@ -511,8 +511,8 @@ func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 		res.Body.String(),
 	)
 
-	_, exists := repo.FindByID(context.Background(), id)
-	assert.False(t, exists)
+	_, err := repo.FindByID(context.Background(), id)
+	assert.ErrorIs(t, err, repository.ErrNotFound)
 }
 
 func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
@@ -529,8 +529,8 @@ func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, res.Code)
 
-	_, exists := repo.FindByID(context.Background(), repository.SecondOrderID)
-	assert.False(t, exists)
+	_, err := repo.FindByID(context.Background(), repository.SecondOrderID)
+	assert.ErrorIs(t, err, repository.ErrNotFound)
 }
 
 func TestDeleteOrder_WhenBadUUID_Returns400(t *testing.T) {
