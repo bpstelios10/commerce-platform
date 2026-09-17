@@ -84,7 +84,7 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 	assert.ElementsMatch(t, expectedOrders, resOrders)
 }
 
-func TestGetOrder_WhenErrorHappens_Returns500(t *testing.T) {
+func TestGetOrder_WhenDbErrorHappens_Returns500(t *testing.T) {
 	r, _ := setupOrderHandlerTest(t)
 
 	req := httptest.NewRequest(
@@ -585,4 +585,23 @@ func TestDeleteOrder_WhenBadUUID_Returns400(t *testing.T) {
 	orders, err := repo.FindAll(context.Background())
 	assert.NoError(t, err)
 	assert.Len(t, orders, 2)
+}
+
+func TestDeleteOrder_WhenDbErrorHappens_Returns500(t *testing.T) {
+	r, repo := setupOrderHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		"/orders/"+repository.SecondOrderID.String(),
+		nil,
+	)
+	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "unexpected error"))
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusInternalServerError, res.Code)
+
+	_, err := repo.FindByID(context.Background(), repository.SecondOrderID)
+	assert.NoError(t, err) // The order should still exist because the delete failed
 }

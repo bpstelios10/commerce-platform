@@ -129,5 +129,12 @@ func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) e
 	return err
 }
 
-func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) {
+func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	const query = `
+		DELETE FROM orders
+		WHERE id = $1
+	`
+
+	_, err := repo.db.Exec(ctx, query, id)
+	return err
 }

@@ -250,3 +250,19 @@ func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, orders, 1)
 }
+
+func TestDeleteOrder_WhenDbError_ReturnsError(t *testing.T) {
+	svc, repo, _ := setup(t)
+	ctx := context.Background()
+	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
+
+	err := svc.DeleteOrder(ctxWithError, repository.SecondOrderID)
+	assert.Error(t, err)
+
+	_, err = repo.FindByID(context.Background(), repository.SecondOrderID)
+	assert.NoError(t, err) // The order should still exist because the delete failed
+
+	orders, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, orders, 2) // The number of orders should remain unchanged
+}

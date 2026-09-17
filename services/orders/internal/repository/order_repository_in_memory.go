@@ -125,7 +125,12 @@ func (repo *InMemoryOrderRepository) Update(ctx context.Context, o order.Order) 
 	return nil
 }
 
-func (repo *InMemoryOrderRepository) Delete(ctx context.Context, id uuid.UUID) {
+func (repo *InMemoryOrderRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	// dummy way to create unexpected error for tests
+	if ctx.Value("errorEnabler") != nil {
+		return errors.New(ctx.Value("errorEnabler").(string))
+	}
+
 	// mutates the map: exclusive Lock.
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
@@ -133,6 +138,8 @@ func (repo *InMemoryOrderRepository) Delete(ctx context.Context, id uuid.UUID) {
 	delete(repo.orders, id)
 	logger := log(ctx)
 	logger.Info().Str("order_id", id.String()).Msg("order deleted")
+
+	return nil
 }
 
 func log(ctx context.Context) zerolog.Logger {

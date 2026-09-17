@@ -17,7 +17,7 @@ type OrderRepository interface {
 	FindByID(ctx context.Context, id uuid.UUID) (order.Order, error)
 	Save(ctx context.Context, o order.Order) error
 	Update(ctx context.Context, o order.Order) error
-	Delete(ctx context.Context, id uuid.UUID)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type ProductsClient interface {
@@ -79,7 +79,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 
 	err := s.orderRepository.Save(ctx, o)
 	if err != nil {
-		logger.Error().Err(err).Msg("error saving order")
+		logger.Warn().Err(err).Msg("error saving order")
 		return order.Order{}, err
 	}
 
@@ -107,17 +107,22 @@ func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID 
 
 	err := s.orderRepository.Update(ctx, o)
 	if err != nil {
-		logger.Error().Err(err).Msg("error updating order")
+		logger.Warn().Err(err).Msg("error updating order")
 		return order.Order{}, err
 	}
 	return o, nil
 }
 
-func (s *OrderService) DeleteOrder(ctx context.Context, id uuid.UUID) {
+func (s *OrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {
 	logger := log(ctx)
 	logger.Info().Str("order_id", id.String()).Msg("attempting to delete order")
 
-	s.orderRepository.Delete(ctx, id)
+	err := s.orderRepository.Delete(ctx, id)
+	if err != nil {
+		logger.Warn().Err(err).Msg("error deleting order")
+		return err
+	}
+	return nil
 }
 
 // TODO return error. we hide now if it is InvalidArgument, NotFound, Internal

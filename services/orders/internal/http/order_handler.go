@@ -150,7 +150,11 @@ func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info().Str("order_id", id.String()).Msg("delete order request received")
-	h.orderService.DeleteOrder(ctx, id)
+	err = h.orderService.DeleteOrder(ctx, id)
+	if err != nil {
+		HandleError(ctx, w, err)
+		return
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
