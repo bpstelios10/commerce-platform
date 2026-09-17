@@ -92,7 +92,12 @@ func (repo *InMemoryOrderRepository) FindByID(ctx context.Context, id uuid.UUID)
 	return o, nil
 }
 
-func (repo *InMemoryOrderRepository) Save(ctx context.Context, o order.Order) {
+func (repo *InMemoryOrderRepository) Save(ctx context.Context, o order.Order) error {
+	// dummy way to create unexpected error for tests
+	if ctx.Value("errorEnabler") != nil {
+		return errors.New(ctx.Value("errorEnabler").(string))
+	}
+
 	// mutates the map: exclusive Lock.
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
@@ -100,6 +105,8 @@ func (repo *InMemoryOrderRepository) Save(ctx context.Context, o order.Order) {
 	repo.orders[o.ID] = o
 	logger := log(ctx)
 	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("order saved")
+
+	return nil
 }
 
 func (repo *InMemoryOrderRepository) Update(ctx context.Context, o order.Order) {

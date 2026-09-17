@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -20,6 +21,7 @@ type PostgreOrderRepository struct {
 type DB interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
 func NewPostgreOrderRepository(db DB) *PostgreOrderRepository {
@@ -90,7 +92,22 @@ func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id string) (or
 	return o, nil
 }
 
-func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) {
+func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) error {
+	const query = `
+		INSERT INTO orders (id, product_id, quantity, status)
+		VALUES ($1, $2, $3, $4)
+	`
+
+	_, err := repo.db.Exec(
+		ctx,
+		query,
+		o.ID,
+		o.ProductID,
+		o.Quantity,
+		o.Status,
+	)
+
+	return err
 }
 
 func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) {

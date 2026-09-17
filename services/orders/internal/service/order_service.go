@@ -15,7 +15,7 @@ import (
 type OrderRepository interface {
 	FindAll(ctx context.Context) ([]order.Order, error)
 	FindByID(ctx context.Context, id uuid.UUID) (order.Order, error)
-	Save(ctx context.Context, o order.Order)
+	Save(ctx context.Context, o order.Order) error
 	Update(ctx context.Context, o order.Order)
 	Delete(ctx context.Context, id uuid.UUID)
 }
@@ -77,7 +77,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 	logger := log(ctx)
 	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("creating order")
 
-	s.orderRepository.Save(ctx, o)
+	err := s.orderRepository.Save(ctx, o)
+	if err != nil {
+		logger.Error().Err(err).Msg("error saving order")
+		return order.Order{}, err
+	}
+
 	return o, nil
 }
 
