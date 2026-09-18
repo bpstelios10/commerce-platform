@@ -3,7 +3,6 @@ package httpx
 import (
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -34,8 +33,7 @@ func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().Int("count", len(products)).Msg("products retrieved")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+	HandleResponseWithBody(ctx, w, http.StatusOK, products)
 }
 
 func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
@@ -58,8 +56,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().Str("product_id", validUUID.String()).Msg("product was found")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(product)
+	HandleResponseWithBody(ctx, w, http.StatusOK, product)
 }
 
 // TODO if i have a category but the other 2 filters dont much, then return something? maybe like 10 products
@@ -90,6 +87,5 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 	products := h.productService.SearchProducts(ctx, query, maxPrice, category)
 	logger.Info().Int("count", len(products)).Msg("products found")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+	HandleResponseWithBody(ctx, w, http.StatusOK, products)
 }

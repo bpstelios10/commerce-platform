@@ -55,10 +55,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Location", "/products/"+p.ID.String())
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(p)
+	HandlePostResponse(ctx, w, http.StatusCreated, p, "/products/"+p.ID.String())
 }
 
 func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
@@ -94,9 +91,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(p)
+	HandleResponseWithBody(ctx, w, http.StatusOK, p)
 }
 
 func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
@@ -113,5 +108,5 @@ func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 
 	h.adminService.DeleteProduct(ctx, validUUID)
 
-	w.WriteHeader(http.StatusNoContent)
+	HandleResponse(ctx, w, http.StatusNoContent)
 }

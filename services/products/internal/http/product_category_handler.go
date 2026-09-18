@@ -2,7 +2,6 @@ package httpx
 
 import (
 	"commerce-platform/services/products/internal/service"
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -30,6 +29,5 @@ func (h *ProductCategoryHandler) GetProductCategories(w http.ResponseWriter, r *
 
 	logger.Info().Int("count", len(categories)).Msg("product categories retrieved")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(categories)
+	HandleResponseWithBody(ctx, w, http.StatusOK, categories)
 }
