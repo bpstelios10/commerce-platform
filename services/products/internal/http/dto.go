@@ -1,4 +1,4 @@
-package httpx
+package http
 
 type CreateProductRequest struct {
 	Name     string  `json:"name"`

@@ -1,4 +1,4 @@
-package httpx
+package http
 
 import (
 	"commerce-platform/services/products/internal/repository"

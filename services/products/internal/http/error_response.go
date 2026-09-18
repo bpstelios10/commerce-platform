@@ -1,4 +1,4 @@
-package httpx
+package http
 
 type ErrorResponse struct {
 	Code    string `json:"code"`
