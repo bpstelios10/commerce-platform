@@ -39,8 +39,7 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().Int("count", len(orders)).Msg("orders retrieved")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(orders)
+	HandleResponseWithBody(ctx, w, http.StatusOK, orders)
 }
 
 func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
@@ -63,8 +62,7 @@ func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().Str("order_id", id.String()).Msg("order was found")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(o)
+	HandleResponseWithBody(ctx, w, http.StatusOK, o)
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -92,10 +90,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Location", "/orders/"+o.ID.String())
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(o)
+	HandlePostResponse(ctx, w, http.StatusCreated, o, "/orders/"+o.ID.String())
 }
 
 func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
@@ -133,9 +128,7 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(o)
+	HandleResponseWithBody(ctx, w, http.StatusOK, o)
 }
 
 func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
@@ -156,5 +149,5 @@ func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	HandleResponse(ctx, w, http.StatusNoContent)
 }
