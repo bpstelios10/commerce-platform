@@ -54,7 +54,7 @@ func TestGetOrders__WhenOtherError_ReturnsError(t *testing.T) {
 	orders, err := svc.GetOrders(ctxWithError)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "unexpected error")
+	assert.EqualError(t, err, "get orders: unexpected error")
 	assert.Empty(t, orders)
 }
 
@@ -87,7 +87,7 @@ func TestGetOrderByID_WhenOtherError_ReturnsError(t *testing.T) {
 	o, err := svc.GetOrderByID(context.Background(), repository.ErrornousUUID)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "unexpected error")
+	assert.EqualError(t, err, "get order by id: unexpected error")
 	assert.Empty(t, o)
 }
 
@@ -127,7 +127,7 @@ func TestCreateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	o, err := svc.CreateOrder(ctxWithError, repository.FirstProductID, 10)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "unexpected error")
+	assert.EqualError(t, err, "create order: unexpected error")
 	assert.Empty(t, o)
 	orders, err := repo.FindAll(context.Background())
 	assert.NoError(t, err)
@@ -209,7 +209,7 @@ func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	updated, err := svc.UpdateOrder(ctxWithError, repository.FirstOrderID, repository.FirstProductID, 10, order.CANCELED)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "unexpected error")
+	assert.EqualError(t, err, "update order: unexpected error")
 	assert.Empty(t, updated)
 	orders, err := repo.FindAll(context.Background())
 	assert.NoError(t, err)

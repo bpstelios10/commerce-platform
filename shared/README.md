@@ -73,4 +73,3 @@ err = database.RunMigrations(cfg.Database, migrationFiles)
   (`services/<name>/migrations`) against its own database, using `golang-migrate`.
 - Each service owns its schema and its own migration files; this package only knows
   how to connect and how to run whatever migrations it's given.
-

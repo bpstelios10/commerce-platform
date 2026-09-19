@@ -52,6 +52,27 @@ Per-service settings (ports, database, gRPC client address) live in
 `services/<name>/config/*.yaml`, selected via `ACTIVE_PROFILE` (defaults to
 `local`; `test.yaml` is used by `go test`).
 
+## Error Handling and Logging
+
+Errors have separate internal and external representations:
+
+- Lower layers return errors and add useful operation context with `%w`, for
+  example `query orders: %w` in a repository and `get orders: %w` in a service.
+- Callers classify errors with `errors.Is` or `errors.As`; wrapping preserves
+  the underlying error for classification and logging.
+- HTTP and gRPC boundaries map known domain and validation errors to stable
+  status codes, error codes, and safe client messages.
+- Unexpected errors are logged once at the boundary with the complete wrapped
+  error chain, then returned to the client with a generic message. Internal
+  database, network, SQL, and service details must not be sent in responses.
+- Expected client or domain errors, such as invalid input or not found, do not
+  need error-level logs; the request access log records their status. A lower
+  layer may log when it performs a meaningful action such as a retry or
+  fallback.
+
+This keeps debugging context in private logs without exposing internal
+implementation details through the API.
+
 ## Database (PostgreSQL)
 
 Both services connect to Postgres on startup, ping it, and run their own

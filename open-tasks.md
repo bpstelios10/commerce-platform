@@ -6,10 +6,6 @@ few extra items worth doing. Check items off as they're done; update
 
 ## High priority
 
-- [ ] Add tests for the in-memory repositories (`FindAll`/`FindByID`/`Save`/`Update`/`Delete`
-      in [order_repository.go](services/orders/internal/repository/order_repository.go) and
-      [product_repository.go](services/products/internal/repository/product_repository.go)),
-      including a `go test -race` case that hits the map from multiple goroutines concurrently.
 - [ ] Stop collapsing all gRPC errors into `ErrProductNotFound` in
       `OrderService.validateProductExists` ([order_service.go](services/orders/internal/service/order_service.go)).
       Map `codes.NotFound` → `ErrProductNotFound`; map everything else (`Unavailable`,
@@ -37,9 +33,9 @@ few extra items worth doing. Check items off as they're done; update
       copy-pasted in both `orders` and `products` — into `shared`.
 - [ ] Consider extracting the repository mutex/CRUD boilerplate (near-identical between the
       two in-memory repos) into a generic `shared` helper, e.g. `InMemoryRepository[K, V]`.
-- [ ] Check/log the error returned by `json.NewEncoder(w).Encode(...)` in handlers instead of
+- [x] Check/log the error returned by `json.NewEncoder(w).Encode(...)` in handlers instead of
       discarding it (e.g. [order_handler.go](services/orders/internal/http/order_handler.go)).
-- [ ] Align package naming: rename orders' `http` package to `httpx` (matches products, and
+- [x] Align package naming: rename orders' `http` package to `httpx` (matches products, and
       stops shadowing the stdlib `net/http` import name inside the package).
 - [ ] Ring-fence the scratch/demo code in [products/cmd/main.go](services/products/cmd/main.go)
       (manual map lookups, `ApplyDiscount` demo, etc.) — e.g. move behind a `-demo` flag or

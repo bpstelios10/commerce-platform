@@ -23,33 +23,37 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 		return
 	}
 
-	switch err {
+	switch {
 
-	case service.ErrOrderNotFound:
+	case errors.Is(err, service.ErrOrderNotFound):
+		logger.Warn().Err(err).Msg("order not found")
 		writeError(
 			w,
 			http.StatusNotFound,
 			"ORDER_NOT_FOUND",
-			err.Error(),
+			service.ErrOrderNotFound.Error(),
 		)
 
-	case service.ErrInvalidOrder:
+	case errors.Is(err, service.ErrInvalidOrder):
+		logger.Warn().Err(err).Msg("invalid order")
 		writeError(
 			w,
 			http.StatusBadRequest,
 			"INVALID_ORDER",
-			err.Error(),
+			service.ErrInvalidOrder.Error(),
 		)
 
-	case service.ErrProductNotFound:
+	case errors.Is(err, service.ErrProductNotFound):
+		logger.Warn().Err(err).Msg("product not found")
 		writeError(
 			w,
 			http.StatusConflict,
 			"PRODUCT_NOT_FOUND",
-			err.Error(),
+			service.ErrProductNotFound.Error(),
 		)
 
-	case validation.ErrInvalidUUID:
+	case errors.Is(err, validation.ErrInvalidUUID):
+		logger.Warn().Err(err).Msg("invalid UUID")
 		writeError(
 			w,
 			http.StatusBadRequest,
@@ -58,7 +62,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 		)
 
 	default:
-		logger.Warn().Err(err).Msg("unexpected error handled, with")
+		logger.Error().Err(err).Msg("unexpected error handled, with")
 		writeError(
 			w,
 			http.StatusInternalServerError,

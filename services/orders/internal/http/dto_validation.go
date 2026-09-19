@@ -25,7 +25,7 @@ func validateCreateOrder(ctx context.Context, req CreateOrderRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		logger.Warn().Strs("errors", validationError.Errors).Msg("invalid create order request")
+		logger.Debug().Strs("errors", validationError.Errors).Msg("invalid create order request")
 
 		return validationError
 	}
@@ -48,7 +48,7 @@ func validateUpdateOrder(ctx context.Context, req UpdateOrderRequest) error {
 	}
 
 	if len(validationError.Errors) > 0 {
-		logger.Warn().Strs("errors", validationError.Errors).Msg("invalid update order request")
+		logger.Debug().Strs("errors", validationError.Errors).Msg("invalid update order request")
 
 		return validationError
 	}

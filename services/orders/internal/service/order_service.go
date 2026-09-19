@@ -7,6 +7,7 @@ import (
 	"commerce-platform/shared/logger"
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -36,9 +37,7 @@ func NewOrderService(repository OrderRepository, productsClient ProductsClient) 
 func (s *OrderService) GetOrders(ctx context.Context) ([]order.Order, error) {
 	orders, err := s.orderRepository.FindAll(ctx)
 	if err != nil {
-		logger := log(ctx)
-		logger.Warn().Err(err).Msg("find all orders failed")
-		return nil, err
+		return nil, fmt.Errorf("get orders: %w", err)
 	}
 
 	return orders, nil
@@ -47,14 +46,11 @@ func (s *OrderService) GetOrders(ctx context.Context) ([]order.Order, error) {
 func (s *OrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
 	o, err := s.orderRepository.FindByID(ctx, id)
 	if err != nil {
-		logger := log(ctx)
-		logger.Warn().Str("order_id", id.String()).Err(err).Msg("error finding order")
-
 		if errors.Is(err, repository.ErrNotFound) {
-			return order.Order{}, ErrOrderNotFound
+			return order.Order{}, fmt.Errorf("get order: %w", ErrOrderNotFound)
 		}
 
-		return order.Order{}, err
+		return order.Order{}, fmt.Errorf("get order by id: %w", err)
 	}
 
 	return o, nil
@@ -62,7 +58,7 @@ func (s *OrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Or
 
 func (s *OrderService) CreateOrder(ctx context.Context, productID string, quantity int) (order.Order, error) {
 	if err := s.validateProductExists(ctx, productID); err != nil {
-		return order.Order{}, err
+		return order.Order{}, fmt.Errorf("create order: %w", err)
 	}
 
 	id, _ := uuid.NewV7()
@@ -79,8 +75,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 
 	err := s.orderRepository.Save(ctx, o)
 	if err != nil {
-		logger.Warn().Err(err).Msg("error saving order")
-		return order.Order{}, err
+		return order.Order{}, fmt.Errorf("create order: %w", err)
 	}
 
 	return o, nil
@@ -88,11 +83,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 
 func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
 	if _, err := s.GetOrderByID(ctx, id); err != nil {
-		return order.Order{}, err
+		return order.Order{}, fmt.Errorf("update order: %w", err)
 	}
 
 	if err := s.validateProductExists(ctx, productID); err != nil {
-		return order.Order{}, err
+		return order.Order{}, fmt.Errorf("update order: %w", err)
 	}
 
 	o := order.Order{
@@ -107,8 +102,7 @@ func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID 
 
 	err := s.orderRepository.Update(ctx, o)
 	if err != nil {
-		logger.Warn().Err(err).Msg("error updating order")
-		return order.Order{}, err
+		return order.Order{}, fmt.Errorf("update order: %w", err)
 	}
 	return o, nil
 }
@@ -119,8 +113,7 @@ func (s *OrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {
 
 	err := s.orderRepository.Delete(ctx, id)
 	if err != nil {
-		logger.Warn().Err(err).Msg("error deleting order")
-		return err
+		return fmt.Errorf("delete order: %w", err)
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"commerce-platform/services/orders/internal/service"
 	"commerce-platform/services/orders/internal/validation"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -33,7 +34,7 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 
 	orders, err := h.orderService.GetOrders(ctx)
 	if err != nil {
-		HandleError(ctx, w, err)
+		HandleError(ctx, w, fmt.Errorf("get_orders: %w", err))
 		return
 	}
 
@@ -54,9 +55,8 @@ func (h *OrderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	o, err := h.orderService.GetOrderByID(ctx, id)
-
 	if err != nil {
-		HandleError(ctx, w, err)
+		HandleError(ctx, w, fmt.Errorf("get_order: %w", err))
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		logger.Warn().Err(err).Msg("validation error occurred while creating order")
+		logger.Debug().Err(err).Msg("validation error occurred while creating order")
 		HandleError(ctx, w, service.ErrInvalidOrder)
 		return
 	}
@@ -86,7 +86,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	logger.Info().Interface("request", req).Msg("create order request received")
 	o, err := h.orderService.CreateOrder(ctx, req.ProductID, req.Quantity)
 	if err != nil {
-		HandleError(ctx, w, err)
+		HandleError(ctx, w, fmt.Errorf("create_order: %w", err))
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	logger.Info().Interface("request", req).Msg("update order")
 	o, err := h.orderService.UpdateOrder(ctx, id, req.ProductID, req.Quantity, req.Status)
 	if err != nil {
-		HandleError(ctx, w, err)
+		HandleError(ctx, w, fmt.Errorf("update_order: %w", err))
 		return
 	}
 
@@ -145,7 +145,7 @@ func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	logger.Info().Str("order_id", id.String()).Msg("delete order request received")
 	err = h.orderService.DeleteOrder(ctx, id)
 	if err != nil {
-		HandleError(ctx, w, err)
+		HandleError(ctx, w, fmt.Errorf("delete_order: %w", err))
 		return
 	}
 
