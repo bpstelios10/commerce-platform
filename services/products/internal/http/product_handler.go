@@ -3,6 +3,7 @@ package http
 import (
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -48,9 +49,8 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	product, err := h.productService.GetProductByID(ctx, validUUID)
-
 	if err != nil {
-		HandleError(ctx, w, err)
+		HandleError(ctx, w, fmt.Errorf("get_product: %w", err))
 		return
 	}
 
@@ -72,6 +72,11 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 	if maxPriceParam := r.URL.Query().Get("maxPrice"); maxPriceParam != "" {
 		parsed, err := strconv.ParseFloat(maxPriceParam, 64)
 		if err != nil {
+			logger.Debug().
+				Str("operation", "search_products").
+				Str("parameter", "maxPrice").
+				Err(err).
+				Msg("validation error")
 			HandleError(ctx, w, ValidationError{Errors: []string{"maxPrice must be a valid number."}})
 			return
 		}

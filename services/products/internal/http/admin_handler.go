@@ -2,6 +2,8 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"commerce-platform/services/products/internal/service"
@@ -37,8 +39,11 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		logger.Warn().Err(err).Msg("validation error occurred while creating product")
-		HandleError(ctx, w, service.ErrInvalidProduct)
+		err = errors.Join(
+			fmt.Errorf("decode create_product request: %w", err),
+			service.ErrInvalidProduct,
+		)
+		HandleError(ctx, w, err)
 		return
 	}
 
@@ -51,7 +56,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	p, err := h.adminService.CreateProduct(ctx, req.Name, req.Category, req.Price, *req.Stock)
 	if err != nil {
-		HandleError(ctx, w, err)
+		HandleError(ctx, w, fmt.Errorf("create_product: %w", err))
 		return
 	}
 
@@ -73,8 +78,11 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var req UpdateProductRequest
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		logger.Warn().Err(err).Msg("validation error occurred while updating product")
-		HandleError(ctx, w, service.ErrInvalidProduct)
+		err = errors.Join(
+			fmt.Errorf("decode update_product request: %w", err),
+			service.ErrInvalidProduct,
+		)
+		HandleError(ctx, w, err)
 		return
 	}
 
@@ -87,7 +95,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	p, err := h.adminService.UpdateProduct(ctx, validUUID, req.Name, req.Category, req.Price, *req.Stock)
 	if err != nil {
-		HandleError(ctx, w, err)
+		HandleError(ctx, w, fmt.Errorf("update_product: %w", err))
 		return
 	}
 

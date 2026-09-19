@@ -119,6 +119,7 @@ func (s *OrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {
 }
 
 // TODO return error. we hide now if it is InvalidArgument, NotFound, Internal
+// TODO make this a struct error that keeps the product-id in the error and remove log
 func (s *OrderService) validateProductExists(ctx context.Context, productID string) error {
 	_, err := s.productsClient.GetProductByID(ctx, productID)
 	if err != nil {

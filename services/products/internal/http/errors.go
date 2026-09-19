@@ -23,42 +23,46 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 		return
 	}
 
-	switch err {
+	switch {
 
-	case service.ErrProductNotFound:
+	case errors.Is(err, service.ErrProductNotFound):
+		logger.Warn().Err(err).Msg("product not found")
 		writeError(
 			w,
 			http.StatusNotFound,
 			"PRODUCT_NOT_FOUND",
-			err.Error(),
+			service.ErrProductNotFound.Error(),
 		)
 
-	case service.ErrInvalidProduct:
+	case errors.Is(err, service.ErrInvalidProduct):
+		logger.Warn().Err(err).Msg("invalid product")
 		writeError(
 			w,
 			http.StatusBadRequest,
 			"INVALID_PRODUCT",
-			err.Error(),
+			service.ErrInvalidProduct.Error(),
 		)
 
-	case service.ErrInvalidCategory:
+	case errors.Is(err, service.ErrInvalidCategory):
+		logger.Warn().Err(err).Msg("invalid category")
 		writeError(
 			w,
 			http.StatusBadRequest,
 			"INVALID_CATEGORY",
-			err.Error(),
+			service.ErrInvalidCategory.Error(),
 		)
 
-	case validation.ErrInvalidUUID:
+	case errors.Is(err, validation.ErrInvalidUUID):
+		logger.Warn().Err(err).Msg("invalid UUID")
 		writeError(
 			w,
 			http.StatusBadRequest,
 			"INVALID_UUID",
-			err.Error(),
+			validation.ErrInvalidUUID.Error(),
 		)
 
 	default:
-		logger.Warn().Err(err).Msg("unexpected error handled, with")
+		logger.Error().Err(err).Msg("unexpected error handled, with")
 		writeError(
 			w,
 			http.StatusInternalServerError,
@@ -68,6 +72,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	}
 }
 
+// TODO move to utils as handler-error-response?
 func writeError(
 	w http.ResponseWriter,
 	status int,

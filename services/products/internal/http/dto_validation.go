@@ -31,7 +31,7 @@ func validateCreateProduct(ctx context.Context, req CreateProductRequest) error 
 	}
 
 	if len(validationError.Errors) > 0 {
-		logger.Warn().Strs("errors", validationError.Errors).Msg("invalid create product request")
+		logger.Debug().Strs("errors", validationError.Errors).Msg("invalid create product request")
 
 		return validationError
 	}
@@ -57,7 +57,7 @@ func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error 
 	}
 
 	if len(validationError.Errors) > 0 {
-		logger.Warn().Strs("errors", validationError.Errors).Msg("invalid update product request")
+		logger.Debug().Strs("errors", validationError.Errors).Msg("invalid update product request")
 
 		return validationError
 	}
