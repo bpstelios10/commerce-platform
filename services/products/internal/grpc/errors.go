@@ -3,37 +3,39 @@ package grpc
 import (
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
+	"errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+// TODO add logs here
 func HandleError(err error) error {
 
-	switch err {
+	switch {
 
-	case service.ErrProductNotFound:
+	case errors.Is(err, service.ErrProductNotFound):
 		return status.Error(
 			codes.NotFound,
-			err.Error(),
+			service.ErrProductNotFound.Error(),
 		)
 
-	case service.ErrInvalidProduct:
+	case errors.Is(err, service.ErrInvalidProduct):
 		return status.Error(
 			codes.InvalidArgument,
-			err.Error(),
+			service.ErrInvalidProduct.Error(),
 		)
 
-	case service.ErrInvalidCategory:
+	case errors.Is(err, service.ErrInvalidCategory):
 		return status.Error(
 			codes.InvalidArgument,
-			err.Error(),
+			service.ErrInvalidCategory.Error(),
 		)
 
-	case validation.ErrInvalidUUID:
+	case errors.Is(err, validation.ErrInvalidUUID):
 		return status.Error(
 			codes.InvalidArgument,
-			err.Error(),
+			validation.ErrInvalidUUID.Error(),
 		)
 
 	default:

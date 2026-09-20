@@ -4,6 +4,7 @@ import (
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
 	context "context"
+	"fmt"
 )
 
 type ProductGrpcHandler struct {
@@ -26,7 +27,7 @@ func (h *ProductGrpcHandler) GetProductByID(ctx context.Context, req *GetProduct
 
 	p, err := h.service.GetProductByID(ctx, validUUID)
 	if err != nil {
-		return nil, HandleError(err)
+		return nil, HandleError(fmt.Errorf("get_product: %w", err))
 	}
 
 	return &GetProductByIDResponse{
