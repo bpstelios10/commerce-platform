@@ -44,7 +44,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 		)
 
 	case errors.Is(err, service.ErrInvalidCategory):
-		logger.Warn().Err(err).Msg("invalid category")
+		logger.Warn().Err(err).Msg("invalid product category")
 		writeError(
 			w,
 			http.StatusBadRequest,
