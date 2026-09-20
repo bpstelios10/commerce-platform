@@ -4,6 +4,7 @@ import (
 	"commerce-platform/services/orders/internal/service"
 	"commerce-platform/services/orders/internal/validation"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -73,8 +74,11 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		logger.Debug().Err(err).Msg("validation error occurred while creating order")
-		HandleError(ctx, w, service.ErrInvalidOrder)
+		err = errors.Join(
+			fmt.Errorf("decode create_order request: %w", err),
+			service.ErrInvalidOrder,
+		)
+		HandleError(ctx, w, err)
 		return
 	}
 
@@ -109,8 +113,11 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		logger.Warn().Err(err).Msg("validation error occurred while updating order")
-		HandleError(ctx, w, service.ErrInvalidOrder)
+		err = errors.Join(
+			fmt.Errorf("decode update_order request: %w", err),
+			service.ErrInvalidOrder,
+		)
+		HandleError(ctx, w, err)
 		return
 	}
 
