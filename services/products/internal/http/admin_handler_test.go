@@ -7,6 +7,7 @@ import (
 	"commerce-platform/services/products/internal/service"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupAdminHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryProductRepository) {
+func setupAdminHandlerTest(t *testing.T) (*httptest.Server, *repository.InMemoryProductRepository) {
 	t.Helper()
 	repo := repository.NewInMemoryProductRepository()
 	productService := service.NewProductService(repo)
@@ -27,32 +28,30 @@ func setupAdminHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryProductR
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
+	srv := httptest.NewServer(r)
+	t.Cleanup(srv.Close)
 
-	return r, repo
+	return srv, repo
 }
 
 func TestGetAdmin_Returns200(t *testing.T) {
-	r, _ := setupAdminHandlerTest(t)
+	srv, _ := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/admin",
-		nil,
-	)
-	res := httptest.NewRecorder()
+	res, err := http.Get(srv.URL + "/admin")
 
-	r.ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusOK, res.Code)
-	assert.Equal(t, "admin", res.Body.String())
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "admin", string(body))
 }
 
 func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
-	r, repo := setupAdminHandlerTest(t)
+	srv, repo := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/admin/products",
+	res, err := http.Post(
+		srv.URL+"/admin/products",
+		"application/json",
 		bytes.NewBufferString(`{
 			"name": "iPad",
 			"category": "ACCESSORY",
@@ -60,23 +59,23 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 			"stock": 10
 		}`),
 	)
-	res := httptest.NewRecorder()
 
-	r.ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusCreated, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
 
 	// decode response to get the server-assigned ID
 	var created product.Product
-	err := json.Unmarshal(res.Body.Bytes(), &created)
+	err = json.Unmarshal(body, &created)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, created.ID)
 	assert.Equal(t, "iPad", created.Name)
 	assert.Equal(t, "ACCESSORY", created.Category)
 	assert.Equal(t, float64(999), created.Price)
 	assert.Equal(t, 10, created.Stock)
-	assert.Equal(t, "/products/"+created.ID.String(), res.Header().Get("Location"))
+	assert.Equal(t, "/products/"+created.ID.String(), res.Header.Get("Location"))
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
 	// verify it was actually persisted
 	p, exists := repo.FindByID(context.Background(), created.ID)
@@ -89,37 +88,38 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 }
 
 func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
-	r, _ := setupAdminHandlerTest(t)
+	srv, _ := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/admin/products",
+	res, err := http.Post(
+		srv.URL+"/admin/products",
+		"application/json",
 		bytes.NewBufferString(`{
 			"error-to-cause": "extra comma, so invalid json",
 		}`),
 	)
-	res := httptest.NewRecorder()
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_PRODUCT",
 			"message": "invalid product"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
-	r, _ := setupAdminHandlerTest(t)
+	srv, _ := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/admin/products",
+	res, err := http.Post(
+		srv.URL+"/admin/products",
+		"application/json",
 		bytes.NewBufferString(`{
 			"id": "",
 			"name": "",
@@ -128,28 +128,29 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 			"stock": 0
 		}`),
 	)
-	res := httptest.NewRecorder()
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
 			"message": "name cannot be blank.; category cannot be blank.; price must be > 0."
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
-	r, repo := setupAdminHandlerTest(t)
+	srv, repo := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/admin/products",
+	res, err := http.Post(
+		srv.URL+"/admin/products",
+		"application/json",
 		bytes.NewBufferString(`{
 			"name": "iPad",
 			"category": "UNKNOWN",
@@ -157,19 +158,20 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 			"stock": 10
 		}`),
 	)
-	res := httptest.NewRecorder()
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_CATEGORY",
 			"message": "invalid category"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	products := repo.FindAll(context.Background())
@@ -177,11 +179,11 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 }
 
 func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
-	r, repo := setupAdminHandlerTest(t)
+	srv, repo := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/admin/products/"+repository.SecondUUID.String(),
+		srv.URL+"/admin/products/"+repository.SecondUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "CLOTHES",
@@ -189,12 +191,16 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 			"stock": 20
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
@@ -204,7 +210,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 			"price": 1500,
 			"stock": 20
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	p, exists := repo.FindByID(context.Background(), repository.SecondUUID)
@@ -214,68 +220,77 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, "CLOTHES", p.Category)
 	assert.Equal(t, 1500.0, p.Price)
 	assert.Equal(t, 20, p.Stock)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 }
 
 func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
-	r, _ := setupAdminHandlerTest(t)
+	srv, _ := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/admin/products/1234",
+		srv.URL+"/admin/products/1234",
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "CLOTHES",
 			"price": 1500
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_UUID",
 			"message": "invalid UUID"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
-	r, _ := setupAdminHandlerTest(t)
+	srv, _ := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/admin/products/"+repository.SecondUUID.String(),
+		srv.URL+"/admin/products/"+repository.SecondUUID.String(),
 		bytes.NewBufferString(`{
 			"error-to-cause": "extra comma, so invalid json",
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_PRODUCT",
 			"message": "invalid product"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
-	r, repo := setupAdminHandlerTest(t)
+	srv, repo := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/admin/products/"+repository.FirstUUID.String(),
+		srv.URL+"/admin/products/"+repository.FirstUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "",
 			"category": "",
@@ -283,19 +298,23 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 			"stock": 0
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
 			"message": "name cannot be blank.; category cannot be blank.; price must be > 0."
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	p, exists := repo.FindByID(context.Background(), repository.FirstUUID)
@@ -306,12 +325,12 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 }
 
 func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
-	r, repo := setupAdminHandlerTest(t)
+	srv, repo := setupAdminHandlerTest(t)
 	id, _ := uuid.NewV7()
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/admin/products/"+id.String(),
+		srv.URL+"/admin/products/"+id.String(),
 		bytes.NewBufferString(`{
 			"name": "non-existing-product",
 			"category": "ACCESSORY",
@@ -319,19 +338,23 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 			"stock": 10
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "PRODUCT_NOT_FOUND",
 			"message": "product not found"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	p, exists := repo.FindByID(context.Background(), id)
@@ -340,11 +363,11 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 }
 
 func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
-	r, repo := setupAdminHandlerTest(t)
+	srv, repo := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/admin/products/"+repository.SecondUUID.String(),
+		srv.URL+"/admin/products/"+repository.SecondUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "UNKNOWN",
@@ -352,19 +375,23 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 			"stock": 20
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_CATEGORY",
 			"message": "invalid category"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	p, exists := repo.FindByID(context.Background(), repository.SecondUUID)
@@ -379,44 +406,51 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
-	r, repo := setupAdminHandlerTest(t)
+	srv, repo := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodDelete,
-		"/admin/products/"+repository.SecondUUID.String(),
+		srv.URL+"/admin/products/"+repository.SecondUUID.String(),
 		nil,
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
 
-	assert.Equal(t, http.StatusNoContent, res.Code)
+	assert.Equal(t, http.StatusNoContent, res.StatusCode)
 
 	_, exists := repo.FindByID(context.Background(), repository.SecondUUID)
 	assert.False(t, exists)
+	assert.Empty(t, res.Header.Get("Content-Type"))
+	assert.Empty(t, res.Body)
 }
 
 func TestDeleteProduct_WhenBadUUID_Returns400(t *testing.T) {
-	r, repo := setupAdminHandlerTest(t)
+	srv, repo := setupAdminHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodDelete,
-		"/admin/products/1234",
+		srv.URL+"/admin/products/1234",
 		nil,
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_UUID",
 			"message": "invalid UUID"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	products := repo.FindAll(context.Background())
