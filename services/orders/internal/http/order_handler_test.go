@@ -8,6 +8,7 @@ import (
 	"commerce-platform/services/orders/internal/service"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,7 +30,29 @@ func (m *mockProductsClient) GetProductByID(_ context.Context, id string) (*grpc
 }
 
 // To be used as BeforeEach
-func setupOrderHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryOrderRepository) {
+func setupOrderHandlerTest(t *testing.T) (*httptest.Server, *repository.InMemoryOrderRepository) {
+	t.Helper()
+	repo := repository.NewInMemoryOrderRepository()
+	client := &mockProductsClient{
+		productIDs: map[string]bool{
+			repository.FirstProductID:  true,
+			repository.SecondProductID: true,
+		},
+	}
+	svc := service.NewOrderService(repo, client)
+	handler := NewOrderHandler(svc)
+
+	r := chi.NewRouter()
+	handler.RegisterRoutes(r)
+
+	srv := httptest.NewServer(r)
+	t.Cleanup(srv.Close)
+
+	return srv, repo
+}
+
+// To be used as BeforeEach
+func setupOrderMuxHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryOrderRepository) {
 	t.Helper()
 	repo := repository.NewInMemoryOrderRepository()
 	client := &mockProductsClient{
@@ -48,22 +71,19 @@ func setupOrderHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryOrderRep
 }
 
 func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	srv, _ := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/orders",
-		nil,
-	)
-	res := httptest.NewRecorder()
+	res, err := http.Get(srv.URL + "/orders")
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
 	var resOrders []map[string]any
-	err := json.Unmarshal(res.Body.Bytes(), &resOrders)
+	err = json.Unmarshal(body, &resOrders)
 	assert.NoError(t, err)
 
 	expectedOrders := []map[string]any{
@@ -85,7 +105,7 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 }
 
 func TestGetOrder_WhenDbErrorHappens_Returns500(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	r, _ := setupOrderMuxHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -110,19 +130,16 @@ func TestGetOrder_WhenDbErrorHappens_Returns500(t *testing.T) {
 }
 
 func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	srv, _ := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/orders/"+repository.FirstOrderID.String(),
-		nil,
-	)
-	res := httptest.NewRecorder()
+	res, err := http.Get(srv.URL + "/orders/" + repository.FirstOrderID.String())
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
@@ -131,88 +148,82 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 			"quantity":   2,
 			"status":     "CREATED"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	srv, _ := setupOrderHandlerTest(t)
 	id, _ := uuid.NewV7()
 
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/orders/"+id.String(),
-		nil,
-	)
-	res := httptest.NewRecorder()
+	res, err := http.Get(srv.URL + "/orders/" + id.String())
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "ORDER_NOT_FOUND",
 			"message": "order not found"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestGetOrder_WhenBadUUID_Returns400(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	srv, _ := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/orders/1234",
-		nil,
-	)
-	res := httptest.NewRecorder()
+	res, err := http.Get(srv.URL + "/orders/1234")
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	r.ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_UUID",
 			"message": "invalid UUID"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	srv, repo := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/orders",
+	res, err := http.Post(
+		srv.URL+"/orders",
+		"application/json",
 		bytes.NewBufferString(`{
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 1
 		}`),
 	)
-	res := httptest.NewRecorder()
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusCreated, res.Code)
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
 
-	assert.Equal(t, http.StatusCreated, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
 	// decode response to get the server-assigned ID
 	var created order.Order
-	err := json.Unmarshal(res.Body.Bytes(), &created)
+	err = json.Unmarshal(body, &created)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, created.ID) // a UUID was assigned
 	assert.Equal(t, repository.FirstProductID, created.ProductID)
 	assert.Equal(t, 1, created.Quantity)
 	assert.Equal(t, order.CREATED, created.Status)
-	assert.Equal(t, "/orders/"+created.ID.String(), res.Header().Get("Location"))
+	assert.Equal(t, "/orders/"+created.ID.String(), res.Header.Get("Location"))
 
 	// verify it was actually persisted
 	p, err := repo.FindByID(context.Background(), created.ID)
@@ -222,29 +233,30 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 }
 
 func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	srv, repo := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/orders",
+	res, err := http.Post(
+		srv.URL+"/orders",
+		"application/json",
 		bytes.NewBufferString(`{
 			"product_id": "999",
 			"quantity": 1
 		}`),
 	)
-	res := httptest.NewRecorder()
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusConflict, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "PRODUCT_NOT_FOUND",
 			"message": "product not found for the given id"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	orders, err := repo.FindAll(context.Background())
@@ -253,60 +265,62 @@ func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 }
 
 func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	srv, _ := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/orders",
+	res, err := http.Post(
+		srv.URL+"/orders",
+		"application/json",
 		bytes.NewBufferString(`{
 			"error-to-cause": "extra comma, so invalid json",
 		}`),
 	)
-	res := httptest.NewRecorder()
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_ORDER",
 			"message": "invalid order"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	srv, _ := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/orders",
+	res, err := http.Post(
+		srv.URL+"/orders",
+		"application/json",
 		bytes.NewBufferString(`{
 			"product_id": "",
 			"quantity": 0
 		}`),
 	)
-	res := httptest.NewRecorder()
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
 			"message": "product-id cannot be blank.; quantity must be > 0."
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	srv, repo := setupOrderHandlerTest(t)
 
 	p, err := repo.FindByID(context.Background(), repository.FirstOrderID)
 	assert.NoError(t, err)
@@ -315,21 +329,25 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.CREATED, p.Status)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/orders/"+repository.FirstOrderID.String(),
+		srv.URL+"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 2,
 			"status": "PAID"
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
@@ -338,7 +356,7 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 			"quantity": 2,
 			"status": "PAID"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	p, err = repo.FindByID(context.Background(), repository.FirstOrderID)
@@ -350,7 +368,7 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 }
 
 func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	srv, repo := setupOrderHandlerTest(t)
 
 	p, err := repo.FindByID(context.Background(), repository.FirstOrderID)
 	assert.NoError(t, err)
@@ -359,21 +377,25 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.CREATED, p.Status)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/orders/"+repository.FirstOrderID.String(),
+		srv.URL+"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 2,
 			"status": "paid"
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
@@ -382,7 +404,7 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 			"quantity": 2,
 			"status": "PAID"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	p, err = repo.FindByID(context.Background(), repository.FirstOrderID)
@@ -394,30 +416,34 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 }
 
 func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	srv, repo := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/orders/"+repository.FirstOrderID.String(),
+		srv.URL+"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"product_id": "999",
 			"quantity": 2,
 			"status": "PAID"
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusConflict, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "PRODUCT_NOT_FOUND",
 			"message": "product not found for the given id"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	// order unchanged
@@ -428,158 +454,176 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 }
 
 func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	srv, _ := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/orders/"+repository.FirstOrderID.String(),
+		srv.URL+"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"error-to-cause": "extra comma, so invalid json",
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_ORDER",
 			"message": "invalid order"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	srv, _ := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/orders/"+repository.FirstOrderID.String(),
+		srv.URL+"/orders/"+repository.FirstOrderID.String(),
 		bytes.NewBufferString(`{
 			"product_id": "",
 			"quantity": 0,
 			"status": "PIAD"
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
 			"message": "product-id cannot be blank.; quantity must be > 0.; status is not valid."
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestUpdateOrder_WhenBadUUID_Returns400(t *testing.T) {
-	r, _ := setupOrderHandlerTest(t)
+	srv, _ := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/orders/1234",
+		srv.URL+"/orders/1234",
 		bytes.NewBufferString(`{
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 1,
 			"status": "PAID"
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_UUID",
 			"message": "invalid UUID"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
 func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	srv, repo := setupOrderHandlerTest(t)
 	id, _ := uuid.NewV7()
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodPut,
-		"/orders/"+id.String(),
+		srv.URL+"/orders/"+id.String(),
 		bytes.NewBufferString(`{
 			"product_id": "`+repository.FirstProductID+`",
 			"quantity": 1,
 			"status": "PAiD"
 		}`),
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "ORDER_NOT_FOUND",
 			"message": "order not found"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
-	_, err := repo.FindByID(context.Background(), id)
+	_, err = repo.FindByID(context.Background(), id)
 	assert.ErrorIs(t, err, repository.ErrNotFound)
 }
 
 func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	srv, repo := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodDelete,
-		"/orders/"+repository.SecondOrderID.String(),
+		srv.URL+"/orders/"+repository.SecondOrderID.String(),
 		nil,
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.Equal(t, http.StatusNoContent, res.StatusCode)
 
-	assert.Equal(t, http.StatusNoContent, res.Code)
-
-	_, err := repo.FindByID(context.Background(), repository.SecondOrderID)
+	_, err = repo.FindByID(context.Background(), repository.SecondOrderID)
 	assert.ErrorIs(t, err, repository.ErrNotFound)
 }
 
 func TestDeleteOrder_WhenBadUUID_Returns400(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	srv, repo := setupOrderHandlerTest(t)
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodDelete,
-		"/orders/1234",
+		srv.URL+"/orders/1234",
 		nil,
 	)
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INVALID_UUID",
 			"message": "invalid UUID"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 
 	orders, err := repo.FindAll(context.Background())
@@ -588,7 +632,7 @@ func TestDeleteOrder_WhenBadUUID_Returns400(t *testing.T) {
 }
 
 func TestDeleteOrder_WhenDbErrorHappens_Returns500(t *testing.T) {
-	r, repo := setupOrderHandlerTest(t)
+	r, repo := setupOrderMuxHandlerTest(t)
 
 	req := httptest.NewRequest(
 		http.MethodDelete,
