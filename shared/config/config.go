@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"io/fs"
 
+	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
+
+	loggerx "commerce-platform/shared/logger"
 )
 
 type DatabaseConfig struct {
@@ -28,15 +31,31 @@ type Config struct {
 
 	Environment string `yaml:"environment"`
 
+	LogLevel string `yaml:"log-level"`
+
 	Database DatabaseConfig `yaml:"database"`
+}
+
+type ProfileConfig interface {
+	SetProfile(profile string)
 }
 
 func (cfg *Config) SetProfile(profile string) {
 	cfg.Profile = profile
 }
 
-type ProfileConfig interface {
-	SetProfile(profile string)
+func (cfg *Config) GetLogLevel(fallback zerolog.Level) zerolog.Level {
+	lvl := loggerx.LevelFromEnv("LOG_LEVEL")
+	if lvl != zerolog.NoLevel {
+		return lvl
+	}
+
+	lvl, err := zerolog.ParseLevel(cfg.LogLevel)
+	if err != nil || lvl == zerolog.NoLevel {
+		return fallback
+	}
+
+	return lvl
 }
 
 func Load(files fs.FS, profile string, cfg ProfileConfig) error {

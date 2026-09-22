@@ -5,6 +5,8 @@ server:
 
 environment: local
 
+log-level: debug
+
 products:
   grpc-client: localhost:8092
 

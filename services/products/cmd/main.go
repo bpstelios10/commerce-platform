@@ -33,12 +33,13 @@ func main() {
 	httpPort := ":" + fmt.Sprint(cfg.Server.HTTPPort)
 	grpcPort := ":" + fmt.Sprint(cfg.Server.GRPCPort)
 	shutdownTimeout := time.Duration(cfg.Server.GracefulShutdown.Timeout) * time.Second
+	logLevel := cfg.GetLogLevel(zerolog.InfoLevel)
 
 	// import shared logger
 	logger := loggerx.New(loggerx.Config{
 		Service: "products",
 		Env:     cfg.Environment,
-		Level:   loggerx.LevelFromEnv("LOG_LEVEL", zerolog.InfoLevel),
+		Level:   logLevel,
 	})
 	loggerx.SetAsDefault(logger)
 
@@ -141,6 +142,7 @@ func main() {
 	go func() {
 		logger.Info().Msgf("HTTP server running on %s", httpPort)
 		logger.Info().Msgf("Active Profile: %s", cfg.Profile)
+		logger.Info().Msgf("Log Level: %s", logLevel)
 
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal().Err(err).Msg("http server failed")
