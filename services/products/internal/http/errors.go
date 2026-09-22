@@ -4,7 +4,6 @@ import (
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 )
@@ -15,6 +14,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 
 	if errors.As(err, &validationErr) {
 		writeError(
+			ctx,
 			w,
 			http.StatusBadRequest,
 			"VALIDATION_ERROR",
@@ -28,6 +28,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrProductNotFound):
 		logger.Warn().Err(err).Msg("product not found")
 		writeError(
+			ctx,
 			w,
 			http.StatusNotFound,
 			"PRODUCT_NOT_FOUND",
@@ -37,6 +38,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrInvalidProduct):
 		logger.Warn().Err(err).Msg("invalid product")
 		writeError(
+			ctx,
 			w,
 			http.StatusBadRequest,
 			"INVALID_PRODUCT",
@@ -46,6 +48,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrInvalidCategory):
 		logger.Warn().Err(err).Msg("invalid product category")
 		writeError(
+			ctx,
 			w,
 			http.StatusBadRequest,
 			"INVALID_CATEGORY",
@@ -55,6 +58,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	case errors.Is(err, validation.ErrInvalidUUID):
 		logger.Warn().Err(err).Msg("invalid UUID")
 		writeError(
+			ctx,
 			w,
 			http.StatusBadRequest,
 			"INVALID_UUID",
@@ -64,6 +68,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	default:
 		logger.Error().Err(err).Msg("unexpected error handled, with")
 		writeError(
+			ctx,
 			w,
 			http.StatusInternalServerError,
 			"INTERNAL_SERVER_ERROR",
@@ -72,22 +77,11 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	}
 }
 
-// TODO move to utils as handler-error-response?
-func writeError(
-	w http.ResponseWriter,
-	status int,
-	code string,
-	message string,
-) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+func writeError(ctx context.Context, w http.ResponseWriter, status int, code string, message string) {
+	body := ErrorResponse{
+		Code:    code,
+		Message: message,
+	}
 
-	encoder := json.NewEncoder(w)
-	encoder.SetEscapeHTML(false)
-	encoder.Encode(
-		ErrorResponse{
-			Code:    code,
-			Message: message,
-		},
-	)
+	HandleResponseWithBody(ctx, w, status, body)
 }

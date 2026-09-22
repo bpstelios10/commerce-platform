@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// TODO add logs here
 func HandleError(ctx context.Context, err error) error {
 	logger := log(ctx)
 
