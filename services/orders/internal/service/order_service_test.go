@@ -9,6 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // mockProductsClient implements ProductsClient for tests.
@@ -19,8 +21,10 @@ type mockProductsClient struct {
 func (m *mockProductsClient) GetProductByID(_ context.Context, id string) (*grpc.GetProductByIDResponse, error) {
 	if m.productIDs[id] {
 		return &grpc.GetProductByIDResponse{Id: id}, nil
+	} else if id == "error" {
+		return nil, status.Error(codes.Internal, "unexpected error")
 	}
-	return nil, ErrProductNotFound
+	return nil, status.Error(codes.NotFound, "product not found")
 }
 
 func setup(t *testing.T) (*OrderService, *repository.InMemoryOrderRepository, *mockProductsClient) {
@@ -119,6 +123,18 @@ func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	assert.Len(t, orders, 2)
 }
 
+func TestCreateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
+	svc, repo, _ := setup(t)
+
+	o, err := svc.CreateOrder(context.Background(), "error", 10)
+
+	assert.Error(t, err)
+	assert.Empty(t, o)
+	orders, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, orders, 2)
+}
+
 func TestCreateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	svc, repo, _ := setup(t)
 	ctx := context.Background()
@@ -188,6 +204,25 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	updated, err := svc.UpdateOrder(context.Background(), repository.FirstOrderID, "999", 11, order.PAID)
 
 	assert.ErrorIs(t, err, ErrProductNotFound)
+	assert.Empty(t, updated)
+
+	// order unchanged
+	o, err := repo.FindByID(context.Background(), repository.FirstOrderID)
+	assert.NoError(t, err)
+	assert.Equal(t, order.Order{
+		ID:        repository.FirstOrderID,
+		ProductID: repository.FirstProductID,
+		Quantity:  2,
+		Status:    order.CREATED,
+	}, o)
+}
+
+func TestUpdateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
+	svc, repo, _ := setup(t)
+
+	updated, err := svc.UpdateOrder(context.Background(), repository.FirstOrderID, "error", 11, order.PAID)
+
+	assert.Error(t, err)
 	assert.Empty(t, updated)
 
 	// order unchanged

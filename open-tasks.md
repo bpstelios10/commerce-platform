@@ -6,7 +6,7 @@ few extra items worth doing. Check items off as they're done; update
 
 ## High priority
 
-- [ ] Stop collapsing all gRPC errors into `ErrProductNotFound` in
+- [x] Stop collapsing all gRPC errors into `ErrProductNotFound` in
       `OrderService.validateProductExists` ([order_service.go](services/orders/internal/service/order_service.go)).
       Map `codes.NotFound` → `ErrProductNotFound`; map everything else (`Unavailable`,
       `DeadlineExceeded`, etc.) to a new `ErrProductServiceUnavailable` → HTTP 502/503.
