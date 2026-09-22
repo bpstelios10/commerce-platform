@@ -168,7 +168,7 @@ func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 		t,
 		`{
 			"code": "ORDER_NOT_FOUND",
-			"message": "order not found"
+			"message": "Order with id [`+id.String()+`] was not found"
 		}`,
 		string(body),
 	)
@@ -574,7 +574,7 @@ func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 		t,
 		`{
 			"code": "ORDER_NOT_FOUND",
-			"message": "order not found"
+			"message": "Order with id [`+id.String()+`] was not found"
 		}`,
 		string(body),
 	)

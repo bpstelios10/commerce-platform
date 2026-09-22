@@ -49,7 +49,7 @@ func (s *OrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Or
 	o, err := s.orderRepository.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return order.Order{}, fmt.Errorf("get order: %w", ErrOrderNotFound)
+			return order.Order{}, &ErrOrderNotFound{OrderID: id}
 		}
 
 		return order.Order{}, fmt.Errorf("get order by id: %w", err)

@@ -81,7 +81,9 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	o, err := svc.GetOrderByID(context.Background(), id)
 
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, ErrOrderNotFound)
+	var notFoundErr *ErrOrderNotFound
+	assert.ErrorAs(t, err, &notFoundErr)
+	assert.Equal(t, id, notFoundErr.OrderID)
 	assert.Empty(t, o)
 }
 
@@ -161,7 +163,9 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	o, dbErr := repo.FindByID(context.Background(), id)
 
 	assert.ErrorIs(t, dbErr, repository.ErrNotFound)
-	assert.ErrorIs(t, err, ErrOrderNotFound)
+	var notFoundErr *ErrOrderNotFound
+	assert.ErrorAs(t, err, &notFoundErr)
+	assert.Equal(t, id, notFoundErr.OrderID)
 	assert.Empty(t, o)
 	assert.Empty(t, updated)
 }

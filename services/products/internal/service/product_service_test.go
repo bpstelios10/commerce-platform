@@ -43,6 +43,7 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	var notFoundErr *ErrProductNotFound
 	assert.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.ProductID)
+	assert.Equal(t, "Product with id ["+id.String()+"] was not found", notFoundErr.Error())
 	assert.Equal(t, product.Product{}, p)
 }
 
