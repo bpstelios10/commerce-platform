@@ -18,9 +18,9 @@ func HandleResponseWithBody(ctx context.Context, w http.ResponseWriter, statusCo
 			return
 		}
 
-		w.WriteHeader(statusCode)
 		// let's assume for now that it will always be JSON
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
 		w.Write(responseBody)
 	} else {
 		HandleResponse(ctx, w, statusCode)
@@ -35,10 +35,10 @@ func HandlePostResponse(ctx context.Context, w http.ResponseWriter, statusCode i
 			return
 		}
 
-		w.WriteHeader(statusCode)
 		w.Header().Set("Location", location)
 		// let's assume for now that it will always be JSON
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
 		w.Write(responseBody)
 	} else {
 		HandleResponse(ctx, w, statusCode)
