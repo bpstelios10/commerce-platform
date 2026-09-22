@@ -66,7 +66,9 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	p, exists := repo.FindByID(context.Background(), id)
 
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, ErrProductNotFound)
+	var notFoundErr *ErrProductNotFound
+	assert.ErrorAs(t, err, &notFoundErr)
+	assert.Equal(t, id, notFoundErr.ProductID)
 	assert.False(t, exists)
 	assert.Empty(t, p)
 	assert.Empty(t, updated)

@@ -10,70 +10,35 @@ import (
 
 func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	logger := log(ctx)
-	var validationErr ValidationError
 
-	if errors.As(err, &validationErr) {
-		writeError(
-			ctx,
-			w,
-			http.StatusBadRequest,
-			"VALIDATION_ERROR",
-			validationErr.Error(),
-		)
-		return
-	}
+	var validationErr ValidationError
+	var notFoundErr *service.ErrProductNotFound
 
 	switch {
 
-	case errors.Is(err, service.ErrProductNotFound):
+	case errors.As(err, &validationErr):
+		// logging happens when the validation error is created
+		writeError(ctx, w, http.StatusBadRequest, "VALIDATION_ERROR", validationErr.Error())
+
+	case errors.As(err, &notFoundErr):
 		logger.Warn().Err(err).Msg("product not found")
-		writeError(
-			ctx,
-			w,
-			http.StatusNotFound,
-			"PRODUCT_NOT_FOUND",
-			service.ErrProductNotFound.Error(),
-		)
+		writeError(ctx, w, http.StatusNotFound, "PRODUCT_NOT_FOUND", notFoundErr.Error())
 
 	case errors.Is(err, service.ErrInvalidProduct):
 		logger.Warn().Err(err).Msg("invalid product")
-		writeError(
-			ctx,
-			w,
-			http.StatusBadRequest,
-			"INVALID_PRODUCT",
-			service.ErrInvalidProduct.Error(),
-		)
+		writeError(ctx, w, http.StatusBadRequest, "INVALID_PRODUCT", service.ErrInvalidProduct.Error())
 
 	case errors.Is(err, service.ErrInvalidCategory):
 		logger.Warn().Err(err).Msg("invalid product category")
-		writeError(
-			ctx,
-			w,
-			http.StatusBadRequest,
-			"INVALID_CATEGORY",
-			service.ErrInvalidCategory.Error(),
-		)
+		writeError(ctx, w, http.StatusBadRequest, "INVALID_CATEGORY", service.ErrInvalidCategory.Error())
 
 	case errors.Is(err, validation.ErrInvalidUUID):
 		logger.Warn().Err(err).Msg("invalid UUID")
-		writeError(
-			ctx,
-			w,
-			http.StatusBadRequest,
-			"INVALID_UUID",
-			validation.ErrInvalidUUID.Error(),
-		)
+		writeError(ctx, w, http.StatusBadRequest, "INVALID_UUID", validation.ErrInvalidUUID.Error())
 
 	default:
 		logger.Error().Err(err).Msg("unexpected error handled, with")
-		writeError(
-			ctx,
-			w,
-			http.StatusInternalServerError,
-			"INTERNAL_SERVER_ERROR",
-			"internal server error",
-		)
+		writeError(ctx, w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "internal server error")
 	}
 }
 

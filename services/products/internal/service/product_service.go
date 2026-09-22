@@ -4,7 +4,6 @@ import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/shared/logger"
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -56,14 +55,10 @@ func (s *ProductService) SearchProducts(ctx context.Context, query string, maxPr
 	return filtered
 }
 
-// tODO make this struct and keep the id in the error. then remove the log
 func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
 	p, found := s.repository.FindByID(ctx, id)
 	if !found {
-		logger := log(ctx)
-		logger.Warn().Str("product_id", id.String()).Msg("product not found")
-
-		return product.Product{}, fmt.Errorf("get product by ID: %w", ErrProductNotFound)
+		return product.Product{}, &ErrProductNotFound{ProductID: id}
 	}
 	return p, nil
 }

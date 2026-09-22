@@ -82,7 +82,7 @@ func TestGetProductByID_WhenProductNotExists_ReturnsError(t *testing.T) {
 	st, ok := status.FromError(err)
 	assert.True(t, ok)
 	assert.Equal(t, codes.NotFound, st.Code())
-	assert.Equal(t, "product not found", st.Message())
+	assert.Equal(t, "Product with id ["+id.String()+"] was not found", st.Message())
 }
 
 func TestGetProductByID_WhenBadUUID_ReturnsError(t *testing.T) {

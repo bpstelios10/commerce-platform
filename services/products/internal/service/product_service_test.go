@@ -40,7 +40,9 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 
 	p, err := svc.GetProductByID(context.Background(), id)
 
-	assert.ErrorIs(t, err, ErrProductNotFound)
+	var notFoundErr *ErrProductNotFound
+	assert.ErrorAs(t, err, &notFoundErr)
+	assert.Equal(t, id, notFoundErr.ProductID)
 	assert.Equal(t, product.Product{}, p)
 }
 
