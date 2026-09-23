@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
@@ -10,15 +9,15 @@ import (
 )
 
 type PostgreProductCategoryRepository struct {
-	db DB
+	db ProductCategoryDB
 }
 
-type DB interface {
+type ProductCategoryDB interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func NewPostgreProductCategoryRepository(db DB) *PostgreProductCategoryRepository {
+func NewPostgreProductCategoryRepository(db ProductCategoryDB) *PostgreProductCategoryRepository {
 	return &PostgreProductCategoryRepository{db: db}
 }
 
@@ -32,7 +31,7 @@ func (r *PostgreProductCategoryRepository) Exists(ctx context.Context, category 
 	var name string
 
 	err := r.db.QueryRow(ctx, query, category).Scan(&name)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
 	}
 	if err != nil {
