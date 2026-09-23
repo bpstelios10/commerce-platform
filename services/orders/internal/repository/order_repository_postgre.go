@@ -106,8 +106,11 @@ func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) err
 		o.Quantity,
 		o.Status,
 	)
+	if err != nil {
+		return fmt.Errorf("save order: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) error {
@@ -126,7 +129,7 @@ func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) e
 		o.ID,
 	)
 
-	return err
+	return fmt.Errorf("update order: %w", err)
 }
 
 func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) error {
@@ -136,5 +139,5 @@ func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) er
 	`
 
 	_, err := repo.db.Exec(ctx, query, id)
-	return err
+	return fmt.Errorf("delete order: %w", err)
 }

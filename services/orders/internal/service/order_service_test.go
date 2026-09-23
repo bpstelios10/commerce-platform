@@ -87,7 +87,7 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	assert.Empty(t, o)
 }
 
-func TestGetOrderByID_WhenOtherError_ReturnsError(t *testing.T) {
+func TestGetOrderByID_WhenDbError_ReturnsError(t *testing.T) {
 	svc, _, _ := setup(t)
 
 	o, err := svc.GetOrderByID(context.Background(), repository.ErrornousUUID)

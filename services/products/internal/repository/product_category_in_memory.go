@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 )
@@ -23,7 +24,12 @@ func NewInMemoryProductCategoryRepository() *InMemoryProductCategoryRepository {
 	}
 }
 
-func (r *InMemoryProductCategoryRepository) Exists(ctx context.Context, category string) bool {
+func (r *InMemoryProductCategoryRepository) Exists(ctx context.Context, category string) (bool, error) {
+	// dummy way to create unexpected error for tests
+	if category == "ERRORNOUS_CATEGORY" {
+		return false, errors.New("unexpected error")
+	}
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -32,7 +38,7 @@ func (r *InMemoryProductCategoryRepository) Exists(ctx context.Context, category
 	logger := log(ctx)
 	logger.Info().Str("category", normalized).Bool("exists", found).Msg("checked product category")
 
-	return found
+	return found, nil
 }
 
 func (r *InMemoryProductCategoryRepository) GetAll(ctx context.Context) []string {
