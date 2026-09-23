@@ -30,7 +30,7 @@ func NewPostgreOrderRepository(db DB) *PostgreOrderRepository {
 
 func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order, error) {
 	const query = `
-		SELECT id, product_id, quantity, status, created_at
+		SELECT order_id, product_id, quantity, status, created_at
 		FROM orders
 	`
 
@@ -67,9 +67,9 @@ func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order,
 
 func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id string) (order.Order, error) {
 	const query = `
-		SELECT id, product_id, quantity, status, created_at
+		SELECT order_id, product_id, quantity, status, created_at
 		FROM orders
-		WHERE id = $1
+		WHERE order_id = $1
 	`
 	var o order.Order
 
@@ -94,7 +94,7 @@ func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id string) (or
 
 func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) error {
 	const query = `
-		INSERT INTO orders (id, product_id, quantity, status)
+		INSERT INTO orders (order_id, product_id, quantity, status)
 		VALUES ($1, $2, $3, $4)
 	`
 

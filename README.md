@@ -112,6 +112,7 @@ Useful `psql` commands once connected:
 \l                       -- list databases (expect: commerce, orders, products)
 \c products              -- switch to the products database
 \dt                      -- list tables in the current database
+\d+ products             -- describe table products (and check eg the FK exists)
 SELECT * FROM products;  -- inspect rows
 \c orders
 \dt
