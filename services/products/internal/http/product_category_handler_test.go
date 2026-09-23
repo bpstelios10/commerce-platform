@@ -3,6 +3,7 @@ package http
 import (
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -45,4 +46,32 @@ func TestGetProductCategories_WhenCategoriesExist_Returns200(t *testing.T) {
 
 	expectedCategories := []string{"MAGNET", "POSTCARD", "ACCESSORY", "JEWELRY", "CLOTHES"}
 	assert.ElementsMatch(t, expectedCategories, resCategories)
+}
+
+func TestGetProductCategories_WhenDbError_Returns500(t *testing.T) {
+	r, _ := ProductCategoryHandlerTest(t)
+
+	ctx := context.Background()
+	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products/categories",
+		nil,
+	)
+	req = req.WithContext(ctxWithError)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusInternalServerError, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INTERNAL_SERVER_ERROR",
+			"message": "internal server error"
+		}`,
+		res.Body.String(),
+	)
 }

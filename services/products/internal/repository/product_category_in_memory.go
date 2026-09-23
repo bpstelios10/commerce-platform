@@ -41,7 +41,12 @@ func (r *InMemoryProductCategoryRepository) Exists(ctx context.Context, category
 	return found, nil
 }
 
-func (r *InMemoryProductCategoryRepository) GetAll(ctx context.Context) []string {
+func (r *InMemoryProductCategoryRepository) GetAll(ctx context.Context) ([]string, error) {
+	// dummy way to create unexpected error for tests
+	if ctx.Value("errorEnabler") != nil {
+		return nil, errors.New(ctx.Value("errorEnabler").(string))
+	}
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -52,5 +57,5 @@ func (r *InMemoryProductCategoryRepository) GetAll(ctx context.Context) []string
 	logger := log(ctx)
 	logger.Info().Strs("categories", categoriesNames).Msg("product categories retrieved")
 
-	return categoriesNames
+	return categoriesNames, nil
 }

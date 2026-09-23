@@ -14,6 +14,7 @@ type PostgreProductCategoryRepository struct {
 }
 
 type DB interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
@@ -23,9 +24,9 @@ func NewPostgreProductCategoryRepository(db DB) *PostgreProductCategoryRepositor
 
 func (r *PostgreProductCategoryRepository) Exists(ctx context.Context, category string) (bool, error) {
 	const query = `
-	SELECT name
-	FROM product_categories
-	WHERE name ILIKE $1
+		SELECT name
+		FROM product_categories
+		WHERE name ILIKE $1
 	`
 
 	var name string
@@ -41,8 +42,29 @@ func (r *PostgreProductCategoryRepository) Exists(ctx context.Context, category 
 	return true, nil
 }
 
-func (r *PostgreProductCategoryRepository) GetAll(ctx context.Context) []string {
-	var categoriesNames = make([]string, 0)
+func (r *PostgreProductCategoryRepository) GetAll(ctx context.Context) ([]string, error) {
+	const query = `
+		SELECT name
+		FROM product_categories
+	`
 
-	return categoriesNames
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("query product categories: %w", err)
+	}
+	defer rows.Close()
+
+	var categoriesNames []string
+
+	for rows.Next() {
+		var categoryName string
+
+		if err = rows.Scan(&categoryName); err != nil {
+			return nil, fmt.Errorf("scan product categories: %w", err)
+		}
+
+		categoriesNames = append(categoriesNames, categoryName)
+	}
+
+	return categoriesNames, nil
 }

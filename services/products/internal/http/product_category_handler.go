@@ -2,6 +2,7 @@ package http
 
 import (
 	"commerce-platform/services/products/internal/service"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -25,7 +26,11 @@ func (h *ProductCategoryHandler) GetProductCategories(w http.ResponseWriter, r *
 	ctx := r.Context()
 	logger := log(ctx)
 
-	categories := h.productCategoryService.GetProductCategories(ctx)
+	categories, err := h.productCategoryService.GetProductCategories(ctx)
+	if err != nil {
+		HandleError(ctx, w, fmt.Errorf("get_product_categories: %w", err))
+		return
+	}
 
 	logger.Info().Int("count", len(categories)).Msg("product categories retrieved")
 

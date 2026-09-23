@@ -8,7 +8,7 @@ import (
 
 type ProductCategoryRepository interface {
 	Exists(ctx context.Context, category string) (bool, error)
-	GetAll(ctx context.Context) []string
+	GetAll(ctx context.Context) ([]string, error)
 }
 
 type ProductCategoryService struct {
@@ -33,6 +33,11 @@ func (s *ProductCategoryService) Validate(ctx context.Context, category string) 
 	return normalized, nil
 }
 
-func (s *ProductCategoryService) GetProductCategories(ctx context.Context) []string {
-	return s.repo.GetAll(ctx)
+func (s *ProductCategoryService) GetProductCategories(ctx context.Context) ([]string, error) {
+	categories, err := s.repo.GetAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get product categories: %w", err)
+	}
+
+	return categories, nil
 }

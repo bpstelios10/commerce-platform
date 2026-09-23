@@ -39,7 +39,21 @@ func TestProductCategoryService_Validate_WhenDbError_ReturnsError(t *testing.T) 
 func TestProductCategoryService_GetProductCategories_ReturnsAllCategories(t *testing.T) {
 	repo := repository.NewInMemoryProductCategoryRepository()
 	svc := NewProductCategoryService(repo)
-	categories := svc.GetProductCategories(context.Background())
+	categories, err := svc.GetProductCategories(context.Background())
 
+	assert.NoError(t, err)
 	assert.NotEmpty(t, categories)
+}
+
+func TestProductCategoryService_GetProductCategories_ReturnsDbError(t *testing.T) {
+	repo := repository.NewInMemoryProductCategoryRepository()
+	svc := NewProductCategoryService(repo)
+	ctx := context.Background()
+	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
+
+	categories, err := svc.GetProductCategories(ctxWithError)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "get product categories: unexpected error")
+	assert.Nil(t, categories)
 }
