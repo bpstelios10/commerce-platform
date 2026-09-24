@@ -3,6 +3,7 @@ package http
 import (
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -27,6 +28,18 @@ func setupProductHandlerTest(t *testing.T) (*httptest.Server, *repository.InMemo
 	t.Cleanup(srv.Close)
 
 	return srv, repo
+}
+
+func setupProductMuxHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryProductRepository) {
+	t.Helper()
+	repo := repository.NewInMemoryProductRepository()
+	svc := service.NewProductService(repo)
+	handler := NewProductHandler(svc)
+
+	r := chi.NewRouter()
+	handler.RegisterRoutes(r)
+
+	return r, repo
 }
 
 func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
@@ -77,6 +90,31 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 	}
 
 	assert.ElementsMatch(t, expectedProducts, resProducts)
+}
+
+func TestGetProducts_WhenDbError_Returns500(t *testing.T) {
+	r, _ := setupProductMuxHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products",
+		nil,
+	)
+	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "unexpected error"))
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusInternalServerError, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INTERNAL_SERVER_ERROR",
+			"message": "internal server error"
+		}`,
+		res.Body.String(),
+	)
 }
 
 func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
@@ -239,5 +277,30 @@ func TestSearchProducts_WhenMaxPriceInvalid_Returns400(t *testing.T) {
 			"message": "maxPrice must be a valid number."
 		}`,
 		string(body),
+	)
+}
+
+func TestSearchProducts_WhenDbError_Returns500(t *testing.T) {
+	r, _ := setupProductMuxHandlerTest(t)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products/search?query=hoodie",
+		nil,
+	)
+	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "unexpected error"))
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusInternalServerError, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INTERNAL_SERVER_ERROR",
+			"message": "internal server error"
+		}`,
+		res.Body.String(),
 	)
 }

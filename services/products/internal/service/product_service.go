@@ -4,6 +4,7 @@ import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/shared/logger"
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -11,7 +12,7 @@ import (
 )
 
 type ProductRepository interface {
-	FindAll(ctx context.Context) []product.Product
+	FindAll(ctx context.Context) ([]product.Product, error)
 	FindByID(ctx context.Context, id uuid.UUID) (product.Product, bool)
 }
 
@@ -25,12 +26,25 @@ func NewProductService(repository ProductRepository) *ProductService {
 	}
 }
 
-func (s *ProductService) GetProducts(ctx context.Context) []product.Product {
-	return s.repository.FindAll(ctx)
+func (s *ProductService) GetProducts(ctx context.Context) ([]product.Product, error) {
+	products, err := s.repository.FindAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get products: %w", err)
+	}
+
+	return products, nil
 }
 
-func (s *ProductService) SearchProducts(ctx context.Context, query string, maxPrice *float64, category string) []product.Product {
-	products := s.repository.FindAll(ctx)
+// TODO implement it using postgre features such as:
+// pg_trgm (trigram) → fuzzy/partial/typo tolerance (widgit ≈ widget).
+// Full-text search (tsvector) → handles plural/stemming ("widgets" → "widget") automatically.
+// GIN (Generalized Inverted Index) → efficient indexing for multiple columns, useful for combined search scenarios.
+func (s *ProductService) SearchProducts(ctx context.Context, query string, maxPrice *float64, category string) ([]product.Product, error) {
+	products, err := s.repository.FindAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get products: %w", err)
+	}
+
 	query = strings.ToLower(strings.TrimSpace(query))
 	category = strings.ToLower(strings.TrimSpace(category))
 
@@ -52,7 +66,7 @@ func (s *ProductService) SearchProducts(ctx context.Context, query string, maxPr
 		filtered = append(filtered, p)
 	}
 
-	return filtered
+	return filtered, nil
 }
 
 func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (product.Product, error) {

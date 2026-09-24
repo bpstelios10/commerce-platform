@@ -99,7 +99,8 @@ func main() {
 	// var productRepo service.ProductRepository
 	productRepo := repository.NewInMemoryProductRepository()
 
-	logger.Info().Msgf("products loaded: %v", productRepo.FindAll(context.Background()))
+	existingProducts, _ := productRepo.FindAll(context.Background())
+	logger.Info().Msgf("products loaded: %v", existingProducts)
 
 	logger.Info().Msg("--- REAL LOGIC REST---")
 

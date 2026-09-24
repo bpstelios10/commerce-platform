@@ -49,7 +49,8 @@ func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 	assert.ErrorIs(t, err, ErrInvalidCategory)
 	assert.Empty(t, p)
 
-	products := repo.FindAll(context.Background())
+	products, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, products, 4)
 }
 
@@ -144,7 +145,8 @@ func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
 
 	assert.False(t, exists)
 
-	products := repo.FindAll(context.Background())
+	products, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, products, 4)
 }
 
@@ -161,6 +163,7 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 
 	assert.False(t, exists)
 
-	products := repo.FindAll(context.Background())
+	products, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, products, 3)
 }

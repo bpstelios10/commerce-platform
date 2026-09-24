@@ -2,6 +2,7 @@ package product
 
 import "github.com/google/uuid"
 
+// TODO move stock to a different service/repo
 type Product struct {
 	ID       uuid.UUID `json:"id"`
 	Name     string    `json:"name"`

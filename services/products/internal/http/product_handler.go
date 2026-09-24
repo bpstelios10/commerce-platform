@@ -30,7 +30,11 @@ func (h *ProductHandler) GetProducts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := log(ctx)
 
-	products := h.productService.GetProducts(ctx)
+	products, err := h.productService.GetProducts(ctx)
+	if err != nil {
+		HandleError(ctx, w, fmt.Errorf("get_products: %w", err))
+		return
+	}
 
 	logger.Info().Int("count", len(products)).Msg("products retrieved")
 
@@ -89,7 +93,12 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 		Str("category", category).
 		Msg("products search request")
 
-	products := h.productService.SearchProducts(ctx, query, maxPrice, category)
+	products, err := h.productService.SearchProducts(ctx, query, maxPrice, category)
+	if err != nil {
+		HandleError(ctx, w, fmt.Errorf("search_products: %w", err))
+		return
+	}
+
 	logger.Info().Int("count", len(products)).Msg("products found")
 
 	HandleResponseWithBody(ctx, w, http.StatusOK, products)

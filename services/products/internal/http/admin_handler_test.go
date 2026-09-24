@@ -174,7 +174,8 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		string(body),
 	)
 
-	products := repo.FindAll(context.Background())
+	products, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, products, 4)
 }
 
@@ -453,6 +454,7 @@ func TestDeleteProduct_WhenBadUUID_Returns400(t *testing.T) {
 		string(body),
 	)
 
-	products := repo.FindAll(context.Background())
+	products, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
 	assert.Len(t, products, 4)
 }

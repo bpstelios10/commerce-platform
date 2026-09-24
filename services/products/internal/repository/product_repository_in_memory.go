@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"commerce-platform/services/products/internal/product"
@@ -65,7 +66,12 @@ func NewInMemoryProductRepository() *InMemoryProductRepository {
 	}
 }
 
-func (r *InMemoryProductRepository) FindAll(ctx context.Context) []product.Product {
+func (r *InMemoryProductRepository) FindAll(ctx context.Context) ([]product.Product, error) {
+	// dummy way to create unexpected error for tests
+	if ctx.Value("errorEnabler") != nil {
+		return nil, errors.New(ctx.Value("errorEnabler").(string))
+	}
+
 	// read-only: RLock allows concurrent readers.
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -76,7 +82,7 @@ func (r *InMemoryProductRepository) FindAll(ctx context.Context) []product.Produ
 		products = append(products, p)
 	}
 
-	return products
+	return products, nil
 }
 
 func (r *InMemoryProductRepository) FindByID(ctx context.Context, id uuid.UUID) (product.Product, bool) {
