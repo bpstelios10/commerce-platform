@@ -7,6 +7,7 @@ import (
 	"commerce-platform/services/products/internal/service"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -47,41 +48,62 @@ func TestGetAdmin_Returns200(t *testing.T) {
 }
 
 func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
-	srv, repo := setupAdminHandlerTest(t)
+	tests := []struct {
+		testName    string
+		name        string
+		category    string
+		description string
+		price       float64
+	}{
+		{"valid-product", "iPad", "ACCESSORY", "some-description", 999},
+		{"empty-description", "Hoodie", "CLOTHES", "", 49},
+		{"decimal-price", "Necklace", "JEWELRY", "some-description", 15.5},
+	}
 
-	res, err := http.Post(
-		srv.URL+"/admin/products",
-		"application/json",
-		bytes.NewBufferString(`{
-			"name": "iPad",
-			"category": "ACCESSORY",
-			"price": 999
-		}`),
-	)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, repo := setupAdminHandlerTest(t)
 
-	assert.NoError(t, err)
-	defer res.Body.Close()
-	body, _ := io.ReadAll(res.Body)
-	assert.Equal(t, http.StatusCreated, res.StatusCode)
+			reqBody := fmt.Sprintf(
+				`{"name":%q,"category":%q,"description":%q,"price":%v}`,
+				tt.name, tt.category, tt.description, tt.price,
+			)
 
-	// decode response to get the server-assigned ID
-	var created product.Product
-	err = json.Unmarshal(body, &created)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, created.ID)
-	assert.Equal(t, "iPad", created.Name)
-	assert.Equal(t, "ACCESSORY", created.Category)
-	assert.Equal(t, float64(999), created.Price)
-	assert.Equal(t, "/products/"+created.ID.String(), res.Header.Get("Location"))
-	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+			res, err := http.Post(
+				srv.URL+"/admin/products",
+				"application/json",
+				bytes.NewBufferString(reqBody),
+			)
 
-	// verify it was actually persisted
-	p, err := repo.FindByID(context.Background(), created.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, created.ID, p.ID)
-	assert.Equal(t, created.Name, p.Name)
-	assert.Equal(t, created.Category, p.Category)
-	assert.Equal(t, created.Price, p.Price)
+			assert.NoError(t, err)
+			defer res.Body.Close()
+			body, _ := io.ReadAll(res.Body)
+			assert.Equal(t, http.StatusCreated, res.StatusCode)
+
+			// decode response to get the server-assigned ID
+			var created product.Product
+			err = json.Unmarshal(body, &created)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, created.ID)
+			assert.Equal(t, tt.name, created.Name)
+			assert.Equal(t, tt.category, created.Category)
+			assert.Equal(t, tt.description, created.Description)
+			assert.Equal(t, tt.price, created.Price)
+			// TODO to fix the next line i need to make save return the new object
+			// assert.WithinDuration(t, time.Now(), created.CreatedAt, 2*time.Second)
+			assert.Equal(t, "/products/"+created.ID.String(), res.Header.Get("Location"))
+			assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+
+			// verify it was actually persisted
+			p, err := repo.FindByID(context.Background(), created.ID)
+			assert.NoError(t, err)
+			assert.Equal(t, created.ID, p.ID)
+			assert.Equal(t, created.Name, p.Name)
+			assert.Equal(t, created.Category, p.Category)
+			assert.Equal(t, created.Description, p.Description)
+			assert.Equal(t, created.Price, p.Price)
+		})
+	}
 }
 
 func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
@@ -183,6 +205,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "CLOTHES",
+			"description": "Updated description",
 			"price": 1500
 		}`),
 	)
@@ -196,22 +219,22 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.JSONEq(
-		t,
-		`{
-			"id": "`+repository.SecondUUID.String()+`",
-			"name": "iPhone 15",
-			"category": "CLOTHES",
-			"price": 1500
-		}`,
-		string(body),
-	)
+	var updated product.Product
+	err = json.Unmarshal(body, &updated)
+	assert.NoError(t, err)
+	assert.Equal(t, repository.SecondUUID, updated.ID)
+	assert.Equal(t, "iPhone 15", updated.Name)
+	assert.Equal(t, "CLOTHES", updated.Category)
+	assert.Equal(t, "Updated description", updated.Description)
+	assert.Equal(t, 1500.0, updated.Price)
+	assert.False(t, updated.CreatedAt.IsZero())
 
 	p, err := repo.FindByID(context.Background(), repository.SecondUUID)
 	assert.NoError(t, err)
 	assert.Equal(t, repository.SecondUUID, p.ID)
 	assert.Equal(t, "iPhone 15", p.Name)
 	assert.Equal(t, "CLOTHES", p.Category)
+	assert.Equal(t, "Updated description", p.Description)
 	assert.Equal(t, 1500.0, p.Price)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 }
@@ -387,10 +410,12 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 	p, err := repo.FindByID(context.Background(), repository.SecondUUID)
 	assert.NoError(t, err)
 	assert.Equal(t, product.Product{
-		ID:       repository.SecondUUID,
-		Name:     "iPhone",
-		Category: "ACCESSORY",
-		Price:    1200.0,
+		ID:          repository.SecondUUID,
+		Name:        "iPhone",
+		Category:    "ACCESSORY",
+		Description: "Apple smartphone",
+		Price:       1200.0,
+		CreatedAt:   p.CreatedAt,
 	}, p)
 }
 

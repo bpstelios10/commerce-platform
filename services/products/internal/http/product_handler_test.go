@@ -1,6 +1,7 @@
 package http
 
 import (
+	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
 	"context"
@@ -60,29 +61,38 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 
 	expectedProducts := []map[string]any{
 		{
-			"id":       repository.FirstUUID.String(),
-			"name":     "MacBook Pro",
-			"category": "ACCESSORY",
-			"price":    2500.0,
+			"id":          repository.FirstUUID.String(),
+			"name":        "MacBook Pro",
+			"category":    "ACCESSORY",
+			"description": "Apple laptop",
+			"price":       2500.0,
 		},
 		{
-			"id":       repository.SecondUUID.String(),
-			"name":     "iPhone",
-			"category": "ACCESSORY",
-			"price":    1200.0,
+			"id":          repository.SecondUUID.String(),
+			"name":        "iPhone",
+			"category":    "ACCESSORY",
+			"description": "Apple smartphone",
+			"price":       1200.0,
 		},
 		{
-			"id":       repository.ThirdUUID.String(),
-			"name":     "hoodie Mykonos",
-			"category": "CLOTHES",
-			"price":    80.0,
+			"id":          repository.ThirdUUID.String(),
+			"name":        "hoodie Mykonos",
+			"category":    "CLOTHES",
+			"description": "Comfortable hoodie",
+			"price":       80.0,
 		},
 		{
-			"id":       repository.FourthUUID.String(),
-			"name":     "Eye necklace",
-			"category": "JEWELRY",
-			"price":    150.0,
+			"id":          repository.FourthUUID.String(),
+			"name":        "Eye necklace",
+			"category":    "JEWELRY",
+			"description": "Stylish eye necklace",
+			"price":       150.0,
 		},
+	}
+
+	// remove createdAt field from the comparison
+	for _, product := range resProducts {
+		delete(product, "created_at")
 	}
 
 	assert.ElementsMatch(t, expectedProducts, resProducts)
@@ -124,16 +134,15 @@ func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.JSONEq(
-		t,
-		`{
-			"id": "`+repository.FirstUUID.String()+`",
-			"name": "MacBook Pro",
-			"category": "ACCESSORY",
-			"price": 2500
-		}`,
-		string(body),
-	)
+	var updated product.Product
+	err = json.Unmarshal(body, &updated)
+	assert.NoError(t, err)
+	assert.Equal(t, repository.FirstUUID, updated.ID)
+	assert.Equal(t, "MacBook Pro", updated.Name)
+	assert.Equal(t, "ACCESSORY", updated.Category)
+	assert.Equal(t, "Apple laptop", updated.Description)
+	assert.Equal(t, 2500.0, updated.Price)
+	assert.False(t, updated.CreatedAt.IsZero())
 }
 
 func TestGetProduct_WhenProductNotExists_Returns404(t *testing.T) {

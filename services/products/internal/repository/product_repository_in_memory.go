@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/shared/logger"
@@ -38,28 +39,36 @@ func NewInMemoryProductRepository() *InMemoryProductRepository {
 	return &InMemoryProductRepository{
 		products: map[uuid.UUID]product.Product{
 			FirstUUID: {
-				ID:       FirstUUID,
-				Name:     "MacBook Pro",
-				Category: "ACCESSORY",
-				Price:    2500,
+				ID:          FirstUUID,
+				Name:        "MacBook Pro",
+				Category:    "ACCESSORY",
+				Description: "Apple laptop",
+				Price:       2500,
+				CreatedAt:   time.Now(),
 			},
 			SecondUUID: {
-				ID:       SecondUUID,
-				Name:     "iPhone",
-				Category: "ACCESSORY",
-				Price:    1200,
+				ID:          SecondUUID,
+				Name:        "iPhone",
+				Category:    "ACCESSORY",
+				Description: "Apple smartphone",
+				Price:       1200,
+				CreatedAt:   time.Now(),
 			},
 			ThirdUUID: {
-				ID:       ThirdUUID,
-				Name:     "hoodie Mykonos",
-				Category: "CLOTHES",
-				Price:    80,
+				ID:          ThirdUUID,
+				Name:        "hoodie Mykonos",
+				Category:    "CLOTHES",
+				Description: "Comfortable hoodie",
+				Price:       80,
+				CreatedAt:   time.Now(),
 			},
 			FourthUUID: {
-				ID:       FourthUUID,
-				Name:     "Eye necklace",
-				Category: "JEWELRY",
-				Price:    150,
+				ID:          FourthUUID,
+				Name:        "Eye necklace",
+				Category:    "JEWELRY",
+				Description: "Stylish eye necklace",
+				Price:       150,
+				CreatedAt:   time.Now(),
 			},
 		},
 	}
@@ -113,6 +122,7 @@ func (r *InMemoryProductRepository) Save(ctx context.Context, p product.Product)
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	p.CreatedAt = time.Now()
 	r.products[p.ID] = p
 	logger := log(ctx)
 	logger.Info().Str("product_id", p.ID.String()).Str("category", p.Category).Msg("product saved")

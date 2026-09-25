@@ -1,12 +1,18 @@
 package product
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Product struct {
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	Category string    `json:"category"`
-	Price    float64   `json:"price"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Category    string    `json:"category"`
+	Description string    `json:"description"`
+	Price       float64   `json:"price"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 func (p *Product) ApplyDiscount(percentage float64) {

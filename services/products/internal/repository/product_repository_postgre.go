@@ -29,9 +29,8 @@ func NewPostgreProductRepository(db ProductDB) *PostgreProductRepository {
 }
 
 func (r *PostgreProductRepository) FindAll(ctx context.Context) ([]product.Product, error) {
-	// SELECT product_id, name, category, description, price, created_at
 	const query = `
-		SELECT product_id, name, category, price
+		SELECT product_id, name, category, description, price, created_at
 		FROM products
 	`
 
@@ -51,9 +50,9 @@ func (r *PostgreProductRepository) FindAll(ctx context.Context) ([]product.Produ
 			&p.ID,
 			&p.Name,
 			&p.Category,
-			// &p.Description,
+			&p.Description,
 			&p.Price,
-			// &p.CreatedAt,
+			&p.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan product: %w", err)
 		}
@@ -69,9 +68,8 @@ func (r *PostgreProductRepository) FindAll(ctx context.Context) ([]product.Produ
 }
 
 func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
-	// SELECT product_id, name, category, description, price, created_at
 	const query = `
-		SELECT product_id, name, category, price
+		SELECT product_id, name, category, description, price, created_at
 		FROM products
 		WHERE product_id = $1
 	`
@@ -82,9 +80,9 @@ func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (
 		&p.ID,
 		&p.Name,
 		&p.Category,
-		// &p.Description,
+		&p.Description,
 		&p.Price,
-	// &p.CreatedAt,
+		&p.CreatedAt,
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -99,13 +97,12 @@ func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (
 }
 
 func (r *PostgreProductRepository) Save(ctx context.Context, p product.Product) error {
-	// (product_id, name, category, description, price)
 	const query = `
-		INSERT INTO products (product_id, name, category, price)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO products (product_id, name, category, description, price)
+		VALUES ($1, $2, $3, $4, $5)
 	`
 
-	_, err := r.db.Exec(ctx, query, p.ID, p.Name, p.Category, p.Price)
+	_, err := r.db.Exec(ctx, query, p.ID, p.Name, p.Category, p.Description, p.Price)
 	if err != nil {
 		return fmt.Errorf("save product: %w", err)
 	}
@@ -114,14 +111,13 @@ func (r *PostgreProductRepository) Save(ctx context.Context, p product.Product) 
 }
 
 func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product) error {
-	// (product_id, name, category, description, price)
 	const query = `
 		UPDATE products 
-		SET name = $1, category = $2, price = $3
-		WHERE product_id = $4
+		SET name = $1, category = $2, description = $3, price = $4
+		WHERE product_id = $5
 	`
 
-	_, err := r.db.Exec(ctx, query, p.Name, p.Category, p.Price, p.ID)
+	_, err := r.db.Exec(ctx, query, p.Name, p.Category, p.Description, p.Price, p.ID)
 	if err != nil {
 		return fmt.Errorf("update product: %w", err)
 	}

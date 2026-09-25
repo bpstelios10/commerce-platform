@@ -24,7 +24,7 @@ func NewAdminService(productService *ProductService, categoryService *ProductCat
 	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 
-func (s *AdminService) CreateProduct(ctx context.Context, name string, category string, price float64) (product.Product, error) {
+func (s *AdminService) CreateProduct(ctx context.Context, name string, category string, description string, price float64) (product.Product, error) {
 	validatedCategory, err := s.categoryService.Validate(ctx, category)
 	if err != nil {
 		return product.Product{}, err
@@ -32,10 +32,11 @@ func (s *AdminService) CreateProduct(ctx context.Context, name string, category 
 
 	id, _ := uuid.NewV7()
 	p := product.Product{
-		ID:       id,
-		Name:     name,
-		Category: validatedCategory,
-		Price:    price,
+		ID:          id,
+		Name:        name,
+		Category:    validatedCategory,
+		Description: description,
+		Price:       price,
 	}
 
 	logger := log(ctx)
@@ -49,8 +50,9 @@ func (s *AdminService) CreateProduct(ctx context.Context, name string, category 
 	return p, nil
 }
 
-func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, price float64) (product.Product, error) {
-	if _, err := s.productService.GetProductByID(ctx, id); err != nil {
+func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, description string, price float64) (product.Product, error) {
+	p, err := s.productService.GetProductByID(ctx, id)
+	if err != nil {
 		return product.Product{}, fmt.Errorf("updating product: %w", err)
 	}
 
@@ -62,12 +64,10 @@ func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name str
 	logger := log(ctx)
 	logger.Info().Str("product_id", id.String()).Msg("updating product")
 
-	p := product.Product{
-		ID:       id,
-		Name:     name,
-		Category: validatedCategory,
-		Price:    price,
-	}
+	p.Name = name
+	p.Category = validatedCategory
+	p.Description = description
+	p.Price = price
 
 	err = s.repo.Update(ctx, p)
 	if err != nil {
