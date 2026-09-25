@@ -11,7 +11,6 @@ import (
 	"commerce-platform/services/products/config"
 	grpcx "commerce-platform/services/products/internal/grpc"
 	httpx "commerce-platform/services/products/internal/http"
-	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/migrations"
@@ -20,12 +19,12 @@ import (
 	shutdownx "commerce-platform/shared/shutdown"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 )
 
 func main() {
+	// ---- Load configuration ----
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("failed to load configuration: %v", err)
@@ -35,7 +34,7 @@ func main() {
 	shutdownTimeout := time.Duration(cfg.Server.GracefulShutdown.Timeout) * time.Second
 	logLevel := cfg.GetLogLevel(zerolog.InfoLevel)
 
-	// import shared logger
+	// ---- Initialize shared logger ----
 	logger := loggerx.New(loggerx.Config{
 		Service: "products",
 		Env:     cfg.Environment,
@@ -60,72 +59,35 @@ func main() {
 	}
 	defer db.Close()
 
-	product1 := product.Product{
-		ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001"),
-		Name:     "MacBook Pro",
-		Category: "ACCESSORY",
-		Price:    2500,
-	}
-
-	logger.Info().Msg(product1.DisplayName())
-
-	product1.Rename("MacBook Pro M4")
-
-	logger.Info().Msg(product1.Name)
-
-	product1.ApplyDiscount(10)
-
-	logger.Info().Msgf("product1: price=%v", product1.Price)
-
-	logger.Info().Msgf("product1: is expensive=%v", product1.IsExpensive())
-
-	logger.Info().Msg("--- TESTING CODE ---")
-	products := map[string]product.Product{
-		"1": {
-			ID:       uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002"),
-			Name:     "MacBook Pro",
-			Category: "ACCESSORY",
-			Price:    2500,
-		},
-	}
-
-	p, found := products["1"]
-	logger.Info().Msgf("product found: product=%v, found=%v", p, found)
-
-	p2, found2 := products["999"]
-	logger.Info().Msgf("product found: product=%v, found=%v", p2, found2)
-
-	// if i set the type, then i cant inject it to admin-service
-	// var productRepo service.ProductRepository
-	productRepo := repository.NewPostgreProductRepository(db)
-
-	existingProducts, _ := productRepo.FindAll(context.Background())
-	logger.Info().Msgf("products loaded: %v", existingProducts)
-
-	logger.Info().Msg("--- REAL LOGIC REST---")
-
+	// ---- Setup Server ----
 	logger.Info().Msg("Commerce Platform - PRODUCTS")
 	r := chi.NewRouter()
 	r.Use(loggerx.RequestContextMiddleware(logger))
 
+	// product handler
+	productRepo := repository.NewPostgreProductRepository(db)
 	productService := service.NewProductService(productRepo)
 	productHandler := httpx.NewProductHandler(productService)
 	productHandler.RegisterRoutes(r)
 
+	// health handler
 	healthHandler := httpx.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
 
+	// product category handler
 	categoryRepo := repository.NewPostgreProductCategoryRepository(db)
 	categoryService := service.NewProductCategoryService(categoryRepo)
 	categoryHandler := httpx.NewProductCategoryHandler(categoryService)
 	categoryHandler.RegisterRoutes(r)
 
+	// admin handler
 	adminProductService := service.NewAdminService(productService, categoryService, productRepo)
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
 	httpServer := &http.Server{Addr: httpPort, Handler: r}
 
+	// ---- Setup gRPC Server ----
 	logger.Info().Msg("--- and gRPC ---")
 	grpcHandler := grpcx.NewProductGrpcHandler(productService)
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(grpcx.LoggingUnaryInterceptor(logger)))
@@ -134,12 +96,12 @@ func main() {
 		grpcHandler,
 	)
 
-	// start gRPC
 	lis, err := net.Listen("tcp", grpcPort)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to listen for grpc")
 	}
 
+	// ---- Start Servers with Graceful Shutdown ----
 	go func() {
 		logger.Info().Msgf("HTTP server running on %s", httpPort)
 		logger.Info().Msgf("Active Profile: %s", cfg.Profile)
