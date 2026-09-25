@@ -54,6 +54,22 @@ func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 	assert.Len(t, products, 4)
 }
 
+func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
+	svc, repo := setup(t)
+	ctx := context.Background()
+	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
+
+	p, err := svc.CreateProduct(ctxWithError, "MacBook Pro M4", "ACCESSORY", 2501.0, 10)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "create product: unexpected error")
+	assert.Empty(t, p)
+
+	products, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, products, 4)
+}
+
 func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	svc, repo := setup(t)
 	// product does not exist

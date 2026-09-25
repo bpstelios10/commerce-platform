@@ -15,7 +15,7 @@ import (
 var ErrNotFound = errors.New("not found")
 
 type PostgreProductRepository struct {
-	db ProductCategoryDB
+	db ProductDB
 }
 
 type ProductDB interface {
@@ -24,7 +24,7 @@ type ProductDB interface {
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
-func NewPostgreProductRepository(db ProductCategoryDB) *PostgreProductRepository {
+func NewPostgreProductRepository(db ProductDB) *PostgreProductRepository {
 	return &PostgreProductRepository{db: db}
 }
 
@@ -98,7 +98,18 @@ func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (
 	return p, nil
 }
 
-func (r *PostgreProductRepository) Save(ctx context.Context, p product.Product) {
+func (r *PostgreProductRepository) Save(ctx context.Context, p product.Product) error {
+	const query = `
+		INSERT INTO products ()
+		VALUES ()
+	`
+
+	_, err := r.db.Exec(ctx, query, p.ID, p.Name, p.Category, p.Price)
+	if err != nil {
+		return fmt.Errorf("save product: %w", err)
+	}
+
+	return nil
 }
 
 func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product) {

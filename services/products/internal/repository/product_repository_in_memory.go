@@ -107,7 +107,12 @@ func (r *InMemoryProductRepository) FindByID(ctx context.Context, id uuid.UUID) 
 	return p, nil
 }
 
-func (r *InMemoryProductRepository) Save(ctx context.Context, p product.Product) {
+func (r *InMemoryProductRepository) Save(ctx context.Context, p product.Product) error {
+	// dummy way to create unexpected error for tests
+	if ctx.Value("errorEnabler") != nil {
+		return errors.New(ctx.Value("errorEnabler").(string))
+	}
+
 	// mutates the map: exclusive Lock.
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -115,6 +120,8 @@ func (r *InMemoryProductRepository) Save(ctx context.Context, p product.Product)
 	r.products[p.ID] = p
 	logger := log(ctx)
 	logger.Info().Str("product_id", p.ID.String()).Str("category", p.Category).Msg("product saved")
+
+	return nil
 }
 
 func (r *InMemoryProductRepository) Update(ctx context.Context, p product.Product) {
