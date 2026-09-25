@@ -62,6 +62,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 	if err := s.validateProductExists(ctx, productID); err != nil {
 		return order.Order{}, fmt.Errorf("create order: %w", err)
 	}
+	// TODO check quantity is enough
 
 	id, _ := uuid.NewV7()
 

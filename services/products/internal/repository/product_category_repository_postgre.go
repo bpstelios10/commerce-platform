@@ -53,7 +53,7 @@ func (r *PostgreProductCategoryRepository) GetAll(ctx context.Context) ([]string
 	}
 	defer rows.Close()
 
-	var categoriesNames []string
+	categoriesNames := make([]string, 0)
 
 	for rows.Next() {
 		var categoryName string

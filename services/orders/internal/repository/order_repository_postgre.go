@@ -29,8 +29,9 @@ func NewPostgreOrderRepository(db DB) *PostgreOrderRepository {
 }
 
 func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order, error) {
+	// order_id, product_id, quantity, status, created_at
 	const query = `
-		SELECT order_id, product_id, quantity, status, created_at
+		SELECT order_id, product_id, quantity, status
 		FROM orders
 	`
 
@@ -40,7 +41,7 @@ func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order,
 	}
 	defer rows.Close()
 
-	var orders []order.Order
+	orders := make([]order.Order, 0)
 
 	for rows.Next() {
 		var o order.Order
@@ -65,9 +66,10 @@ func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order,
 	return orders, nil
 }
 
-func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id string) (order.Order, error) {
+func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
+	// order_id, product_id, quantity, status, created_at
 	const query = `
-		SELECT order_id, product_id, quantity, status, created_at
+		SELECT order_id, product_id, quantity, status
 		FROM orders
 		WHERE order_id = $1
 	`
@@ -128,8 +130,11 @@ func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) e
 		o.Status,
 		o.ID,
 	)
+	if err != nil {
+		return fmt.Errorf("update order: %w", err)
+	}
 
-	return fmt.Errorf("update order: %w", err)
+	return nil
 }
 
 func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) error {

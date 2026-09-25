@@ -97,7 +97,7 @@ func main() {
 
 	// if i set the type, then i cant inject it to admin-service
 	// var productRepo service.ProductRepository
-	productRepo := repository.NewInMemoryProductRepository()
+	productRepo := repository.NewPostgreProductRepository(db)
 
 	existingProducts, _ := productRepo.FindAll(context.Background())
 	logger.Info().Msgf("products loaded: %v", existingProducts)
@@ -115,7 +115,7 @@ func main() {
 	healthHandler := httpx.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
 
-	categoryRepo := repository.NewInMemoryProductCategoryRepository()
+	categoryRepo := repository.NewPostgreProductCategoryRepository(db)
 	categoryService := service.NewProductCategoryService(categoryRepo)
 	categoryHandler := httpx.NewProductCategoryHandler(categoryService)
 	categoryHandler.RegisterRoutes(r)

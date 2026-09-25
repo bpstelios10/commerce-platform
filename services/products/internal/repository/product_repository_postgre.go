@@ -42,7 +42,7 @@ func (r *PostgreProductRepository) FindAll(ctx context.Context) ([]product.Produ
 
 	defer rows.Close()
 
-	var products []product.Product
+	products := make([]product.Product, 0)
 
 	for rows.Next() {
 		var p product.Product
