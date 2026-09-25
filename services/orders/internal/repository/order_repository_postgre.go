@@ -139,5 +139,9 @@ func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) er
 	`
 
 	_, err := repo.db.Exec(ctx, query, id)
-	return fmt.Errorf("delete order: %w", err)
+	if err != nil {
+		return fmt.Errorf("delete order: %w", err)
+	}
+
+	return nil
 }

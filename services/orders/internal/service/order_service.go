@@ -106,6 +106,7 @@ func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID 
 	if err != nil {
 		return order.Order{}, fmt.Errorf("updating order: %w", err)
 	}
+
 	return o, nil
 }
 
@@ -115,8 +116,9 @@ func (s *OrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {
 
 	err := s.orderRepository.Delete(ctx, id)
 	if err != nil {
-		return fmt.Errorf("delete order: %w", err)
+		return fmt.Errorf("deleting order: %w", err)
 	}
+
 	return nil
 }
 

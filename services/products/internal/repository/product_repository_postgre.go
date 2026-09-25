@@ -129,5 +129,16 @@ func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product
 	return nil
 }
 
-func (r *PostgreProductRepository) Delete(ctx context.Context, id uuid.UUID) {
+func (r *PostgreProductRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	const query = `
+		DELETE FROM products
+		WHERE product_id = $1
+	`
+
+	_, err := r.db.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("delete product: %w", err)
+	}
+
+	return nil
 }

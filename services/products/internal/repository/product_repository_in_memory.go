@@ -141,7 +141,12 @@ func (r *InMemoryProductRepository) Update(ctx context.Context, p product.Produc
 	return nil
 }
 
-func (r *InMemoryProductRepository) Delete(ctx context.Context, id uuid.UUID) {
+func (r *InMemoryProductRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	// dummy way to create unexpected error for tests
+	if ctx.Value("errorEnabler") != nil {
+		return errors.New(ctx.Value("errorEnabler").(string))
+	}
+
 	// mutates the map: exclusive Lock.
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -149,6 +154,8 @@ func (r *InMemoryProductRepository) Delete(ctx context.Context, id uuid.UUID) {
 	delete(r.products, id)
 	logger := log(ctx)
 	logger.Info().Str("product_id", id.String()).Msg("product deleted")
+
+	return nil
 }
 
 func log(ctx context.Context) zerolog.Logger {

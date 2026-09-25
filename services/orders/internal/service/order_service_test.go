@@ -297,6 +297,7 @@ func TestDeleteOrder_WhenDbError_ReturnsError(t *testing.T) {
 
 	err := svc.DeleteOrder(ctxWithError, repository.SecondOrderID)
 	assert.Error(t, err)
+	assert.EqualError(t, err, "deleting order: unexpected error")
 
 	_, err = repo.FindByID(context.Background(), repository.SecondOrderID)
 	assert.NoError(t, err) // The order should still exist because the delete failed

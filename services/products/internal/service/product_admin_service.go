@@ -11,7 +11,7 @@ import (
 type ProductWriter interface {
 	Save(ctx context.Context, p product.Product) error
 	Update(ctx context.Context, p product.Product) error
-	Delete(ctx context.Context, id uuid.UUID)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type AdminService struct {
@@ -79,9 +79,14 @@ func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name str
 	return p, nil
 }
 
-func (s *AdminService) DeleteProduct(ctx context.Context, id uuid.UUID) {
+func (s *AdminService) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 	logger := log(ctx)
 	logger.Info().Str("product_id", id.String()).Msg("attempting to delete product")
 
-	s.repo.Delete(ctx, id)
+	err := s.repo.Delete(ctx, id)
+	if err != nil {
+		return fmt.Errorf("deleting product: %w", err)
+	}
+
+	return nil
 }

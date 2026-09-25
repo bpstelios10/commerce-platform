@@ -206,3 +206,25 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, products, 3)
 }
+
+func TestDeleteProduct_WhenDbError_ReturnsError(t *testing.T) {
+	svc, repo := setup(t)
+	ctx := context.Background()
+	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
+
+	// product exists
+	_, err := repo.FindByID(context.Background(), repository.SecondUUID)
+	assert.NoError(t, err)
+
+	err = svc.DeleteProduct(ctxWithError, repository.SecondUUID)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "deleting product: unexpected error")
+
+	_, err = repo.FindByID(context.Background(), repository.SecondUUID)
+	assert.NoError(t, err)
+
+	products, err := repo.FindAll(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, products, 4)
+}
