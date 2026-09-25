@@ -42,28 +42,24 @@ func NewInMemoryProductRepository() *InMemoryProductRepository {
 				Name:     "MacBook Pro",
 				Category: "ACCESSORY",
 				Price:    2500,
-				Stock:    10,
 			},
 			SecondUUID: {
 				ID:       SecondUUID,
 				Name:     "iPhone",
 				Category: "ACCESSORY",
 				Price:    1200,
-				Stock:    5,
 			},
 			ThirdUUID: {
 				ID:       ThirdUUID,
 				Name:     "hoodie Mykonos",
 				Category: "CLOTHES",
 				Price:    80,
-				Stock:    8,
 			},
 			FourthUUID: {
 				ID:       FourthUUID,
 				Name:     "Eye necklace",
 				Category: "JEWELRY",
 				Price:    150,
-				Stock:    15,
 			},
 		},
 	}

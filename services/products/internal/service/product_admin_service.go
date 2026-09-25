@@ -24,7 +24,7 @@ func NewAdminService(productService *ProductService, categoryService *ProductCat
 	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 
-func (s *AdminService) CreateProduct(ctx context.Context, name string, category string, price float64, stock int) (product.Product, error) {
+func (s *AdminService) CreateProduct(ctx context.Context, name string, category string, price float64) (product.Product, error) {
 	validatedCategory, err := s.categoryService.Validate(ctx, category)
 	if err != nil {
 		return product.Product{}, err
@@ -36,7 +36,6 @@ func (s *AdminService) CreateProduct(ctx context.Context, name string, category 
 		Name:     name,
 		Category: validatedCategory,
 		Price:    price,
-		Stock:    stock,
 	}
 
 	logger := log(ctx)
@@ -50,7 +49,7 @@ func (s *AdminService) CreateProduct(ctx context.Context, name string, category 
 	return p, nil
 }
 
-func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, price float64, stock int) (product.Product, error) {
+func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, price float64) (product.Product, error) {
 	if _, err := s.productService.GetProductByID(ctx, id); err != nil {
 		return product.Product{}, fmt.Errorf("updating product: %w", err)
 	}
@@ -68,7 +67,6 @@ func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name str
 		Name:     name,
 		Category: validatedCategory,
 		Price:    price,
-		Stock:    stock,
 	}
 
 	err = s.repo.Update(ctx, p)

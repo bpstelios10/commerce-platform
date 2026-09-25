@@ -24,7 +24,7 @@ func setup(t *testing.T) (*AdminService, *repository.InMemoryProductRepository) 
 func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 	svc, repo := setup(t)
 
-	p, err := svc.CreateProduct(context.Background(), "MacBook Pro M4", "ACCESSORY", 2501.0, 10)
+	p, err := svc.CreateProduct(context.Background(), "MacBook Pro M4", "ACCESSORY", 2501.0)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, p)
@@ -36,14 +36,13 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 		Name:     "MacBook Pro M4",
 		Category: "ACCESSORY",
 		Price:    2501.0,
-		Stock:    10,
 	}, p)
 }
 
 func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
 	svc, repo := setup(t)
 
-	p, err := svc.CreateProduct(context.Background(), "MacBook Pro M4", "UNKNOWN", 2501.0, 10)
+	p, err := svc.CreateProduct(context.Background(), "MacBook Pro M4", "UNKNOWN", 2501.0)
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrInvalidCategory)
@@ -59,7 +58,7 @@ func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
 
-	p, err := svc.CreateProduct(ctxWithError, "MacBook Pro M4", "ACCESSORY", 2501.0, 10)
+	p, err := svc.CreateProduct(ctxWithError, "MacBook Pro M4", "ACCESSORY", 2501.0)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "create product: unexpected error")
@@ -78,7 +77,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	_, err := repo.FindByID(context.Background(), id)
 	assert.ErrorIs(t, err, repository.ErrNotFound)
 
-	updated, err := svc.UpdateProduct(context.Background(), id, "whatever", "ACCESSORY", 1201.0, 10)
+	updated, err := svc.UpdateProduct(context.Background(), id, "whatever", "ACCESSORY", 1201.0)
 
 	var notFoundErr *ErrProductNotFound
 	assert.Error(t, err)
@@ -102,10 +101,9 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Name:     "iPhone",
 		Category: "ACCESSORY",
 		Price:    1200.0,
-		Stock:    5,
 	}, p)
 
-	updated, err := svc.UpdateProduct(context.Background(), repository.SecondUUID, "iPhone 7", "CLOTHES", 1201.0, 11)
+	updated, err := svc.UpdateProduct(context.Background(), repository.SecondUUID, "iPhone 7", "CLOTHES", 1201.0)
 
 	assert.NoError(t, err)
 	assert.Equal(t, product.Product{
@@ -113,7 +111,6 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Name:     "iPhone 7",
 		Category: "CLOTHES",
 		Price:    1201.0,
-		Stock:    11,
 	}, updated)
 
 	p, err = repo.FindByID(context.Background(), repository.SecondUUID)
@@ -123,14 +120,13 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Name:     "iPhone 7",
 		Category: "CLOTHES",
 		Price:    1201.0,
-		Stock:    11,
 	}, p)
 }
 
 func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
 	svc, repo := setup(t)
 
-	updated, err := svc.UpdateProduct(context.Background(), repository.SecondUUID, "iPhone 7", "UNKNOWN", 1201.0, 11)
+	updated, err := svc.UpdateProduct(context.Background(), repository.SecondUUID, "iPhone 7", "UNKNOWN", 1201.0)
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrInvalidCategory)
@@ -145,7 +141,6 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 		Name:     "iPhone",
 		Category: "ACCESSORY",
 		Price:    1200.0,
-		Stock:    5,
 	}, p)
 }
 
@@ -154,7 +149,7 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
 
-	updated, err := svc.UpdateProduct(ctxWithError, repository.SecondUUID, "iPhone 7", "CLOTHES", 1201.0, 11)
+	updated, err := svc.UpdateProduct(ctxWithError, repository.SecondUUID, "iPhone 7", "CLOTHES", 1201.0)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating product: unexpected error")
@@ -169,7 +164,6 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 		Name:     "iPhone",
 		Category: "ACCESSORY",
 		Price:    1200.0,
-		Stock:    5,
 	}, p)
 }
 

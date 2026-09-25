@@ -55,8 +55,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "iPad",
 			"category": "ACCESSORY",
-			"price": 999,
-			"stock": 10
+			"price": 999
 		}`),
 	)
 
@@ -73,7 +72,6 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	assert.Equal(t, "iPad", created.Name)
 	assert.Equal(t, "ACCESSORY", created.Category)
 	assert.Equal(t, float64(999), created.Price)
-	assert.Equal(t, 10, created.Stock)
 	assert.Equal(t, "/products/"+created.ID.String(), res.Header.Get("Location"))
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
@@ -84,7 +82,6 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	assert.Equal(t, created.Name, p.Name)
 	assert.Equal(t, created.Category, p.Category)
 	assert.Equal(t, created.Price, p.Price)
-	assert.Equal(t, created.Stock, p.Stock)
 }
 
 func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
@@ -124,8 +121,7 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 			"id": "",
 			"name": "",
 			"category": "",
-			"price": 0,
-			"stock": 0
+			"price": 0
 		}`),
 	)
 
@@ -154,8 +150,7 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "iPad",
 			"category": "UNKNOWN",
-			"price": 999,
-			"stock": 10
+			"price": 999
 		}`),
 	)
 
@@ -188,8 +183,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "CLOTHES",
-			"price": 1500,
-			"stock": 20
+			"price": 1500
 		}`),
 	)
 	assert.NoError(t, err)
@@ -208,8 +202,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 			"id": "`+repository.SecondUUID.String()+`",
 			"name": "iPhone 15",
 			"category": "CLOTHES",
-			"price": 1500,
-			"stock": 20
+			"price": 1500
 		}`,
 		string(body),
 	)
@@ -220,7 +213,6 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, "iPhone 15", p.Name)
 	assert.Equal(t, "CLOTHES", p.Category)
 	assert.Equal(t, 1500.0, p.Price)
-	assert.Equal(t, 20, p.Stock)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 }
 
@@ -295,8 +287,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "",
 			"category": "",
-			"price": 0,
-			"stock": 0
+			"price": 0
 		}`),
 	)
 	assert.NoError(t, err)
@@ -335,8 +326,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "non-existing-product",
 			"category": "ACCESSORY",
-			"price": 1000.1,
-			"stock": 10
+			"price": 1000.1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -372,8 +362,7 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "UNKNOWN",
-			"price": 1500,
-			"stock": 20
+			"price": 1500
 		}`),
 	)
 	assert.NoError(t, err)
@@ -402,7 +391,6 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		Name:     "iPhone",
 		Category: "ACCESSORY",
 		Price:    1200.0,
-		Stock:    5,
 	}, p)
 }
 

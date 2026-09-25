@@ -64,28 +64,24 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 			"name":     "MacBook Pro",
 			"category": "ACCESSORY",
 			"price":    2500.0,
-			"stock":    float64(10),
 		},
 		{
 			"id":       repository.SecondUUID.String(),
 			"name":     "iPhone",
 			"category": "ACCESSORY",
 			"price":    1200.0,
-			"stock":    float64(5),
 		},
 		{
 			"id":       repository.ThirdUUID.String(),
 			"name":     "hoodie Mykonos",
 			"category": "CLOTHES",
 			"price":    80.0,
-			"stock":    float64(8),
 		},
 		{
 			"id":       repository.FourthUUID.String(),
 			"name":     "Eye necklace",
 			"category": "JEWELRY",
 			"price":    150.0,
-			"stock":    float64(15),
 		},
 	}
 
@@ -134,8 +130,7 @@ func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 			"id": "`+repository.FirstUUID.String()+`",
 			"name": "MacBook Pro",
 			"category": "ACCESSORY",
-			"price": 2500,
-			"stock": 10
+			"price": 2500
 		}`,
 		string(body),
 	)

@@ -54,7 +54,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().Interface("request", req).Msg("create product request received")
 
-	p, err := h.adminService.CreateProduct(ctx, req.Name, req.Category, req.Price, *req.Stock)
+	p, err := h.adminService.CreateProduct(ctx, req.Name, req.Category, req.Price)
 	if err != nil {
 		HandleError(ctx, w, fmt.Errorf("create_product: %w", err))
 		return
@@ -93,7 +93,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().Interface("request", req).Msg("update product")
 
-	p, err := h.adminService.UpdateProduct(ctx, validUUID, req.Name, req.Category, req.Price, *req.Stock)
+	p, err := h.adminService.UpdateProduct(ctx, validUUID, req.Name, req.Category, req.Price)
 	if err != nil {
 		HandleError(ctx, w, fmt.Errorf("update_product: %w", err))
 		return
