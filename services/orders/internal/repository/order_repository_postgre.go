@@ -117,7 +117,7 @@ func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) e
 	const query = `
 		UPDATE orders
 		SET product_id = $1, quantity = $2, status = $3
-		WHERE id = $4
+		WHERE order_id = $4
 	`
 
 	_, err := repo.db.Exec(
@@ -135,7 +135,7 @@ func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) e
 func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	const query = `
 		DELETE FROM orders
-		WHERE id = $1
+		WHERE order_id = $1
 	`
 
 	_, err := repo.db.Exec(ctx, query, id)

@@ -85,11 +85,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 
 func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
 	if _, err := s.GetOrderByID(ctx, id); err != nil {
-		return order.Order{}, fmt.Errorf("update order: %w", err)
+		return order.Order{}, fmt.Errorf("updating order: %w", err)
 	}
 
 	if err := s.validateProductExists(ctx, productID); err != nil {
-		return order.Order{}, fmt.Errorf("update order: %w", err)
+		return order.Order{}, fmt.Errorf("updating order: %w", err)
 	}
 
 	o := order.Order{
@@ -104,7 +104,7 @@ func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID 
 
 	err := s.orderRepository.Update(ctx, o)
 	if err != nil {
-		return order.Order{}, fmt.Errorf("update order: %w", err)
+		return order.Order{}, fmt.Errorf("updating order: %w", err)
 	}
 	return o, nil
 }

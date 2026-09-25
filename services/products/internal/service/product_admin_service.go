@@ -10,7 +10,7 @@ import (
 
 type ProductWriter interface {
 	Save(ctx context.Context, p product.Product) error
-	Update(ctx context.Context, p product.Product)
+	Update(ctx context.Context, p product.Product) error
 	Delete(ctx context.Context, id uuid.UUID)
 }
 
@@ -52,12 +52,12 @@ func (s *AdminService) CreateProduct(ctx context.Context, name string, category 
 
 func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, price float64, stock int) (product.Product, error) {
 	if _, err := s.productService.GetProductByID(ctx, id); err != nil {
-		return product.Product{}, err
+		return product.Product{}, fmt.Errorf("updating product: %w", err)
 	}
 
 	validatedCategory, err := s.categoryService.Validate(ctx, category)
 	if err != nil {
-		return product.Product{}, err
+		return product.Product{}, fmt.Errorf("updating product: %w", err)
 	}
 
 	logger := log(ctx)
@@ -71,7 +71,11 @@ func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name str
 		Stock:    stock,
 	}
 
-	s.repo.Update(ctx, p)
+	err = s.repo.Update(ctx, p)
+	if err != nil {
+		return product.Product{}, fmt.Errorf("updating product: %w", err)
+	}
+
 	return p, nil
 }
 

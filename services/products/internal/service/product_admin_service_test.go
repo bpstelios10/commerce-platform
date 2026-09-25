@@ -149,6 +149,30 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 	}, p)
 }
 
+func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
+	svc, repo := setup(t)
+	ctx := context.Background()
+	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
+
+	updated, err := svc.UpdateProduct(ctxWithError, repository.SecondUUID, "iPhone 7", "CLOTHES", 1201.0, 11)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "updating product: unexpected error")
+	assert.Empty(t, updated)
+
+	p, err := repo.FindByID(context.Background(), repository.SecondUUID)
+	assert.NoError(t, err)
+
+	assert.NoError(t, err)
+	assert.Equal(t, product.Product{
+		ID:       repository.SecondUUID,
+		Name:     "iPhone",
+		Category: "ACCESSORY",
+		Price:    1200.0,
+		Stock:    5,
+	}, p)
+}
+
 func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
 	svc, repo := setup(t)
 	id, _ := uuid.NewV7()

@@ -99,9 +99,10 @@ func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (
 }
 
 func (r *PostgreProductRepository) Save(ctx context.Context, p product.Product) error {
+	// (product_id, name, category, description, price)
 	const query = `
-		INSERT INTO products ()
-		VALUES ()
+		INSERT INTO products (product_id, name, category, price)
+		VALUES ($1, $2, $3, $4)
 	`
 
 	_, err := r.db.Exec(ctx, query, p.ID, p.Name, p.Category, p.Price)
@@ -112,7 +113,20 @@ func (r *PostgreProductRepository) Save(ctx context.Context, p product.Product) 
 	return nil
 }
 
-func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product) {
+func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product) error {
+	// (product_id, name, category, description, price)
+	const query = `
+		UPDATE products 
+		SET name = $1, category = $2, price = $3
+		WHERE product_id = $4
+	`
+
+	_, err := r.db.Exec(ctx, query, p.Name, p.Category, p.Price, p.ID)
+	if err != nil {
+		return fmt.Errorf("update product: %w", err)
+	}
+
+	return nil
 }
 
 func (r *PostgreProductRepository) Delete(ctx context.Context, id uuid.UUID) {
