@@ -1,7 +1,6 @@
 package service
 
 import (
-	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"context"
 	"testing"
@@ -59,7 +58,18 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	assert.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.ProductID)
 	assert.Equal(t, "Product with id ["+id.String()+"] was not found", notFoundErr.Error())
-	assert.Equal(t, product.Product{}, p)
+	assert.Empty(t, p)
+}
+
+func TestGetProductByID_WhenDbError_ReturnsError(t *testing.T) {
+	repo := repository.NewInMemoryProductRepository()
+	svc := NewProductService(repo)
+
+	p, err := svc.GetProductByID(context.Background(), repository.ErrornousUUID)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "get product by id: unexpected error")
+	assert.Empty(t, p)
 }
 
 func TestSearchProducts_WhenOnlyQueryProvided_FiltersByName(t *testing.T) {

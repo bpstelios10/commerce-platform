@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"commerce-platform/services/products/internal/product"
@@ -10,6 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
+
+var ErrNotFound = errors.New("not found")
 
 type PostgreProductRepository struct {
 	db ProductCategoryDB
@@ -65,8 +68,34 @@ func (r *PostgreProductRepository) FindAll(ctx context.Context) ([]product.Produ
 	return products, nil
 }
 
-func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (product.Product, bool) {
-	return product.Product{}, false
+func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
+	// SELECT product_id, name, category, description, price, created_at
+	const query = `
+		SELECT product_id, name, category, price
+		FROM products
+		WHERE product_id = $1
+	`
+
+	var p product.Product
+
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&p.ID,
+		&p.Name,
+		&p.Category,
+		// &p.Description,
+		&p.Price,
+	// &p.CreatedAt,
+	)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return product.Product{}, ErrNotFound
+	}
+
+	if err != nil {
+		return product.Product{}, fmt.Errorf("find product by id: %w", err)
+	}
+
+	return p, nil
 }
 
 func (r *PostgreProductRepository) Save(ctx context.Context, p product.Product) {

@@ -29,6 +29,9 @@ var (
 	SecondUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002")
 	ThirdUUID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d003")
 	FourthUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d004")
+
+	ErrornousID   = "01a0b072-db8f-742a-a289-0e290e1fb901"
+	ErrornousUUID = uuid.MustParse(ErrornousID)
 )
 
 func NewInMemoryProductRepository() *InMemoryProductRepository {
@@ -85,13 +88,23 @@ func (r *InMemoryProductRepository) FindAll(ctx context.Context) ([]product.Prod
 	return products, nil
 }
 
-func (r *InMemoryProductRepository) FindByID(ctx context.Context, id uuid.UUID) (product.Product, bool) {
+func (r *InMemoryProductRepository) FindByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
+	// dummy way to create unexpected error for tests
+	if id == ErrornousUUID {
+		return product.Product{}, errors.New("unexpected error")
+	}
+
 	// read-only: RLock.
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	p, found := r.products[id]
-	return p, found
+
+	if !found {
+		return product.Product{}, ErrNotFound
+	}
+
+	return p, nil
 }
 
 func (r *InMemoryProductRepository) Save(ctx context.Context, p product.Product) {

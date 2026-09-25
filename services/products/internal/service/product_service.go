@@ -2,8 +2,10 @@ package service
 
 import (
 	"commerce-platform/services/products/internal/product"
+	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/shared/logger"
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -13,7 +15,7 @@ import (
 
 type ProductRepository interface {
 	FindAll(ctx context.Context) ([]product.Product, error)
-	FindByID(ctx context.Context, id uuid.UUID) (product.Product, bool)
+	FindByID(ctx context.Context, id uuid.UUID) (product.Product, error)
 }
 
 type ProductService struct {
@@ -70,10 +72,15 @@ func (s *ProductService) SearchProducts(ctx context.Context, query string, maxPr
 }
 
 func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
-	p, found := s.repository.FindByID(ctx, id)
-	if !found {
-		return product.Product{}, &ErrProductNotFound{ProductID: id}
+	p, err := s.repository.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return product.Product{}, &ErrProductNotFound{ProductID: id}
+		}
+
+		return product.Product{}, fmt.Errorf("get product by id: %w", err)
 	}
+
 	return p, nil
 }
 
