@@ -197,8 +197,8 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 		ProductID: repository.FirstProductID,
 		Quantity:  11,
 		Status:    order.PAID,
+		CreatedAt: o.CreatedAt,
 	}, updated)
-	assert.Equal(t, o.CreatedAt, updated.CreatedAt)
 }
 
 func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {

@@ -199,6 +199,15 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	srv, repo := setupAdminHandlerTest(t)
 
+	existing, err := repo.FindByID(context.Background(), repository.SecondUUID)
+	assert.NoError(t, err)
+	assert.Equal(t, repository.SecondUUID, existing.ID)
+	assert.Equal(t, "iPhone", existing.Name)
+	assert.Equal(t, "ACCESSORY", existing.Category)
+	assert.Equal(t, "Apple smartphone", existing.Description)
+	assert.Equal(t, 1200.0, existing.Price)
+	assert.False(t, existing.CreatedAt.IsZero())
+
 	req, err := http.NewRequest(
 		http.MethodPut,
 		srv.URL+"/admin/products/"+repository.SecondUUID.String(),
@@ -228,6 +237,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, "Updated description", updated.Description)
 	assert.Equal(t, 1500.0, updated.Price)
 	assert.False(t, updated.CreatedAt.IsZero())
+	assert.True(t, updated.CreatedAt.Equal(existing.CreatedAt))
 
 	p, err := repo.FindByID(context.Background(), repository.SecondUUID)
 	assert.NoError(t, err)

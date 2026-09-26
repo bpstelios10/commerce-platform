@@ -92,13 +92,14 @@ func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id uuid.UUID) 
 	return o, nil
 }
 
-func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) error {
+func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) (order.Order, error) {
 	const query = `
 		INSERT INTO orders (order_id, product_id, quantity, status)
 		VALUES ($1, $2, $3, $4)
+		RETURNING product_id, quantity, status, created_at;
 	`
 
-	_, err := repo.db.Exec(
+	row := repo.db.QueryRow(
 		ctx,
 		query,
 		o.ID,
@@ -106,33 +107,37 @@ func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) err
 		o.Quantity,
 		o.Status,
 	)
-	if err != nil {
-		return fmt.Errorf("save order: %w", err)
+	if err := row.Scan(
+		&o.ProductID,
+		&o.Quantity,
+		&o.Status,
+		&o.CreatedAt,
+	); err != nil {
+		return order.Order{}, fmt.Errorf("save order: %w", err)
 	}
 
-	return nil
+	return o, nil
 }
 
-func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) error {
+func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) (order.Order, error) {
 	const query = `
 		UPDATE orders
 		SET product_id = $1, quantity = $2, status = $3
 		WHERE order_id = $4
+		RETURNING product_id, quantity, status, created_at;
 	`
 
-	_, err := repo.db.Exec(
-		ctx,
-		query,
-		o.ProductID,
-		o.Quantity,
-		o.Status,
-		o.ID,
-	)
-	if err != nil {
-		return fmt.Errorf("update order: %w", err)
+	row := repo.db.QueryRow(ctx, query, o.ProductID, o.Quantity, o.Status, o.ID)
+	if err := row.Scan(
+		&o.ProductID,
+		&o.Quantity,
+		&o.Status,
+		&o.CreatedAt,
+	); err != nil {
+		return order.Order{}, fmt.Errorf("update order: %w", err)
 	}
 
-	return nil
+	return o, nil
 }
 
 func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) error {

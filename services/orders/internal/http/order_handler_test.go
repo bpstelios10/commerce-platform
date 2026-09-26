@@ -227,8 +227,7 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.Equal(t, repository.FirstProductID, created.ProductID)
 	assert.Equal(t, 1, created.Quantity)
 	assert.Equal(t, order.CREATED, created.Status)
-	// TODO fix after making save return the new object
-	// assert.WithinDuration(t, time.Now(), created.CreatedAt, time.Second)
+	assert.WithinDuration(t, time.Now(), created.CreatedAt, time.Second)
 	assert.Equal(t, "/orders/"+created.ID.String(), res.Header.Get("Location"))
 
 	// verify it was actually persisted
@@ -365,8 +364,7 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	assert.Equal(t, repository.FirstProductID, updated.ProductID)
 	assert.Equal(t, 2, updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
-	// TODO this will be fixed when updated returns the updated object
-	// assert.Equal(t, updated.CreatedAt, p.CreatedAt)
+	assert.True(t, updated.CreatedAt.Equal(p.CreatedAt))
 
 	p, err = repo.FindByID(context.Background(), repository.FirstOrderID)
 	assert.NoError(t, err)

@@ -18,8 +18,8 @@ import (
 type OrderRepository interface {
 	FindAll(ctx context.Context) ([]order.Order, error)
 	FindByID(ctx context.Context, id uuid.UUID) (order.Order, error)
-	Save(ctx context.Context, o order.Order) error
-	Update(ctx context.Context, o order.Order) error
+	Save(ctx context.Context, o order.Order) (order.Order, error)
+	Update(ctx context.Context, o order.Order) (order.Order, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -76,7 +76,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 	logger := log(ctx)
 	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("creating order")
 
-	err := s.orderRepository.Save(ctx, o)
+	o, err := s.orderRepository.Save(ctx, o)
 	if err != nil {
 		return order.Order{}, fmt.Errorf("create order: %w", err)
 	}
@@ -85,7 +85,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 }
 
 func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
-	if _, err := s.GetOrderByID(ctx, id); err != nil {
+	existing, err := s.GetOrderByID(ctx, id)
+	if err != nil {
 		return order.Order{}, fmt.Errorf("updating order: %w", err)
 	}
 
@@ -93,22 +94,19 @@ func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID 
 		return order.Order{}, fmt.Errorf("updating order: %w", err)
 	}
 
-	o := order.Order{
-		ID:        id,
-		ProductID: productID,
-		Quantity:  quantity,
-		Status:    status,
-	}
+	existing.ProductID = productID
+	existing.Quantity = quantity
+	existing.Status = status
 
 	logger := log(ctx)
-	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("updating order")
+	logger.Info().Str("order_id", existing.ID.String()).Str("product_id", existing.ProductID).Msg("updating order")
 
-	err := s.orderRepository.Update(ctx, o)
+	updated, err := s.orderRepository.Update(ctx, existing)
 	if err != nil {
 		return order.Order{}, fmt.Errorf("updating order: %w", err)
 	}
 
-	return o, nil
+	return updated, nil
 }
 
 func (s *OrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {
