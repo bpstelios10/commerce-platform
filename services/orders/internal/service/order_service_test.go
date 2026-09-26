@@ -6,6 +6,7 @@ import (
 	"commerce-platform/services/orders/internal/repository"
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -72,6 +73,7 @@ func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 	assert.Equal(t, repository.FirstProductID, o.ProductID)
 	assert.Equal(t, 2, o.Quantity)
 	assert.Equal(t, order.CREATED, o.Status)
+	assert.WithinDuration(t, time.Now(), o.CreatedAt, time.Second)
 }
 
 func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
@@ -110,7 +112,9 @@ func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
 		ProductID: repository.FirstProductID,
 		Quantity:  10,
 		Status:    order.CREATED,
+		CreatedAt: o.CreatedAt,
 	}, o)
+	assert.WithinDuration(t, time.Now(), o.CreatedAt, time.Second)
 }
 
 func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
@@ -180,6 +184,7 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 		ProductID: repository.FirstProductID,
 		Quantity:  2,
 		Status:    order.CREATED,
+		CreatedAt: o.CreatedAt,
 	}, o)
 
 	updated, err := svc.UpdateOrder(context.Background(), repository.FirstOrderID, repository.FirstProductID, 11, order.PAID)
@@ -193,13 +198,7 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 		Quantity:  11,
 		Status:    order.PAID,
 	}, updated)
-	assert.NoError(t, err)
-	assert.Equal(t, order.Order{
-		ID:        repository.FirstOrderID,
-		ProductID: repository.FirstProductID,
-		Quantity:  11,
-		Status:    order.PAID,
-	}, o)
+	assert.Equal(t, o.CreatedAt, updated.CreatedAt)
 }
 
 func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
@@ -218,6 +217,7 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 		ProductID: repository.FirstProductID,
 		Quantity:  2,
 		Status:    order.CREATED,
+		CreatedAt: o.CreatedAt,
 	}, o)
 }
 
@@ -237,6 +237,7 @@ func TestUpdateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
 		ProductID: repository.FirstProductID,
 		Quantity:  2,
 		Status:    order.CREATED,
+		CreatedAt: o.CreatedAt,
 	}, o)
 }
 

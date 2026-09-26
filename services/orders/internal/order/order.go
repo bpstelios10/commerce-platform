@@ -2,6 +2,7 @@ package order
 
 import (
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -20,6 +21,7 @@ type Order struct {
 	ProductID string      `json:"product_id"`
 	Quantity  int         `json:"quantity"`
 	Status    OrderStatus `json:"status"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 func (s OrderStatus) IsValid() bool {

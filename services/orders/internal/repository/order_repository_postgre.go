@@ -29,9 +29,8 @@ func NewPostgreOrderRepository(db DB) *PostgreOrderRepository {
 }
 
 func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order, error) {
-	// order_id, product_id, quantity, status, created_at
 	const query = `
-		SELECT order_id, product_id, quantity, status
+		SELECT order_id, product_id, quantity, status, created_at
 		FROM orders
 	`
 
@@ -51,7 +50,7 @@ func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order,
 			&o.ProductID,
 			&o.Quantity,
 			&o.Status,
-			// &o.CreatedAt,
+			&o.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan order: %w", err)
 		}
@@ -67,9 +66,8 @@ func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order,
 }
 
 func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
-	// order_id, product_id, quantity, status, created_at
 	const query = `
-		SELECT order_id, product_id, quantity, status
+		SELECT order_id, product_id, quantity, status, created_at
 		FROM orders
 		WHERE order_id = $1
 	`
@@ -80,7 +78,7 @@ func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id uuid.UUID) 
 		&o.ProductID,
 		&o.Quantity,
 		&o.Status,
-		// &o.CreatedAt,
+		&o.CreatedAt,
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {

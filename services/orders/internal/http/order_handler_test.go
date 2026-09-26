@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -101,6 +102,11 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 		},
 	}
 
+	// remove createdAt field from the comparison
+	for _, order := range resOrders {
+		delete(order, "created_at")
+	}
+
 	assert.ElementsMatch(t, expectedOrders, resOrders)
 }
 
@@ -140,16 +146,14 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.JSONEq(
-		t,
-		`{
-			"id":         "`+repository.FirstOrderID.String()+`",
-			"product_id": "`+repository.FirstProductID+`",
-			"quantity":   2,
-			"status":     "CREATED"
-		}`,
-		string(body),
-	)
+	var existing order.Order
+	err = json.Unmarshal(body, &existing)
+	assert.NoError(t, err)
+	assert.Equal(t, repository.FirstOrderID, existing.ID)
+	assert.Equal(t, repository.FirstProductID, existing.ProductID)
+	assert.Equal(t, 2, existing.Quantity)
+	assert.Equal(t, order.CREATED, existing.Status)
+	assert.False(t, existing.CreatedAt.IsZero())
 }
 
 func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
@@ -223,6 +227,8 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.Equal(t, repository.FirstProductID, created.ProductID)
 	assert.Equal(t, 1, created.Quantity)
 	assert.Equal(t, order.CREATED, created.Status)
+	// TODO fix after making save return the new object
+	// assert.WithinDuration(t, time.Now(), created.CreatedAt, time.Second)
 	assert.Equal(t, "/orders/"+created.ID.String(), res.Header.Get("Location"))
 
 	// verify it was actually persisted
@@ -230,6 +236,9 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, created.ID, p.ID)
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
+	assert.Equal(t, 1, p.Quantity)
+	assert.Equal(t, order.CREATED, p.Status)
+	assert.WithinDuration(t, time.Now(), p.CreatedAt, time.Second)
 }
 
 func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
@@ -328,6 +337,7 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	assert.Equal(t, repository.FirstProductID, p.ProductID)
 	assert.Equal(t, 2, p.Quantity)
 	assert.Equal(t, order.CREATED, p.Status)
+	assert.WithinDuration(t, time.Now(), p.CreatedAt, time.Second)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
@@ -348,16 +358,15 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.JSONEq(
-		t,
-		`{
-			"id": "`+repository.FirstOrderID.String()+`",
-			"product_id": "`+repository.FirstProductID+`",
-			"quantity": 2,
-			"status": "PAID"
-		}`,
-		string(body),
-	)
+	var updated order.Order
+	err = json.Unmarshal(body, &updated)
+	assert.NoError(t, err)
+	assert.Equal(t, repository.FirstOrderID, updated.ID)
+	assert.Equal(t, repository.FirstProductID, updated.ProductID)
+	assert.Equal(t, 2, updated.Quantity)
+	assert.Equal(t, order.PAID, updated.Status)
+	// TODO this will be fixed when updated returns the updated object
+	// assert.Equal(t, updated.CreatedAt, p.CreatedAt)
 
 	p, err = repo.FindByID(context.Background(), repository.FirstOrderID)
 	assert.NoError(t, err)
@@ -396,16 +405,13 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-	assert.JSONEq(
-		t,
-		`{
-			"id": "`+repository.FirstOrderID.String()+`",
-			"product_id": "`+repository.FirstProductID+`",
-			"quantity": 2,
-			"status": "PAID"
-		}`,
-		string(body),
-	)
+	var updated order.Order
+	err = json.Unmarshal(body, &updated)
+	assert.NoError(t, err)
+	assert.Equal(t, repository.FirstOrderID, updated.ID)
+	assert.Equal(t, repository.FirstProductID, updated.ProductID)
+	assert.Equal(t, 2, updated.Quantity)
+	assert.Equal(t, order.PAID, updated.Status)
 
 	p, err = repo.FindByID(context.Background(), repository.FirstOrderID)
 	assert.NoError(t, err)

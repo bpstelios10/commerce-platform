@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"commerce-platform/services/orders/internal/order"
 	"commerce-platform/shared/logger"
@@ -43,12 +44,14 @@ func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 				ProductID: FirstProductID,
 				Quantity:  2,
 				Status:    order.CREATED,
+				CreatedAt: time.Now(),
 			},
 			SecondOrderID: {
 				ID:        SecondOrderID,
 				ProductID: SecondProductID,
 				Quantity:  1,
 				Status:    order.PAID,
+				CreatedAt: time.Now(),
 			},
 		},
 	}
@@ -102,6 +105,7 @@ func (repo *InMemoryOrderRepository) Save(ctx context.Context, o order.Order) er
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
+	o.CreatedAt = time.Now()
 	repo.orders[o.ID] = o
 	logger := log(ctx)
 	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("order saved")
