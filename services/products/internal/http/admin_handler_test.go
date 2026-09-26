@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -89,8 +90,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 			assert.Equal(t, tt.category, created.Category)
 			assert.Equal(t, tt.description, created.Description)
 			assert.Equal(t, tt.price, created.Price)
-			// TODO to fix the next line i need to make save return the new object
-			// assert.WithinDuration(t, time.Now(), created.CreatedAt, 2*time.Second)
+			assert.WithinDuration(t, time.Now(), created.CreatedAt, 2*time.Second)
 			assert.Equal(t, "/products/"+created.ID.String(), res.Header.Get("Location"))
 			assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 

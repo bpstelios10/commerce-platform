@@ -112,10 +112,10 @@ func (r *InMemoryProductRepository) FindByID(ctx context.Context, id uuid.UUID) 
 	return p, nil
 }
 
-func (r *InMemoryProductRepository) Save(ctx context.Context, p product.Product) error {
+func (r *InMemoryProductRepository) Save(ctx context.Context, p product.Product) (product.Product, error) {
 	// dummy way to create unexpected error for tests
 	if ctx.Value("errorEnabler") != nil {
-		return errors.New(ctx.Value("errorEnabler").(string))
+		return product.Product{}, errors.New(ctx.Value("errorEnabler").(string))
 	}
 
 	// mutates the map: exclusive Lock.
@@ -127,13 +127,13 @@ func (r *InMemoryProductRepository) Save(ctx context.Context, p product.Product)
 	logger := log(ctx)
 	logger.Info().Str("product_id", p.ID.String()).Str("category", p.Category).Msg("product saved")
 
-	return nil
+	return p, nil
 }
 
-func (r *InMemoryProductRepository) Update(ctx context.Context, p product.Product) error {
+func (r *InMemoryProductRepository) Update(ctx context.Context, p product.Product) (product.Product, error) {
 	// dummy way to create unexpected error for tests
 	if ctx.Value("errorEnabler") != nil {
-		return errors.New(ctx.Value("errorEnabler").(string))
+		return product.Product{}, errors.New(ctx.Value("errorEnabler").(string))
 	}
 
 	// mutates the map: exclusive Lock.
@@ -144,7 +144,7 @@ func (r *InMemoryProductRepository) Update(ctx context.Context, p product.Produc
 	logger := log(ctx)
 	logger.Info().Str("product_id", p.ID.String()).Str("category", p.Category).Msg("product updated")
 
-	return nil
+	return p, nil
 }
 
 func (r *InMemoryProductRepository) Delete(ctx context.Context, id uuid.UUID) error {

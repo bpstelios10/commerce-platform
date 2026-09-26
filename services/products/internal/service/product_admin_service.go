@@ -9,8 +9,8 @@ import (
 )
 
 type ProductWriter interface {
-	Save(ctx context.Context, p product.Product) error
-	Update(ctx context.Context, p product.Product) error
+	Save(ctx context.Context, p product.Product) (product.Product, error)
+	Update(ctx context.Context, p product.Product) (product.Product, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -42,7 +42,7 @@ func (s *AdminService) CreateProduct(ctx context.Context, name string, category 
 	logger := log(ctx)
 	logger.Info().Str("product_id", p.ID.String()).Str("category", p.Category).Msg("creating product")
 
-	err = s.repo.Save(ctx, p)
+	p, err = s.repo.Save(ctx, p)
 	if err != nil {
 		return product.Product{}, fmt.Errorf("create product: %w", err)
 	}
@@ -69,7 +69,7 @@ func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name str
 	p.Description = description
 	p.Price = price
 
-	err = s.repo.Update(ctx, p)
+	p, err = s.repo.Update(ctx, p)
 	if err != nil {
 		return product.Product{}, fmt.Errorf("updating product: %w", err)
 	}
