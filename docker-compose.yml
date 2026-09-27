@@ -18,6 +18,34 @@ services:
       timeout: 5s
       retries: 10
 
+  products:
+    build:
+      context: .
+      dockerfile: services/products/Dockerfile
+    container_name: commerce-products
+    ports:
+      - "8082:8082"
+      - "8092:8092"
+    environment:
+      ACTIVE_PROFILE: d-compose
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  orders:
+    build:
+      context: .
+      dockerfile: services/orders/Dockerfile
+    container_name: commerce-orders
+    ports:
+      - "8083:8083"
+    environment:
+      ACTIVE_PROFILE: d-compose
+    restart: unless-stopped
+    depends_on:
+      - products
+
   # redis:
   #   image: redis/redis-stack:latest
   #   restart: unless-stopped
