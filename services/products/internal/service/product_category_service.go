@@ -33,6 +33,7 @@ func (s *ProductCategoryService) Validate(ctx context.Context, category string) 
 	return normalized, nil
 }
 
+// TODO add category as domain, including the description
 func (s *ProductCategoryService) GetProductCategories(ctx context.Context) ([]string, error) {
 	categories, err := s.repo.GetAll(ctx)
 	if err != nil {

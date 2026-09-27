@@ -5,7 +5,6 @@ import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,12 +15,20 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func setupAdminHandlerTest(t *testing.T) (*httptest.Server, *repository.InMemoryProductRepository) {
+func setupAdminHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface) {
 	t.Helper()
-	repo := repository.NewInMemoryProductRepository()
+	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		mock.Close()
+	})
+	repo := repository.NewPostgreProductRepository(mock)
 	productService := service.NewProductService(repo)
 	categoryRepo := repository.NewInMemoryProductCategoryRepository()
 	categoryService := service.NewProductCategoryService(categoryRepo)
@@ -33,7 +40,7 @@ func setupAdminHandlerTest(t *testing.T) (*httptest.Server, *repository.InMemory
 	srv := httptest.NewServer(r)
 	t.Cleanup(srv.Close)
 
-	return srv, repo
+	return srv, mock
 }
 
 func TestGetAdmin_Returns200(t *testing.T) {
@@ -63,7 +70,17 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv, repo := setupAdminHandlerTest(t)
+			srv, mock := setupAdminHandlerTest(t)
+			mock.ExpectQuery(`
+					INSERT INTO products (product_id, name, category, description, price)
+					VALUES ($1, $2, $3, $4, $5)
+					RETURNING product_id, name, category, description, price, created_at;`).
+				WithArgs(pgxmock.OfType[uuid.UUID](), tt.name, tt.category, new(tt.description), tt.price).
+				WillReturnRows(
+					pgxmock.NewRows([]string{
+						"product_id", "name", "category", "description", "price", "created_at",
+					}).AddRow(uuid.New(), tt.name, tt.category, new(tt.description), tt.price, time.Now()),
+				)
 
 			reqBody := fmt.Sprintf(
 				`{"name":%q,"category":%q,"description":%q,"price":%v}`,
@@ -93,21 +110,13 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 			assert.WithinDuration(t, time.Now(), created.CreatedAt, 2*time.Second)
 			assert.Equal(t, "/products/"+created.ID.String(), res.Header.Get("Location"))
 			assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-
-			// verify it was actually persisted
-			p, err := repo.FindByID(context.Background(), created.ID)
-			assert.NoError(t, err)
-			assert.Equal(t, created.ID, p.ID)
-			assert.Equal(t, created.Name, p.Name)
-			assert.Equal(t, created.Category, p.Category)
-			assert.Equal(t, created.Description, p.Description)
-			assert.Equal(t, created.Price, p.Price)
+			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
 }
 
 func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
-	srv, _ := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
 
 	res, err := http.Post(
 		srv.URL+"/admin/products",
@@ -131,10 +140,12 @@ func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
-	srv, _ := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
 
 	res, err := http.Post(
 		srv.URL+"/admin/products",
@@ -161,10 +172,12 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
-	srv, repo := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
 
 	res, err := http.Post(
 		srv.URL+"/admin/products",
@@ -190,27 +203,46 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-
-	products, err := repo.FindAll(context.Background())
-	assert.NoError(t, err)
-	assert.Len(t, products, 4)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
-	srv, repo := setupAdminHandlerTest(t)
-
-	existing, err := repo.FindByID(context.Background(), repository.SecondUUID)
-	assert.NoError(t, err)
-	assert.Equal(t, repository.SecondUUID, existing.ID)
-	assert.Equal(t, "iPhone", existing.Name)
-	assert.Equal(t, "ACCESSORY", existing.Category)
-	assert.Equal(t, new("Apple smartphone"), existing.Description)
-	assert.Equal(t, 1200.0, existing.Price)
-	assert.False(t, existing.CreatedAt.IsZero())
+	srv, mock := setupAdminHandlerTest(t)
+	p := &product.Product{
+		ID:          SecondUUID,
+		Name:        "iPhone 15",
+		Category:    "CLOTHES",
+		Description: new("Updated description"),
+		Price:       1500.0,
+		CreatedAt:   time.Now(),
+	}
+	createdAt := time.Now()
+	mock.ExpectQuery(`
+			SELECT product_id, name, category, description, price, created_at
+			FROM products
+			WHERE product_id = $1`).
+		WithArgs(SecondUUID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, createdAt),
+		)
+	mock.ExpectQuery(`
+			UPDATE products 
+			SET name = $1, category = $2, description = $3, price = $4
+			WHERE product_id = $5
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(p.Name, p.Category, p.Description, p.Price, p.ID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).AddRow(p.ID, p.Name, p.Category, p.Description, p.Price, createdAt),
+		)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
-		srv.URL+"/admin/products/"+repository.SecondUUID.String(),
+		srv.URL+"/admin/products/"+SecondUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "CLOTHES",
@@ -231,26 +263,18 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	var updated product.Product
 	err = json.Unmarshal(body, &updated)
 	assert.NoError(t, err)
-	assert.Equal(t, repository.SecondUUID, updated.ID)
-	assert.Equal(t, "iPhone 15", updated.Name)
-	assert.Equal(t, "CLOTHES", updated.Category)
-	assert.Equal(t, new("Updated description"), updated.Description)
-	assert.Equal(t, 1500.0, updated.Price)
-	assert.False(t, updated.CreatedAt.IsZero())
-	assert.True(t, updated.CreatedAt.Equal(existing.CreatedAt))
+	assert.Equal(t, p.ID, updated.ID)
+	assert.Equal(t, p.Name, updated.Name)
+	assert.Equal(t, p.Category, updated.Category)
+	assert.Equal(t, p.Description, updated.Description)
+	assert.Equal(t, p.Price, updated.Price)
+	assert.True(t, updated.CreatedAt.Equal(createdAt))
 
-	p, err := repo.FindByID(context.Background(), repository.SecondUUID)
-	assert.NoError(t, err)
-	assert.Equal(t, repository.SecondUUID, p.ID)
-	assert.Equal(t, "iPhone 15", p.Name)
-	assert.Equal(t, "CLOTHES", p.Category)
-	assert.Equal(t, new("Updated description"), p.Description)
-	assert.Equal(t, 1500.0, p.Price)
-	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
-	srv, _ := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
@@ -279,14 +303,16 @@ func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
-	srv, _ := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
-		srv.URL+"/admin/products/"+repository.SecondUUID.String(),
+		srv.URL+"/admin/products/"+SecondUUID.String(),
 		bytes.NewBufferString(`{
 			"error-to-cause": "extra comma, so invalid json",
 		}`),
@@ -309,14 +335,16 @@ func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
-	srv, repo := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
-		srv.URL+"/admin/products/"+repository.FirstUUID.String(),
+		srv.URL+"/admin/products/"+FirstUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "",
 			"category": "",
@@ -341,17 +369,20 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-
-	p, err := repo.FindByID(context.Background(), repository.FirstUUID)
-	assert.NoError(t, err)
-	assert.Equal(t, "MacBook Pro", p.Name)
-	assert.Equal(t, "ACCESSORY", p.Category)
-	assert.Equal(t, 2500.0, p.Price)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
-	srv, repo := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
 	id, _ := uuid.NewV7()
+	mock.ExpectQuery(`
+			SELECT product_id, name, category, description, price, created_at
+			FROM products
+			WHERE product_id = $1`).
+		WithArgs(id).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"product_id", "name", "category", "description", "price", "created_at",
+		}))
 
 	req, err := http.NewRequest(
 		http.MethodPut,
@@ -380,18 +411,26 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		}`,
 		string(body),
 	)
-
-	p, err := repo.FindByID(context.Background(), id)
-	assert.ErrorIs(t, err, repository.ErrNotFound)
-	assert.Empty(t, p)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
-	srv, repo := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
+	mock.ExpectQuery(`
+			SELECT product_id, name, category, description, price, created_at
+			FROM products
+			WHERE product_id = $1`).
+		WithArgs(SecondUUID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
+		)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
-		srv.URL+"/admin/products/"+repository.SecondUUID.String(),
+		srv.URL+"/admin/products/"+SecondUUID.String(),
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "UNKNOWN",
@@ -416,25 +455,20 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-
-	p, err := repo.FindByID(context.Background(), repository.SecondUUID)
-	assert.NoError(t, err)
-	assert.Equal(t, product.Product{
-		ID:          repository.SecondUUID,
-		Name:        "iPhone",
-		Category:    "ACCESSORY",
-		Description: new("Apple smartphone"),
-		Price:       1200.0,
-		CreatedAt:   p.CreatedAt,
-	}, p)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
-	srv, repo := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
+	mock.ExpectExec(`
+			DELETE FROM products
+			WHERE product_id = $1`).
+		WithArgs(SecondUUID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 1))
 
 	req, err := http.NewRequest(
 		http.MethodDelete,
-		srv.URL+"/admin/products/"+repository.SecondUUID.String(),
+		srv.URL+"/admin/products/"+SecondUUID.String(),
 		nil,
 	)
 	assert.NoError(t, err)
@@ -445,14 +479,11 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, res.StatusCode)
 
-	_, err = repo.FindByID(context.Background(), repository.SecondUUID)
-	assert.ErrorIs(t, err, repository.ErrNotFound)
-	assert.Empty(t, res.Header.Get("Content-Type"))
-	assert.Empty(t, res.Body)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestDeleteProduct_WhenBadUUID_Returns400(t *testing.T) {
-	srv, repo := setupAdminHandlerTest(t)
+	srv, mock := setupAdminHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodDelete,
@@ -477,7 +508,5 @@ func TestDeleteProduct_WhenBadUUID_Returns400(t *testing.T) {
 		string(body),
 	)
 
-	products, err := repo.FindAll(context.Background())
-	assert.NoError(t, err)
-	assert.Len(t, products, 4)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

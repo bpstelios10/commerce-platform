@@ -1,10 +1,13 @@
 package repository
 
 import (
+	"commerce-platform/shared/logger"
 	"context"
 	"errors"
 	"strings"
 	"sync"
+
+	"github.com/rs/zerolog"
 )
 
 type InMemoryProductCategoryRepository struct {
@@ -58,4 +61,8 @@ func (r *InMemoryProductCategoryRepository) GetAll(ctx context.Context) ([]strin
 	logger.Info().Strs("categories", categoriesNames).Msg("product categories retrieved")
 
 	return categoriesNames, nil
+}
+
+func log(ctx context.Context) zerolog.Logger {
+	return logger.GetLogger(ctx, "products.repository")
 }

@@ -6,19 +6,29 @@ import (
 	"commerce-platform/services/products/internal/service"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func setupProductHandlerTest(t *testing.T) (*httptest.Server, *repository.InMemoryProductRepository) {
+func setupProductHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface) {
 	t.Helper()
-	repo := repository.NewInMemoryProductRepository()
+	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		mock.Close()
+	})
+	repo := repository.NewPostgreProductRepository(mock)
 	svc := service.NewProductService(repo)
 	handler := NewProductHandler(svc)
 
@@ -28,23 +38,39 @@ func setupProductHandlerTest(t *testing.T) (*httptest.Server, *repository.InMemo
 	srv := httptest.NewServer(r)
 	t.Cleanup(srv.Close)
 
-	return srv, repo
+	return srv, mock
 }
 
-func setupProductMuxHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryProductRepository) {
+func setupProductMuxHandlerTest(t *testing.T) (*chi.Mux, pgxmock.PgxPoolIface) {
 	t.Helper()
-	repo := repository.NewInMemoryProductRepository()
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		mock.Close()
+	})
+	repo := repository.NewPostgreProductRepository(mock)
 	svc := service.NewProductService(repo)
 	handler := NewProductHandler(svc)
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 
-	return r, repo
+	return r, mock
 }
 
 func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
-	srv, _ := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
+				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
+				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
+		)
 
 	res, err := http.Get(srv.URL + "/products")
 
@@ -61,28 +87,28 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 
 	expectedProducts := []map[string]any{
 		{
-			"id":          repository.FirstUUID.String(),
+			"id":          FirstUUID.String(),
 			"name":        "MacBook Pro",
 			"category":    "ACCESSORY",
 			"description": "Apple laptop",
 			"price":       2500.0,
 		},
 		{
-			"id":          repository.SecondUUID.String(),
+			"id":          SecondUUID.String(),
 			"name":        "iPhone",
 			"category":    "ACCESSORY",
 			"description": "Apple smartphone",
 			"price":       1200.0,
 		},
 		{
-			"id":          repository.ThirdUUID.String(),
+			"id":          ThirdUUID.String(),
 			"name":        "hoodie Mykonos",
 			"category":    "CLOTHES",
 			"description": "Comfortable hoodie",
 			"price":       80.0,
 		},
 		{
-			"id":          repository.FourthUUID.String(),
+			"id":          FourthUUID.String(),
 			"name":        "Eye necklace",
 			"category":    "JEWELRY",
 			"description": "Stylish eye necklace",
@@ -96,17 +122,20 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 	}
 
 	assert.ElementsMatch(t, expectedProducts, resProducts)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetProducts_WhenDbError_Returns500(t *testing.T) {
-	r, _ := setupProductMuxHandlerTest(t)
+	r, mock := setupProductMuxHandlerTest(t)
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+		WillReturnError(errors.New("database unavailable"))
 
 	req := httptest.NewRequest(
 		http.MethodGet,
 		"/products",
 		nil,
 	)
-	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "unexpected error"))
+	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "database unavailable"))
 	res := httptest.NewRecorder()
 
 	r.ServeHTTP(res, req)
@@ -121,12 +150,24 @@ func TestGetProducts_WhenDbError_Returns500(t *testing.T) {
 		}`,
 		res.Body.String(),
 	)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
-	srv, _ := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
+	mock.ExpectQuery(`
+			SELECT product_id, name, category, description, price, created_at
+			FROM products
+			WHERE product_id = $1`).
+		WithArgs(FirstUUID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()),
+		)
 
-	res, err := http.Get(srv.URL + "/products/" + repository.FirstUUID.String())
+	res, err := http.Get(srv.URL + "/products/" + FirstUUID.String())
 
 	assert.NoError(t, err)
 	defer res.Body.Close()
@@ -137,17 +178,26 @@ func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 	var updated product.Product
 	err = json.Unmarshal(body, &updated)
 	assert.NoError(t, err)
-	assert.Equal(t, repository.FirstUUID, updated.ID)
+	assert.Equal(t, FirstUUID, updated.ID)
 	assert.Equal(t, "MacBook Pro", updated.Name)
 	assert.Equal(t, "ACCESSORY", updated.Category)
 	assert.Equal(t, new("Apple laptop"), updated.Description)
 	assert.Equal(t, 2500.0, updated.Price)
 	assert.False(t, updated.CreatedAt.IsZero())
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetProduct_WhenProductNotExists_Returns404(t *testing.T) {
-	srv, _ := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
 	id, _ := uuid.NewV7()
+	mock.ExpectQuery(`
+			SELECT product_id, name, category, description, price, created_at
+			FROM products
+			WHERE product_id = $1`).
+		WithArgs(id).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"product_id", "name", "category", "description", "price", "created_at",
+		}))
 
 	res, err := http.Get(srv.URL + "/products/" + id.String())
 
@@ -165,10 +215,11 @@ func TestGetProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetProduct_WhenBadUUID_Returns400(t *testing.T) {
-	srv, _ := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
 
 	res, err := http.Get(srv.URL + "/products/1234")
 
@@ -186,10 +237,21 @@ func TestGetProduct_WhenBadUUID_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenOnlyQueryProvided_ReturnsMatches(t *testing.T) {
-	srv, _ := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
+				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
+				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
+		)
 
 	res, err := http.Get(srv.URL + "/products/search?query=hoodie")
 
@@ -204,11 +266,22 @@ func TestSearchProducts_WhenOnlyQueryProvided_ReturnsMatches(t *testing.T) {
 	err = json.Unmarshal(body, &products)
 	assert.NoError(t, err)
 	assert.Len(t, products, 1)
-	assert.Equal(t, repository.ThirdUUID.String(), products[0]["id"])
+	assert.Equal(t, ThirdUUID.String(), products[0]["id"])
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenQueryAndMaxPriceProvided_ReturnsCombinedMatches(t *testing.T) {
-	srv, _ := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
+				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
+				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
+		)
 
 	res, err := http.Get(srv.URL + "/products/search?query=necklace&maxPrice=200.0")
 
@@ -223,11 +296,22 @@ func TestSearchProducts_WhenQueryAndMaxPriceProvided_ReturnsCombinedMatches(t *t
 	err = json.Unmarshal(body, &products)
 	assert.NoError(t, err)
 	assert.Len(t, products, 1)
-	assert.Equal(t, repository.FourthUUID.String(), products[0]["id"])
+	assert.Equal(t, FourthUUID.String(), products[0]["id"])
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenOnlyCategoryProvided_ReturnsCategoryMatches(t *testing.T) {
-	srv, _ := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
+				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
+				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
+		)
 
 	res, err := http.Get(srv.URL + "/products/search?category=accessory")
 
@@ -242,10 +326,21 @@ func TestSearchProducts_WhenOnlyCategoryProvided_ReturnsCategoryMatches(t *testi
 	err = json.Unmarshal(body, &products)
 	assert.NoError(t, err)
 	assert.Len(t, products, 2)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenAllCriteriaProvided_ReturnsCombinedMatches(t *testing.T) {
-	srv, _ := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
+				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
+				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
+		)
 
 	res, err := http.Get(srv.URL + "/products/search?query=hoodie&maxPrice=100.0&category=clothes")
 
@@ -260,11 +355,12 @@ func TestSearchProducts_WhenAllCriteriaProvided_ReturnsCombinedMatches(t *testin
 	err = json.Unmarshal(body, &products)
 	assert.NoError(t, err)
 	assert.Len(t, products, 1)
-	assert.Equal(t, repository.ThirdUUID.String(), products[0]["id"])
+	assert.Equal(t, ThirdUUID.String(), products[0]["id"])
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenMaxPriceInvalid_Returns400(t *testing.T) {
-	srv, _ := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
 
 	res, err := http.Get(srv.URL + "/products/search?maxPrice=abc")
 
@@ -282,17 +378,20 @@ func TestSearchProducts_WhenMaxPriceInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenDbError_Returns500(t *testing.T) {
-	r, _ := setupProductMuxHandlerTest(t)
+	r, mock := setupProductMuxHandlerTest(t)
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+		WillReturnError(errors.New("database unavailable"))
 
 	req := httptest.NewRequest(
 		http.MethodGet,
 		"/products/search?query=hoodie",
 		nil,
 	)
-	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "unexpected error"))
+	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "database unavailable"))
 	res := httptest.NewRecorder()
 
 	r.ServeHTTP(res, req)
@@ -307,4 +406,15 @@ func TestSearchProducts_WhenDbError_Returns500(t *testing.T) {
 		}`,
 		res.Body.String(),
 	)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+var (
+	FirstUUID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001")
+	SecondUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002")
+	ThirdUUID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d003")
+	FourthUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d004")
+
+	ErrornousID   = "01a0b072-db8f-742a-a289-0e290e1fb901"
+	ErrornousUUID = uuid.MustParse(ErrornousID)
+)
