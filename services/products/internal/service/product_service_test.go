@@ -44,7 +44,7 @@ func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	assert.Equal(t, repository.FirstUUID, p.ID)
 	assert.Equal(t, "MacBook Pro", p.Name)
 	assert.Equal(t, "ACCESSORY", p.Category)
-	assert.Equal(t, "Apple laptop", p.Description)
+	assert.Equal(t, new("Apple laptop"), p.Description)
 	assert.Equal(t, 2500.0, p.Price)
 	assert.WithinDuration(t, time.Now(), p.CreatedAt, time.Second)
 }

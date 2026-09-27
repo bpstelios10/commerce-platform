@@ -140,7 +140,7 @@ func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 	assert.Equal(t, repository.FirstUUID, updated.ID)
 	assert.Equal(t, "MacBook Pro", updated.Name)
 	assert.Equal(t, "ACCESSORY", updated.Category)
-	assert.Equal(t, "Apple laptop", updated.Description)
+	assert.Equal(t, new("Apple laptop"), updated.Description)
 	assert.Equal(t, 2500.0, updated.Price)
 	assert.False(t, updated.CreatedAt.IsZero())
 }

@@ -88,7 +88,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 			assert.NotEmpty(t, created.ID)
 			assert.Equal(t, tt.name, created.Name)
 			assert.Equal(t, tt.category, created.Category)
-			assert.Equal(t, tt.description, created.Description)
+			assert.Equal(t, new(tt.description), created.Description)
 			assert.Equal(t, tt.price, created.Price)
 			assert.WithinDuration(t, time.Now(), created.CreatedAt, 2*time.Second)
 			assert.Equal(t, "/products/"+created.ID.String(), res.Header.Get("Location"))
@@ -204,7 +204,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, repository.SecondUUID, existing.ID)
 	assert.Equal(t, "iPhone", existing.Name)
 	assert.Equal(t, "ACCESSORY", existing.Category)
-	assert.Equal(t, "Apple smartphone", existing.Description)
+	assert.Equal(t, new("Apple smartphone"), existing.Description)
 	assert.Equal(t, 1200.0, existing.Price)
 	assert.False(t, existing.CreatedAt.IsZero())
 
@@ -234,7 +234,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, repository.SecondUUID, updated.ID)
 	assert.Equal(t, "iPhone 15", updated.Name)
 	assert.Equal(t, "CLOTHES", updated.Category)
-	assert.Equal(t, "Updated description", updated.Description)
+	assert.Equal(t, new("Updated description"), updated.Description)
 	assert.Equal(t, 1500.0, updated.Price)
 	assert.False(t, updated.CreatedAt.IsZero())
 	assert.True(t, updated.CreatedAt.Equal(existing.CreatedAt))
@@ -244,7 +244,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, repository.SecondUUID, p.ID)
 	assert.Equal(t, "iPhone 15", p.Name)
 	assert.Equal(t, "CLOTHES", p.Category)
-	assert.Equal(t, "Updated description", p.Description)
+	assert.Equal(t, new("Updated description"), p.Description)
 	assert.Equal(t, 1500.0, p.Price)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 }
@@ -423,7 +423,7 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		ID:          repository.SecondUUID,
 		Name:        "iPhone",
 		Category:    "ACCESSORY",
-		Description: "Apple smartphone",
+		Description: new("Apple smartphone"),
 		Price:       1200.0,
 		CreatedAt:   p.CreatedAt,
 	}, p)

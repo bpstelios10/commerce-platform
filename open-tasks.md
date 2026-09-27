@@ -56,7 +56,7 @@ few extra items worth doing. Check items off as they're done; update
 
 - [ ] Expose `CreateProduct` over gRPC too (currently HTTP-only), matching TECH.md Phase 8's
       goal of `GetProduct()` + `CreateProduct()` both over gRPC.
-- [ ] Add a root `docker-compose.yml` once config is externalized (Phase 7) — even without
+- [x] Add a root `docker-compose.yml` once config is externalized (Phase 7) — even without
       Postgres yet, this is useful for running both services + health checks with one command.
 - [ ] Add a basic OpenAPI/Swagger spec (or at least a `docs/api.md`) for the two REST APIs —
       there's currently no request/response contract documented outside of the DTO structs.
