@@ -23,7 +23,7 @@ func setup(t *testing.T) (*AdminService, pgxmock.PgxPoolIface) {
 	})
 	repo := repository.NewPostgreProductRepository(mock)
 	productService := NewProductService(repo)
-	categoryRepo := repository.NewInMemoryProductCategoryRepository()
+	categoryRepo := repository.NewPostgreProductCategoryRepository(mock)
 	categoryService := NewProductCategoryService(categoryRepo)
 	svc := NewAdminService(productService, categoryService, repo)
 
@@ -38,6 +38,12 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 		Description: new("some-description"),
 		Price:       2501.0,
 	}
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+		WithArgs(p.Category).
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow(p.Category),
+		)
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
 			VALUES ($1, $2, $3, $4, $5)
@@ -58,6 +64,10 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 
 func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
 	svc, mock := setup(t)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+		WithArgs("UNKNOWN").
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}))
 
 	p, err := svc.CreateProduct(context.Background(), "MacBook Pro M4", "UNKNOWN", new("some-description"), 2501.0)
 
@@ -75,6 +85,12 @@ func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
 		Description: new("some-description"),
 		Price:       2501.0,
 	}
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+		WithArgs(p.Category).
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow(p.Category),
+		)
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
 			VALUES ($1, $2, $3, $4, $5)
@@ -136,6 +152,12 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, createdAt),
 		)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+		WithArgs(p.Category).
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow(p.Category),
+		)
 	mock.ExpectQuery(`
 			UPDATE products 
 			SET name = $1, category = $2, description = $3, price = $4
@@ -173,6 +195,10 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
 		)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+		WithArgs("UNKNOWN").
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}))
 
 	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "UNKNOWN", new(""), 1201.0)
 
@@ -194,6 +220,12 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 				"product_id", "name", "category", "description", "price", "created_at",
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
+		)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+		WithArgs("CLOTHES").
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow("CLOTHES"),
 		)
 	mock.ExpectQuery(`
 			UPDATE products 

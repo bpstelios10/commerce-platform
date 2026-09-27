@@ -29,7 +29,7 @@ func setupAdminHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface
 	})
 	repo := repository.NewPostgreProductRepository(mock)
 	productService := service.NewProductService(repo)
-	categoryRepo := repository.NewInMemoryProductCategoryRepository()
+	categoryRepo := repository.NewPostgreProductCategoryRepository(mock)
 	categoryService := service.NewProductCategoryService(categoryRepo)
 	adminSvc := service.NewAdminService(productService, categoryService, repo)
 	handler := NewAdminHandler(adminSvc)
@@ -70,6 +70,12 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			srv, mock := setupAdminHandlerTest(t)
+			mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+				WithArgs(tt.category).
+				WillReturnRows(
+					pgxmock.NewRows([]string{"name"}).
+						AddRow(tt.category),
+				)
 			mock.ExpectQuery(`
 					INSERT INTO products (product_id, name, category, description, price)
 					VALUES ($1, $2, $3, $4, $5)
@@ -175,6 +181,10 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 
 func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+		WithArgs("UNKNOWN").
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}))
 
 	res, err := http.Post(
 		srv.URL+"/admin/products",
@@ -223,6 +233,12 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 				"product_id", "name", "category", "description", "price", "created_at",
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, createdAt),
+		)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+		WithArgs(p.Category).
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow(p.Category),
 		)
 	mock.ExpectQuery(`
 			UPDATE products 
@@ -419,6 +435,11 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 				"product_id", "name", "category", "description", "price", "created_at",
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
+		)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+		WithArgs("UNKNOWN").
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}),
 		)
 
 	req, err := http.NewRequest(

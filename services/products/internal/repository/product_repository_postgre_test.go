@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 )
@@ -159,7 +160,7 @@ func TestFindByID_WhenRowsError_ReturnsError(t *testing.T) {
 			pgxmock.NewRows([]string{
 				"product_id", "name", "category", "description", "price", "created_at",
 			}).
-				RowError(1, errors.New("read failed")),
+				RowError(1, pgx.ErrNoRows),
 		)
 
 	result, err := repo.FindByID(context.Background(), FirstUUID)

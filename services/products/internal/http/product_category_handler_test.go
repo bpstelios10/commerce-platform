@@ -5,28 +5,45 @@ import (
 	"commerce-platform/services/products/internal/service"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 )
 
-func ProductCategoryHandlerTest(t *testing.T) (*chi.Mux, *repository.InMemoryProductCategoryRepository) {
+func productCategoryHandlerTest(t *testing.T) (*chi.Mux, pgxmock.PgxPoolIface) {
 	t.Helper()
-	repo := repository.NewInMemoryProductCategoryRepository()
+	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	assert.NoError(t, err)
+
+	t.Cleanup(func() {
+		mock.Close()
+	})
+	repo := repository.NewPostgreProductCategoryRepository(mock)
 	svc := service.NewProductCategoryService(repo)
 	handler := NewProductCategoryHandler(svc)
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 
-	return r, repo
+	return r, mock
 }
 
 func TestGetProductCategories_WhenCategoriesExist_Returns200(t *testing.T) {
-	r, _ := ProductCategoryHandlerTest(t)
+	r, mock := productCategoryHandlerTest(t)
+	mock.ExpectQuery(`SELECT name FROM product_categories`).
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow("MAGNET").
+				AddRow("POSTCARD").
+				AddRow("ACCESSORY").
+				AddRow("JEWELRY").
+				AddRow("CLOTHES"),
+		)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -46,10 +63,13 @@ func TestGetProductCategories_WhenCategoriesExist_Returns200(t *testing.T) {
 
 	expectedCategories := []string{"MAGNET", "POSTCARD", "ACCESSORY", "JEWELRY", "CLOTHES"}
 	assert.ElementsMatch(t, expectedCategories, resCategories)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetProductCategories_WhenDbError_Returns500(t *testing.T) {
-	r, _ := ProductCategoryHandlerTest(t)
+	r, mock := productCategoryHandlerTest(t)
+	mock.ExpectQuery(`SELECT name FROM product_categories`).
+		WillReturnError(errors.New("database unavailable"))
 
 	ctx := context.Background()
 	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
@@ -74,4 +94,5 @@ func TestGetProductCategories_WhenDbError_Returns500(t *testing.T) {
 		}`,
 		res.Body.String(),
 	)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
