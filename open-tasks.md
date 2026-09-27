@@ -29,24 +29,24 @@ few extra items worth doing. Check items off as they're done; update
 - [x] Externalize configuration: ports (`:8082`, `:8092`, `:8083`) and the orders→products
       gRPC address (`localhost:8092`) are hardcoded in `main.go`. Load from env vars with
       sane local defaults (unblocks Docker Compose too).
-- [ ] Extract duplicated `validation/uuid.go` (`GetValidUUID`/`ErrInvalidUUID`) — currently
+- [-] Extract duplicated `validation/uuid.go` (`GetValidUUID`/`ErrInvalidUUID`) — currently
       copy-pasted in both `orders` and `products` — into `shared`.
-- [ ] Consider extracting the repository mutex/CRUD boilerplate (near-identical between the
+- [-] Consider extracting the repository mutex/CRUD boilerplate (near-identical between the
       two in-memory repos) into a generic `shared` helper, e.g. `InMemoryRepository[K, V]`.
 - [x] Check/log the error returned by `json.NewEncoder(w).Encode(...)` in handlers instead of
       discarding it (e.g. [order_handler.go](services/orders/internal/http/order_handler.go)).
 - [x] Align package naming: rename orders' `http` package to `httpx` (matches products, and
       stops shadowing the stdlib `net/http` import name inside the package).
-- [ ] Ring-fence the scratch/demo code in [products/cmd/main.go](services/products/cmd/main.go)
+- [x] Ring-fence the scratch/demo code in [products/cmd/main.go](services/products/cmd/main.go)
       (manual map lookups, `ApplyDiscount` demo, etc.) — e.g. move behind a `-demo` flag or
       into a separate example file — so it doesn't get mistaken for real bootstrap logic.
-- [ ] Add a `.golangci.yml` at the repo root so `make lint` is reproducible across machines
+- [-] Add a `.golangci.yml` at the repo root so `make lint` is reproducible across machines
       instead of depending on whatever's installed locally.
-- [ ] Add a CI pipeline (GitHub Actions) running `make test-all` and `make lint` on every PR.
+- [ ] Add a CI pipeline (GitHub Actions) running `make test-all` and `make check` on every PR.
 
 ## Low priority
 
-- [ ] Add `coverage.out` (root-level, no prefix) to the `make clean` target — currently only
+- [-] Add `coverage.out` (root-level, no prefix) to the `make clean` target — currently only
       `coverage-{shared,orders,products}.out` are removed.
 - [ ] Add request timeouts: wrap HTTP servers with `http.TimeoutHandler` / set
       `ReadHeaderTimeout` etc., and set a dial/call timeout on the orders→products gRPC client
@@ -60,7 +60,7 @@ few extra items worth doing. Check items off as they're done; update
       Postgres yet, this is useful for running both services + health checks with one command.
 - [ ] Add a basic OpenAPI/Swagger spec (or at least a `docs/api.md`) for the two REST APIs —
       there's currently no request/response contract documented outside of the DTO structs.
-- [ ] Decide on `orders` repo's `Save` vs `Update` — they're currently identical upserts
+- [x] Decide on `orders` repo's `Save` vs `Update` — they're currently identical upserts
       (`repo.orders[o.ID] = o`); either differentiate them (e.g. `Save` rejects existing IDs)
       or collapse to one method to avoid the false impression they behave differently.
 - [ ] Add an integration-style test that boots both services (or fakes the gRPC boundary) to
