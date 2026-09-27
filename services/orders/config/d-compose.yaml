@@ -1,0 +1,7 @@
+environment: d-compose
+
+products:
+  grpc-client: products:8092
+
+database:
+  host: postgres

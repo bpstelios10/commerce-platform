@@ -7,7 +7,7 @@ import (
 	commonconfig "commerce-platform/shared/config"
 )
 
-//go:embed base.yaml local.yaml test.yaml
+//go:embed base.yaml local.yaml test.yaml d-compose.yaml
 var configFiles embed.FS
 
 func Load() (commonconfig.Config, error) {

@@ -1,0 +1,4 @@
+environment: d-compose
+
+database:
+  host: postgres
