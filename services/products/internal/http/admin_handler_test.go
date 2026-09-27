@@ -17,13 +17,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func setupAdminHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface) {
 	t.Helper()
 	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	t.Cleanup(func() {
 		mock.Close()
@@ -140,7 +139,6 @@ func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -172,7 +170,6 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -214,7 +211,6 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 		Category:    "CLOTHES",
 		Description: new("Updated description"),
 		Price:       1500.0,
-		CreatedAt:   time.Now(),
 	}
 	createdAt := time.Now()
 	mock.ExpectQuery(`
@@ -269,7 +265,6 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, p.Description, updated.Description)
 	assert.Equal(t, p.Price, updated.Price)
 	assert.True(t, updated.CreatedAt.Equal(createdAt))
-
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -303,7 +298,6 @@ func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -335,7 +329,6 @@ func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -478,7 +471,6 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 	defer res.Body.Close()
 
 	assert.Equal(t, http.StatusNoContent, res.StatusCode)
-
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -507,6 +499,5 @@ func TestDeleteProduct_WhenBadUUID_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

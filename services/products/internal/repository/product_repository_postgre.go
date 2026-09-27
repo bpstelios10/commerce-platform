@@ -54,14 +54,14 @@ func (r *PostgreProductRepository) FindAll(ctx context.Context) ([]product.Produ
 			&p.Price,
 			&p.CreatedAt,
 		); err != nil {
-			return nil, fmt.Errorf("scan product: %w", err)
+			return products, fmt.Errorf("scan product: %w", err)
 		}
 
 		products = append(products, p)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate products: %w", err)
+		return products, fmt.Errorf("iterate products: %w", err)
 	}
 
 	return products, nil

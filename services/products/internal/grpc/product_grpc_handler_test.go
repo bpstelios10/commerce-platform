@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -22,7 +21,7 @@ import (
 func setupProductHandlerTest(t *testing.T) (ProductServiceClient, pgxmock.PgxPoolIface) {
 	t.Helper()
 	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	t.Cleanup(func() {
 		mock.Close()

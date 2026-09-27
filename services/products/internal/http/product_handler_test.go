@@ -17,13 +17,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func setupProductHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface) {
 	t.Helper()
 	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	t.Cleanup(func() {
 		mock.Close()
@@ -44,7 +43,7 @@ func setupProductHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIfa
 func setupProductMuxHandlerTest(t *testing.T) (*chi.Mux, pgxmock.PgxPoolIface) {
 	t.Helper()
 	mock, err := pgxmock.NewPool()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	t.Cleanup(func() {
 		mock.Close()
@@ -414,7 +413,4 @@ var (
 	SecondUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002")
 	ThirdUUID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d003")
 	FourthUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d004")
-
-	ErrornousID   = "01a0b072-db8f-742a-a289-0e290e1fb901"
-	ErrornousUUID = uuid.MustParse(ErrornousID)
 )
