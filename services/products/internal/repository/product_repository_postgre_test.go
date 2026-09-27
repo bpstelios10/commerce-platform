@@ -92,14 +92,6 @@ func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
 
 func TestFindByID_WhenProductsExist_ReturnsAllProducts(t *testing.T) {
 	mock, repo := setup(t)
-	p := product.Product{
-		ID:          FirstUUID,
-		Name:        "iPhone 15",
-		Category:    "CLOTHES",
-		Description: new("Updated description"),
-		Price:       1500.0,
-		CreatedAt:   time.Now(),
-	}
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
 			FROM products
@@ -109,13 +101,13 @@ func TestFindByID_WhenProductsExist_ReturnsAllProducts(t *testing.T) {
 			pgxmock.NewRows([]string{
 				"product_id", "name", "category", "description", "price", "created_at",
 			}).
-				AddRow(p.ID, p.Name, p.Category, p.Description, p.Price, p.CreatedAt),
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
 		)
 
 	result, err := repo.FindByID(context.Background(), FirstUUID)
 
 	assert.NoError(t, err)
-	assert.Equal(t, p, result)
+	assert.Equal(t, testP, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -177,9 +169,208 @@ func TestFindByID_WhenRowsError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestSave_WhenNoDbIssues_ReturnsNewProduct(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			INSERT INTO products (product_id, name, category, description, price)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
+		)
+
+	result, err := repo.Save(context.Background(), testP)
+
+	assert.NoError(t, err)
+	assert.Equal(t, testP, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestSave_WhenDbError_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			INSERT INTO products (product_id, name, category, description, price)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
+		WillReturnError(errors.New("database unavailable"))
+
+	result, err := repo.Save(context.Background(), testP)
+
+	assert.Error(t, err)
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestSave_WhenScanError_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			INSERT INTO products (product_id, name, category, description, price)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow("invalid-uuid", testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
+		)
+
+	result, err := repo.Save(context.Background(), testP)
+
+	assert.Error(t, err)
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestSave_WhenRowsError_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			INSERT INTO products (product_id, name, category, description, price)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				RowError(1, errors.New("read failed")),
+		)
+
+	result, err := repo.Save(context.Background(), testP)
+
+	assert.Error(t, err)
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdate_WhenNoDbIssues_ReturnsUpdatedProduct(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			UPDATE products 
+			SET name = $1, category = $2, description = $3, price = $4
+			WHERE product_id = $5
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
+		)
+
+	result, err := repo.Update(context.Background(), testP)
+
+	assert.NoError(t, err)
+	assert.Equal(t, testP, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdate_WhenDbError_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			UPDATE products 
+			SET name = $1, category = $2, description = $3, price = $4
+			WHERE product_id = $5
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
+		WillReturnError(errors.New("database unavailable"))
+
+	result, err := repo.Update(context.Background(), testP)
+
+	assert.Error(t, err)
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdate_WhenScanError_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			UPDATE products 
+			SET name = $1, category = $2, description = $3, price = $4
+			WHERE product_id = $5
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				AddRow("invalid-uuid", testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
+		)
+
+	result, err := repo.Update(context.Background(), testP)
+
+	assert.Error(t, err)
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdate_WhenRowsError_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			UPDATE products 
+			SET name = $1, category = $2, description = $3, price = $4
+			WHERE product_id = $5
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				RowError(1, errors.New("read failed")),
+		)
+
+	result, err := repo.Update(context.Background(), testP)
+
+	assert.Error(t, err)
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDelete_WhenNoDbIssues_ReturnsNewProduct(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectExec(`
+			DELETE FROM products
+			WHERE product_id = $1`).
+		WithArgs(SecondUUID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 1))
+
+	err := repo.Delete(context.Background(), SecondUUID)
+
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDelete_WhenDbError_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectExec(`
+			DELETE FROM products
+			WHERE product_id = $1`).
+		WithArgs(SecondUUID).
+		WillReturnError(errors.New("database unavailable"))
+
+	err := repo.Delete(context.Background(), SecondUUID)
+
+	assert.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 var (
 	FirstUUID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d001")
 	SecondUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002")
 	ThirdUUID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d003")
 	FourthUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d004")
+
+	testP = product.Product{
+		ID:          FirstUUID,
+		Name:        "iPhone 15",
+		Category:    "CLOTHES",
+		Description: new("Updated description"),
+		Price:       1500.0,
+		CreatedAt:   time.Now(),
+	}
 )
