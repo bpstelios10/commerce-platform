@@ -13,17 +13,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var (
-	FirstProductID  = "f47ac10b-58cc-4372-a567-0e02b2c3d001"
-	SecondProductID = "f47ac10b-58cc-4372-a567-0e02b2c3d002"
-
-	FirstOrderID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d011")
-	SecondOrderID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d012")
-
-	ErrornousID   = "01a0b072-db8f-742a-a289-0e290e1fb902"
-	ErrornousUUID = uuid.MustParse(ErrornousID)
-)
-
 // InMemoryOrderRepository is shared across goroutines (one instance, called from
 // every HTTP request goroutine). Go maps are NOT safe for concurrent use: a write
 // happening at the same time as any other access (read or write) panics the process
@@ -38,22 +27,7 @@ type InMemoryOrderRepository struct {
 
 func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 	return &InMemoryOrderRepository{
-		orders: map[uuid.UUID]order.Order{
-			FirstOrderID: {
-				ID:        FirstOrderID,
-				ProductID: FirstProductID,
-				Quantity:  2,
-				Status:    order.CREATED,
-				CreatedAt: time.Now(),
-			},
-			SecondOrderID: {
-				ID:        SecondOrderID,
-				ProductID: SecondProductID,
-				Quantity:  1,
-				Status:    order.PAID,
-				CreatedAt: time.Now(),
-			},
-		},
+		orders: map[uuid.UUID]order.Order{},
 	}
 }
 
@@ -77,11 +51,6 @@ func (repo *InMemoryOrderRepository) FindAll(ctx context.Context) ([]order.Order
 }
 
 func (repo *InMemoryOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
-	// dummy way to create unexpected error for tests
-	if id == ErrornousUUID {
-		return order.Order{}, errors.New("unexpected error")
-	}
-
 	// read-only: RLock.
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()

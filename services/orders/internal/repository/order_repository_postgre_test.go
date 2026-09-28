@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
@@ -142,6 +144,7 @@ func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
 
 	result, err := repo.FindByID(context.Background(), FirstOrderID)
 
+	// TODO add assertion for the error message EVERYWHERE
 	assert.Error(t, err)
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -362,6 +365,12 @@ func TestDelete_WhenDbError_ReturnsError(t *testing.T) {
 }
 
 var (
+	FirstProductID  = "f47ac10b-58cc-4372-a567-0e02b2c3d001"
+	SecondProductID = "f47ac10b-58cc-4372-a567-0e02b2c3d002"
+
+	FirstOrderID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d011")
+	SecondOrderID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d012")
+
 	testO = order.Order{
 		ID:        FirstOrderID,
 		ProductID: FirstProductID,
