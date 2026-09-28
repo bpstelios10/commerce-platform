@@ -114,7 +114,11 @@ func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info().Str("product_id", validUUID.String()).Msg("delete product request received")
 
-	h.adminService.DeleteProduct(ctx, validUUID)
+	err = h.adminService.DeleteProduct(ctx, validUUID)
+	if err != nil {
+		HandleError(ctx, w, fmt.Errorf("delete_order: %w", err))
+		return
+	}
 
 	HandleResponse(ctx, w, http.StatusNoContent)
 }

@@ -6,6 +6,7 @@ import (
 	"commerce-platform/services/products/internal/repository"
 	"commerce-platform/services/products/internal/service"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -495,6 +496,29 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestDeleteProduct_WhenProductNotExists_Returns204(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+	mock.ExpectExec(`
+			DELETE FROM products
+			WHERE product_id = $1`).
+		WithArgs(SecondUUID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
+
+	req, err := http.NewRequest(
+		http.MethodDelete,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		nil,
+	)
+	assert.NoError(t, err)
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusNoContent, res.StatusCode)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestDeleteProduct_WhenBadUUID_Returns400(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
 
@@ -517,6 +541,39 @@ func TestDeleteProduct_WhenBadUUID_Returns400(t *testing.T) {
 		`{
 			"code": "INVALID_UUID",
 			"message": "invalid UUID"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteProduct_WhenDbError_Returns500(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+	mock.ExpectExec(`
+			DELETE FROM products
+			WHERE product_id = $1`).
+		WithArgs(SecondUUID).
+		WillReturnError(errors.New("database unavailable"))
+
+	req, err := http.NewRequest(
+		http.MethodDelete,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		nil,
+	)
+	assert.NoError(t, err)
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INTERNAL_SERVER_ERROR",
+			"message": "internal server error"
 		}`,
 		string(body),
 	)
