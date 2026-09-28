@@ -53,6 +53,7 @@ func TestFindAll_WhenDbError_ReturnsError(t *testing.T) {
 	result, err := repo.FindAll(context.Background())
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "query products: database unavailable")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -70,6 +71,7 @@ func TestFindAll_WhenScanError_ReturnsError(t *testing.T) {
 	result, err := repo.FindAll(context.Background())
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "scan product: scanning value error for column 'product_id': Scan: invalid UUID length: 12")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -88,6 +90,7 @@ func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
 	result, err := repo.FindAll(context.Background())
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "iterate products: read failed")
 	assert.Len(t, result, 1)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -125,6 +128,7 @@ func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
 	result, err := repo.FindByID(context.Background(), FirstUUID)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "find product by id: database unavailable")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -146,6 +150,7 @@ func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
 	result, err := repo.FindByID(context.Background(), FirstUUID)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "find product by id: scanning value error for column 'product_id': Scan: invalid UUID length: 12")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -167,6 +172,7 @@ func TestFindByID_WhenRowsError_ReturnsError(t *testing.T) {
 	result, err := repo.FindByID(context.Background(), FirstUUID)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "find product by id: not found")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -204,6 +210,7 @@ func TestSave_WhenDbError_ReturnsError(t *testing.T) {
 	result, err := repo.Save(context.Background(), testP)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "save product: database unavailable")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -225,6 +232,7 @@ func TestSave_WhenScanError_ReturnsError(t *testing.T) {
 	result, err := repo.Save(context.Background(), testP)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "save product: scanning value error for column 'product_id': Scan: invalid UUID length: 12")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -246,6 +254,7 @@ func TestSave_WhenRowsError_ReturnsError(t *testing.T) {
 	result, err := repo.Save(context.Background(), testP)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "save product: no rows in result set")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -285,6 +294,7 @@ func TestUpdate_WhenDbError_ReturnsError(t *testing.T) {
 	result, err := repo.Update(context.Background(), testP)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "update product: database unavailable")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -307,6 +317,7 @@ func TestUpdate_WhenScanError_ReturnsError(t *testing.T) {
 	result, err := repo.Update(context.Background(), testP)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "update product: scanning value error for column 'product_id': Scan: invalid UUID length: 12")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -329,6 +340,7 @@ func TestUpdate_WhenRowsError_ReturnsError(t *testing.T) {
 	result, err := repo.Update(context.Background(), testP)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "update product: no rows in result set")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -358,6 +370,7 @@ func TestDelete_WhenDbError_ReturnsError(t *testing.T) {
 	err := repo.Delete(context.Background(), SecondUUID)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "delete product: database unavailable")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

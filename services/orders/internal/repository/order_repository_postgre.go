@@ -82,7 +82,7 @@ func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id uuid.UUID) 
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return order.Order{}, ErrNotFound
+		return order.Order{}, fmt.Errorf("find order by id: %w", ErrNotFound)
 	}
 
 	if err != nil {

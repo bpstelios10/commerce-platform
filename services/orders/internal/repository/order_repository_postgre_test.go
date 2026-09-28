@@ -52,6 +52,7 @@ func TestFindAll_WhenDbError_ReturnsError(t *testing.T) {
 	result, err := repo.FindAll(context.Background())
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "query orders: database unavailable")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -69,6 +70,7 @@ func TestFindAll_WhenScanError_ReturnsError(t *testing.T) {
 	result, err := repo.FindAll(context.Background())
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "scan order: scanning value error for column 'order_id': Scan: invalid UUID length: 12")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -87,6 +89,7 @@ func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
 	result, err := repo.FindAll(context.Background())
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "iterate orders: read failed")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -124,6 +127,7 @@ func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
 	result, err := repo.FindByID(context.Background(), FirstOrderID)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "find order by id: database unavailable")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -144,8 +148,8 @@ func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
 
 	result, err := repo.FindByID(context.Background(), FirstOrderID)
 
-	// TODO add assertion for the error message EVERYWHERE
 	assert.Error(t, err)
+	assert.EqualError(t, err, "find order by id: scanning value error for column 'order_id': Scan: invalid UUID length: 12")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -167,6 +171,7 @@ func TestFindByID_WhenRowsError_ReturnsError(t *testing.T) {
 	result, err := repo.FindByID(context.Background(), FirstOrderID)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "find order by id: not found")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -288,6 +293,7 @@ func TestUpdate_WhenDbError_ReturnsError(t *testing.T) {
 	result, err := repo.Update(context.Background(), testO)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "update order: database unavailable")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -310,6 +316,7 @@ func TestUpdate_WhenScanError_ReturnsError(t *testing.T) {
 	result, err := repo.Update(context.Background(), testO)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "update order: scanning value error for column 'order_id': Scan: invalid UUID length: 12")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -332,6 +339,7 @@ func TestUpdate_WhenRowsError_ReturnsError(t *testing.T) {
 	result, err := repo.Update(context.Background(), testO)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "update order: no rows in result set")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -361,6 +369,7 @@ func TestDelete_WhenDbError_ReturnsError(t *testing.T) {
 	err := repo.Delete(context.Background(), SecondOrderID)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "delete order: database unavailable")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

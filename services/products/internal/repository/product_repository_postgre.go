@@ -86,7 +86,7 @@ func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return product.Product{}, ErrNotFound
+		return product.Product{}, fmt.Errorf("find product by id: %w", ErrNotFound)
 	}
 
 	if err != nil {

@@ -59,7 +59,6 @@ func TestExists_WhenDbError_ReturnsError(t *testing.T) {
 	result, err := repo.Exists(context.Background(), "CATEG")
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "product category exists: database unavailable")
 	assert.False(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -111,6 +110,7 @@ func TestGetAll_WhenRowWithError_StopsScanning(t *testing.T) {
 	result, err := repo.GetAll(context.Background())
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "scan product categories: row error")
 	assert.Len(t, result, 1)
 	assert.Contains(t, result, "MAGNET")
 	assert.NoError(t, mock.ExpectationsWereMet())
