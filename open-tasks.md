@@ -1,107 +1,94 @@
 # Open Tasks
 
-Tracks the follow-ups from [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md), plus a
-few extra items worth doing. Check items off as they're done; update
-[TECH.md](TECH.md)'s status table when a phase-related item lands.
+Prioritized from the fresh 2026-09-28 [technical review](TECHNICAL_REVIEW.md).
+Only unfinished work is listed. Acceptance checks are proposed, not executed.
 
-## High priority
+## 1. Fix Current Defects
 
-- [x] Stop collapsing all gRPC errors into `ErrProductNotFound` in
-      `OrderService.validateProductExists` ([order_service.go](services/orders/internal/service/order_service.go)).
-      Map `codes.NotFound` → `ErrProductNotFound`; map everything else (`Unavailable`,
-      `DeadlineExceeded`, etc.) to a new `ErrProductServiceUnavailable` → HTTP 502/503.
-- [x] Add graceful shutdown to both `cmd/main.go` entry points: `signal.NotifyContext`
-      (SIGINT/SIGTERM) + `http.Server.Shutdown(ctx)` + `grpcServer.GracefulStop()`, with a
-      bounded shutdown timeout (`shutdownTimeout = 10s`; gRPC falls back to a forceful
-      `Stop()` if `GracefulStop()` doesn't finish in time, via the tested
-      [shared/shutdown.StopGracefullyOrForcefully](shared/shutdown/shutdown.go)). Manually
-      verified with `kill -TERM` against both running binaries — clean exit, no dropped/hung
-      connections. (Full signal-handling flow in `main()` itself is intentionally not unit
-      tested — extracting real signals/ports into a test is unconventional/fragile; the
-      testable timeout-fallback logic is covered instead.)
-- [x] Fix silent HTTP bind failures in [products/cmd/main.go](services/products/cmd/main.go) —
-      the HTTP server ran in a bare `go func(){ http.ListenAndServe(...) }()`; a bind error
-      (e.g. port in use) was dropped. Fixed as part of the logging unification below: both the
-      HTTP and gRPC listeners now log via `logger.Fatal().Err(...)`, which logs and exits on error.
+- [ ] Handle product delete errors in HTTP; test DB failure returns 500 rather
+      than 204, while successful/idempotent deletion remains 204.
+- [ ] Use literal category lookup against canonical database names; test `%`,
+      `_`, unknown categories, and normalized valid names against PostgreSQL.
+- [ ] Check category `rows.Err()`; verify iteration failures cannot return success.
+      Make partial-result behavior explicit and consistent where appropriate.
+- [ ] Translate UPDATE no-rows into repository and service not-found errors in
+      both services; test deletion between the preliminary read and write.
+- [ ] Validate order product UUIDs before RPC. Define/test HTTP mappings for
+      unavailable/timed-out products calls and gRPC mappings for wrapped context
+      cancellation/deadline errors. Preserve safe responses and internal causes.
+- [ ] Handle UUIDv7 generation errors in both create services before persistence.
+- [ ] Align input bounds with SQL name/price/quantity limits; reject nonfinite or
+      invalid search price bounds. Enforce core invariants below HTTP and add
+      database CHECK constraints through new migrations.
+- [ ] Limit HTTP request bodies, require one JSON value, and choose/test the
+      unknown-field policy. Cover oversized and trailing-content requests.
+- [ ] Configure HTTP timeouts and request, RPC, database, and startup budgets.
+      Verify cancellation reaches dependencies and earlier deadlines are preserved.
+- [ ] Attempt all shutdown cleanup even after an error; force-close after the
+      drain budget. Centralize serve failures instead of `Fatal` in goroutines;
+      retain and close the products gRPC connection.
+- [ ] Use escaped/structured DB configuration, consistent TLS, runtime secret
+      overrides, and startup validation. Test URI-special credentials, invalid
+      ports/timeouts, and unknown YAML fields.
 
-## Medium priority
+## 2. Improve Go And API Quality
 
-- [x] Externalize configuration: ports (`:8082`, `:8092`, `:8083`) and the orders→products
-      gRPC address (`localhost:8092`) are hardcoded in `main.go`. Load from env vars with
-      sane local defaults (unblocks Docker Compose too).
-- [-] Extract duplicated `validation/uuid.go` (`GetValidUUID`/`ErrInvalidUUID`) — currently
-      copy-pasted in both `orders` and `products` — into `shared`.
-- [-] Consider extracting the repository mutex/CRUD boilerplate (near-identical between the
-      two in-memory repos) into a generic `shared` helper, e.g. `InMemoryRepository[K, V]`.
-- [x] Check/log the error returned by `json.NewEncoder(w).Encode(...)` in handlers instead of
-      discarding it (e.g. [order_handler.go](services/orders/internal/http/order_handler.go)).
-- [x] Align package naming: rename orders' `http` package to `httpx` (matches products, and
-      stops shadowing the stdlib `net/http` import name inside the package).
-- [x] Ring-fence the scratch/demo code in [products/cmd/main.go](services/products/cmd/main.go)
-      (manual map lookups, `ApplyDiscount` demo, etc.) — e.g. move behind a `-demo` flag or
-      into a separate example file — so it doesn't get mistaken for real bootstrap logic.
-- [-] Add a `.golangci.yml` at the repo root so `make lint` is reproducible across machines
-      instead of depending on whatever's installed locally.
-- [ ] Add a CI pipeline (GitHub Actions) running `make test-all` and `make check` on every PR.
+- [ ] Define exact money/currency/rounding contracts across Go, JSON, protobuf,
+      and PostgreSQL. Validate discount ranges and test rounding boundaries.
+- [ ] Move product search filtering into SQL; add bounded pagination and stable
+      ordering to orders/products lists. Test filters, limits, and page continuity.
+- [ ] Define an application-owned product lookup contract; keep generated types
+      and gRPC status translation in the adapter. Clarify repository error
+      ownership without introducing a generic framework.
+- [ ] Make logger levels instance-local and global formatting setup explicit.
+      Test that creating one logger does not change another's level.
+- [ ] Use a proven HTTP response-writer wrapper; test implicit/repeated statuses
+      and required capabilities. Define/test HTTP and gRPC panic recovery.
+- [ ] Log response-write failures without a second response; replace whole DTO
+      Info logs with selected fields. Preserve context without duplicate noise.
+- [ ] Decide concurrent-update semantics; use optimistic concurrency where lost
+      updates violate the intended contract.
 
-## Low priority
+## 3. Strengthen Verification
 
-- [-] Add `coverage.out` (root-level, no prefix) to the `make clean` target — currently only
-      `coverage-{shared,orders,products}.out` are removed.
-- [ ] Add request timeouts: wrap HTTP servers with `http.TimeoutHandler` / set
-      `ReadHeaderTimeout` etc., and set a dial/call timeout on the orders→products gRPC client
-      (`context.WithTimeout` at the call site) — ties into TECH.md Phase 11 (context propagation).
+- [ ] Focus pgxmock on repository behavior; use repository stubs for service
+      decisions and isolate HTTP contracts where helpful. Keep selected composition
+      tests instead of duplicating SQL throughout every layer.
+- [ ] Use fatal test prerequisites, meaningful UUID assertions, and error identity
+      checks. Audit row-error fixtures so each exercises its named failure; remove
+      the stray pgx v4 import and tidy unused dependencies.
+- [ ] Add isolated PostgreSQL tests for migrations, CRUD, codecs, constraints,
+      category lookup, money round trips, and cancellation.
+- [ ] Test fresh migrations, no-change reruns, and supported upgrades; document
+      rollback limits with populated category references and dirty-migration
+      recovery. Keep applied migrations immutable.
+- [ ] Add orders-to-products integration tests for lookup, status mapping,
+      deadlines, and request-ID propagation.
+- [ ] Test lifecycle orchestration: bind failure, active-request drain, timeout
+      fallback, cleanup after one failure, and a focused signal smoke test.
+- [ ] Add CI running `make check` across all modules, isolated DB tests,
+      dependency scanning, image builds, and pinned protobuf drift checks.
 
-## Additional suggestions (beyond the original review)
+## 4. Close Deployment And Product Gaps
 
-- [ ] Expose `CreateProduct` over gRPC too (currently HTTP-only), matching TECH.md Phase 8's
-      goal of `GetProduct()` + `CreateProduct()` both over gRPC.
-- [x] Add a root `docker-compose.yml` once config is externalized (Phase 7) — even without
-      Postgres yet, this is useful for running both services + health checks with one command.
-- [ ] Add a basic OpenAPI/Swagger spec (or at least a `docs/api.md`) for the two REST APIs —
-      there's currently no request/response contract documented outside of the DTO structs.
-- [x] Decide on `orders` repo's `Save` vs `Update` — they're currently identical upserts
-      (`repo.orders[o.ID] = o`); either differentiate them (e.g. `Save` rejects existing IDs)
-      or collapse to one method to avoid the false impression they behave differently.
-- [ ] Add an integration-style test that boots both services (or fakes the gRPC boundary) to
-      exercise the orders→products call path end-to-end, not just via mocked `ProductsClient`.
+- [ ] Make clean-checkout image builds self-contained and target-aware for
+      ARM64/AMD64; distinguish native builds from container artifacts.
+- [ ] Correct setup/API docs: PostgreSQL repositories, all Compose services,
+      explicit profiles, log-level precedence, `make check`, credential overrides,
+      and the shutdown example. Document REST contracts and errors.
+- [ ] Add bounded readiness distinct from liveness, including shutdown state;
+      configure service health checks and termination grace periods.
+- [ ] Before external exposure, implement identity, admin permissions, order
+      ownership, and an explicit TLS/secrets/network policy.
+- [ ] Define production migration ownership and least-privilege runtime access;
+      verify schema changes support the chosen rollout strategy.
+- [ ] Add request/error/latency and DB-pool metrics, actionable alerts, and basic
+      runbooks. Introduce tracing when cross-service diagnosis needs it.
+- [ ] Define order transitions, price/currency snapshots, product deletion
+      behavior, idempotent creation, and inventory consistency before payments.
 
-## Logging (Google/K8s/Uber-standard pass)
+## Defer
 
-Tracked as its own section since it's a multi-step effort, done one item at a time.
-
-- [x] **1. Kill the slog/zerolog split.** Removed all `log/slog` usage from repository,
-      service, and `main.go` (both services) — everything now logs through the shared
-      zerolog logger, threaded via `context.Context` (repository/service methods now take
-      `ctx` as their first parameter). `shared/logger.SetAsDefault` (called once from each
-      `main.go`) sets `zerolog.DefaultContextLogger` so code paths without a request-scoped
-      logger in context (e.g. gRPC, until item 2 landed) fall back to the base service logger
-      instead of a disabled one; kept out of `New` itself so `New` stays side-effect-free and
-      safe to call repeatedly in tests.
-- [x] **2. Propagate the request ID across the gRPC boundary.** Orders forwards `request_id`
-      as outgoing gRPC metadata (`shared/logger.RequestIDMetadataKey`); products reads it in a
-      new `LoggingUnaryInterceptor` ([interceptor.go](services/products/internal/grpc/interceptor.go))
-      and injects it into its request-scoped logger, generating one if absent (mirrors the HTTP
-      middleware behavior). Registered via `grpc.UnaryInterceptor(...)` in products' `main.go`.
-- [x] **3. Add one canonical access-log line per request/RPC.** HTTP middleware
-      ([request_context_middleware.go](shared/logger/request_context_middleware.go)) now wraps
-      the `http.ResponseWriter` to capture the status code and logs one "request completed"
-      line per request (method, path, status, duration). Products' `LoggingUnaryInterceptor`
-      ([interceptor.go](services/products/internal/grpc/interceptor.go)) does the same for gRPC,
-      logging one "rpc completed" line (method, status code, duration) per call — both separate
-      from whatever business-event logs individual handlers add.
-- [x] **4. Standardize log field names** across both services (snake_case: `order_id`,
-      `product_id`, `request_id`, `category`) — full sweep of every `.Str`/`.Int`/`.Interface`/
-      `.Bool`/`.Strs` log call across both services found field names were already snake_case
-      from items 1–3, except one leftover: `Interface("maxPrice", ...)` in
-      [product_handler.go](services/products/internal/http/product_handler.go)'s
-      `SearchProducts`, fixed to `max_price` (the `maxPrice` HTTP query parameter itself is
-      the API contract and was left unchanged).
-- [x] **5. Make log level configurable via env var.** Added `shared/logger.LevelFromEnv`
-      (parses a level name via `zerolog.ParseLevel`, falls back to a default if unset/invalid);
-      both `cmd/main.go` files now use `loggerx.LevelFromEnv("LOG_LEVEL", zerolog.InfoLevel)`
-      instead of a hardcoded level. Set `LOG_LEVEL=debug` (or `warn`/`error`) to change
-      verbosity per environment without a rebuild.
-- [ ] *(Deferred, own future phase)* Full OpenTelemetry trace/span propagation instead of the
-      hand-rolled `request_id` — bigger lift (SDK, exporters), tracked separately in
-      [TECH.md](TECH.md) rather than bundled into this pass.
+Kafka, Redis, Kubernetes deployment, alternate transports, extra RPCs, generic
+repositories, and advanced search infrastructure until a concrete use case needs
+them. Keep learning-roadmap experiments separate from this queue.
