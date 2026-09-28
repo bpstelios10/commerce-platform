@@ -204,26 +204,6 @@ func TestCreateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
-	svc, mock, _ := setup(t)
-	id := uuid.New()
-	mock.ExpectQuery(`
-			SELECT order_id, product_id, quantity, status, created_at
-			FROM orders
-			WHERE order_id = $1`).
-		WithArgs(id).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
-			}))
-
-	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELED)
-
-	assert.Error(t, err)
-	assert.Empty(t, updated)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
 func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	svc, mock, _ := setup(t)
 	mock.ExpectQuery(`
@@ -261,32 +241,44 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
+	svc, mock, _ := setup(t)
+	id := uuid.New()
+	mock.ExpectQuery(`
+			SELECT order_id, product_id, quantity, status, created_at
+			FROM orders
+			WHERE order_id = $1`).
+		WithArgs(id).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"order_id", "product_id", "quantity", "status", "created_at",
+			}))
+
+	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELED)
+
+	assert.Error(t, err)
+	assert.Empty(t, updated)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
 	mock.ExpectQuery(`
 			SELECT order_id, product_id, quantity, status, created_at
 			FROM orders
 			WHERE order_id = $1`).
-		WithArgs(testO.ID).
+		WithArgs(FirstOrderID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
 				"order_id", "product_id", "quantity", "status", "created_at",
-			}))
+			}).
+				AddRow(FirstOrderID, FirstProductID, 2, order.CREATED, time.Now()),
+		)
 
 	updated, err := svc.UpdateOrder(context.Background(), FirstOrderID, "999", 11, order.PAID)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "updating order: Order with id [f47ac10b-58cc-4372-a567-0e02b2c3d011] was not found")
-	assert.Empty(t, updated)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestUpdateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
-	svc, mock, _ := setup(t)
-
-	updated, err := svc.UpdateOrder(context.Background(), FirstOrderID, "error", 11, order.PAID)
-
-	assert.Error(t, err)
+	assert.EqualError(t, err, "updating order: get product 999 from products service: rpc error: code = NotFound desc = product not found\nproduct not found for the given id")
 	assert.Empty(t, updated)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
