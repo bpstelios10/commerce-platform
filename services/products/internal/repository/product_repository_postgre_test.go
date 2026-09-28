@@ -14,6 +14,7 @@ import (
 )
 
 func setup(t *testing.T) (pgxmock.PgxPoolIface, *PostgreProductRepository) {
+	t.Helper()
 	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
 	assert.NoError(t, err)
 
@@ -91,7 +92,7 @@ func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindByID_WhenProductsExist_ReturnsAllProducts(t *testing.T) {
+func TestFindByID_WhenProductsExist_ReturnsProduct(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
@@ -332,7 +333,7 @@ func TestUpdate_WhenRowsError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestDelete_WhenNoDbIssues_ReturnsNewProduct(t *testing.T) {
+func TestDelete_WhenNoDbIssues_Returns(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectExec(`
 			DELETE FROM products

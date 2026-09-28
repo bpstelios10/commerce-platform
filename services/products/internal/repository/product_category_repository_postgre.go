@@ -47,19 +47,19 @@ func (r *PostgreProductCategoryRepository) GetAll(ctx context.Context) ([]string
 		FROM product_categories
 	`
 
+	categoriesNames := make([]string, 0)
+
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("query product categories: %w", err)
+		return categoriesNames, fmt.Errorf("query product categories: %w", err)
 	}
 	defer rows.Close()
-
-	categoriesNames := make([]string, 0)
 
 	for rows.Next() {
 		var categoryName string
 
 		if err = rows.Scan(&categoryName); err != nil {
-			return nil, fmt.Errorf("scan product categories: %w", err)
+			return categoriesNames, fmt.Errorf("scan product categories: %w", err)
 		}
 
 		categoriesNames = append(categoriesNames, categoryName)
