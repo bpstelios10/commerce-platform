@@ -96,7 +96,7 @@ func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) (or
 	const query = `
 		INSERT INTO orders (order_id, product_id, quantity, status)
 		VALUES ($1, $2, $3, $4)
-		RETURNING product_id, quantity, status, created_at;
+		RETURNING order_id, product_id, quantity, status, created_at;
 	`
 
 	row := repo.db.QueryRow(
@@ -108,6 +108,7 @@ func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) (or
 		o.Status,
 	)
 	if err := row.Scan(
+		&o.ID,
 		&o.ProductID,
 		&o.Quantity,
 		&o.Status,
@@ -124,11 +125,12 @@ func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) (
 		UPDATE orders
 		SET product_id = $1, quantity = $2, status = $3
 		WHERE order_id = $4
-		RETURNING product_id, quantity, status, created_at;
+		RETURNING order_id, product_id, quantity, status, created_at;
 	`
 
 	row := repo.db.QueryRow(ctx, query, o.ProductID, o.Quantity, o.Status, o.ID)
 	if err := row.Scan(
+		&o.ID,
 		&o.ProductID,
 		&o.Quantity,
 		&o.Status,
