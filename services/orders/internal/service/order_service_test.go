@@ -118,6 +118,7 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	o, err := svc.GetOrderByID(context.Background(), id)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "Order with id ["+id.String()+"] was not found")
 	var notFoundErr *ErrOrderNotFound
 	assert.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.OrderID)
@@ -183,6 +184,7 @@ func TestCreateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
 	o, err := svc.CreateOrder(context.Background(), "error", 10)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "create order: get product error from products service: rpc error: code = Internal desc = unexpected error")
 	assert.Empty(t, o)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -257,6 +259,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELED)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "updating order: Order with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

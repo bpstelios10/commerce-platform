@@ -73,6 +73,7 @@ func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrInvalidCategory)
+	assert.EqualError(t, err, "validate product category UNKNOWN: invalid category")
 	assert.Empty(t, p)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -125,6 +126,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.ProductID)
+	assert.EqualError(t, err, "updating product: Product with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -204,6 +206,7 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrInvalidCategory)
+	assert.EqualError(t, err, "updating product: validate product category UNKNOWN: invalid category")
 	assert.Empty(t, updated)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

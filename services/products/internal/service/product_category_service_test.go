@@ -54,6 +54,7 @@ func TestProductCategoryService_Validate_WhenCategoryNotExists_ReturnsInvalidCat
 
 	assert.Empty(t, normalized)
 	assert.ErrorIs(t, err, ErrInvalidCategory)
+	assert.EqualError(t, err, "validate product category UNKNOWN: invalid category")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

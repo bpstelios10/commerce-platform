@@ -18,5 +18,6 @@ func TestGetValidUUID_WhenInvalidUUID_returnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrInvalidUUID)
+	assert.EqualError(t, err, "invalid UUID")
 	assert.Empty(t, id)
 }
