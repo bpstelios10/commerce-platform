@@ -29,6 +29,7 @@ func TestRunMigrations_WhenSourceInvalid_ReturnsError(t *testing.T) {
 	err := RunMigrations(cfg, failingFS{})
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "create migration source: failed to init driver with path .: boom")
 }
 
 func TestRunMigrations_WhenConnectionStringInvalid_ReturnsError(t *testing.T) {
@@ -43,4 +44,5 @@ func TestRunMigrations_WhenConnectionStringInvalid_ReturnsError(t *testing.T) {
 	err := RunMigrations(cfg, fstest.MapFS{})
 
 	assert.Error(t, err)
+	assert.ErrorContains(t, err, "create migration", "failed to open database", "parse", "localhost:-1/products", "invalid port")
 }

@@ -72,6 +72,7 @@ func TestLoad_WhenProfileFileDoesNotExist_ReturnsError(t *testing.T) {
 	err := Load(testFiles, "missing", &cfg)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "open missing.yaml: file does not exist")
 	assert.Equal(t, "missing", cfg.Profile)
 }
 
@@ -81,4 +82,5 @@ func TestLoad_WhenBaseFileDoesNotExist_ReturnsError(t *testing.T) {
 	err := Load(fstest.MapFS{}, "", &cfg)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "open base.yaml: file does not exist")
 }

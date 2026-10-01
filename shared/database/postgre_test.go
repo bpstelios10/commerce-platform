@@ -43,5 +43,6 @@ func TestNewPostgreClient_WhenConnectionStringInvalid_ReturnsError(t *testing.T)
 	pool, err := NewPostgreClient(context.Background(), cfg)
 
 	assert.Error(t, err)
+	assert.EqualError(t, err, "cannot parse `postgres://commerce:xxxxx@localhost:-1/products`: invalid port")
 	assert.Nil(t, pool)
 }
