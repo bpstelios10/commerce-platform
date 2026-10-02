@@ -9,7 +9,7 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       than 204, while successful/idempotent deletion remains 204.
 - [x] Use literal category lookup against canonical database names; test `%`,
       `_`, unknown categories, and normalized valid names against PostgreSQL.
-- [ ] Check category `rows.Err()`; verify iteration failures cannot return success.
+- [x] Check category `rows.Err()`; verify iteration failures cannot return success.
       Make partial-result behavior explicit and consistent where appropriate.
 - [ ] Translate UPDATE no-rows into repository and service not-found errors in
       both services; test deletion between the preliminary read and write.

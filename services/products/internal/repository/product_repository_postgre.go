@@ -61,7 +61,7 @@ func (r *PostgreProductRepository) FindAll(ctx context.Context) ([]product.Produ
 	}
 
 	if err := rows.Err(); err != nil {
-		return products, fmt.Errorf("iterate products: %w", err)
+		return nil, fmt.Errorf("iterate products: %w", err)
 	}
 
 	return products, nil

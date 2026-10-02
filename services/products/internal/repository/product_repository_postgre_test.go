@@ -91,7 +91,7 @@ func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "iterate products: read failed")
-	assert.Len(t, result, 1)
+	assert.Nil(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
