@@ -25,7 +25,7 @@ func (r *PostgreProductCategoryRepository) Exists(ctx context.Context, category 
 	const query = `
 		SELECT name
 		FROM product_categories
-		WHERE name ILIKE $1
+		WHERE name = $1
 	`
 
 	var name string

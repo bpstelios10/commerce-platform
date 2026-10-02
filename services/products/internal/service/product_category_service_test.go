@@ -27,7 +27,7 @@ func setupProductCategoryServiceTest(t *testing.T) (*ProductCategoryService, pgx
 
 func TestProductCategoryService_Validate_WhenCategoryExists_ReturnsNil(t *testing.T) {
 	svc, mock := setupProductCategoryServiceTest(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("ACCESSORY").
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}).
@@ -43,7 +43,7 @@ func TestProductCategoryService_Validate_WhenCategoryExists_ReturnsNil(t *testin
 
 func TestProductCategoryService_Validate_WhenCategoryNotExists_ReturnsInvalidCategory(t *testing.T) {
 	svc, mock := setupProductCategoryServiceTest(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("UNKNOWN").
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}).
@@ -60,7 +60,7 @@ func TestProductCategoryService_Validate_WhenCategoryNotExists_ReturnsInvalidCat
 
 func TestProductCategoryService_Validate_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock := setupProductCategoryServiceTest(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("ERRORNOUS_CATEGORY").
 		WillReturnError(errors.New("database unavailable"))
 

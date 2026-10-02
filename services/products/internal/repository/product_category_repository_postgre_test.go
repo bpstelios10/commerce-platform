@@ -22,7 +22,7 @@ func setupCategoriesRepo(t *testing.T) (pgxmock.PgxPoolIface, *PostgreProductCat
 
 func TestExists_WhenCategoryExists_ReturnsTrue(t *testing.T) {
 	mock, repo := setupCategoriesRepo(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("CATEG").
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}).
@@ -38,7 +38,7 @@ func TestExists_WhenCategoryExists_ReturnsTrue(t *testing.T) {
 
 func TestExists_WhenCategoryNotExists_ReturnsFalse(t *testing.T) {
 	mock, repo := setupCategoriesRepo(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("CATEG").
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}))
@@ -52,7 +52,7 @@ func TestExists_WhenCategoryNotExists_ReturnsFalse(t *testing.T) {
 
 func TestExists_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setupCategoriesRepo(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("CATEG").
 		WillReturnError(errors.New("database unavailable"))
 

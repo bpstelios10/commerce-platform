@@ -38,7 +38,7 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 		Description: new("some-description"),
 		Price:       2501.0,
 	}
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs(p.Category).
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}).
@@ -64,7 +64,7 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 
 func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
 	svc, mock := setup(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("UNKNOWN").
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}))
@@ -86,7 +86,7 @@ func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
 		Description: new("some-description"),
 		Price:       2501.0,
 	}
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs(p.Category).
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}).
@@ -139,7 +139,6 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Category:    "CLOTHES",
 		Description: new("Updated description"),
 		Price:       1500.0,
-		CreatedAt:   time.Now(),
 	}
 	// product exists
 	createdAt := time.Now()
@@ -154,7 +153,7 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, createdAt),
 		)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs(p.Category).
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}).
@@ -197,7 +196,7 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
 		)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("UNKNOWN").
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}))
@@ -224,7 +223,7 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
 		)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("CLOTHES").
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}).

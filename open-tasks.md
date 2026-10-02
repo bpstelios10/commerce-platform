@@ -7,7 +7,7 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
 
 - [x] Handle product delete errors in HTTP; test DB failure returns 500 rather
       than 204, while successful/idempotent deletion remains 204.
-- [ ] Use literal category lookup against canonical database names; test `%`,
+- [x] Use literal category lookup against canonical database names; test `%`,
       `_`, unknown categories, and normalized valid names against PostgreSQL.
 - [ ] Check category `rows.Err()`; verify iteration failures cannot return success.
       Make partial-result behavior explicit and consistent where appropriate.

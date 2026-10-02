@@ -71,7 +71,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			srv, mock := setupAdminHandlerTest(t)
-			mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+			mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 				WithArgs(tt.category).
 				WillReturnRows(
 					pgxmock.NewRows([]string{"name"}).
@@ -182,7 +182,7 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 
 func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("UNKNOWN").
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}))
@@ -235,7 +235,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, createdAt),
 		)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs(p.Category).
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}).
@@ -437,7 +437,7 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
 		)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name ILIKE $1`).
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
 		WithArgs("UNKNOWN").
 		WillReturnRows(
 			pgxmock.NewRows([]string{"name"}),

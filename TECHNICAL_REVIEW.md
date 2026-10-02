@@ -19,10 +19,6 @@ Docker and are not yet implemented).
 - **Consistent layering** — both services follow handler → service →
   repository with constructor injection (`NewXxx`) and interfaces owned by the
   consumer (e.g. `OrderRepository` defined in [order_service.go](services/orders/internal/service/order_service.go), not in the repository package). This is idiomatic Go and keeps the domain decoupled from storage.
-- **Correct concurrency handling** — the in-memory repositories
-  ([order_repository.go](services/orders/internal/repository/order_repository.go), [product_repository.go](services/products/internal/repository/product_repository.go))
-  use `sync.RWMutex` with locks on every map access (not just writes), with
-  comments explaining why. This is a common beginner bug that's been avoided.
 
 # Technical Review
 
