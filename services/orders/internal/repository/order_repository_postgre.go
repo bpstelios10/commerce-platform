@@ -99,14 +99,7 @@ func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) (or
 		RETURNING order_id, product_id, quantity, status, created_at;
 	`
 
-	row := repo.db.QueryRow(
-		ctx,
-		query,
-		o.ID,
-		o.ProductID,
-		o.Quantity,
-		o.Status,
-	)
+	row := repo.db.QueryRow(ctx, query, o.ID, o.ProductID, o.Quantity, o.Status)
 	if err := row.Scan(
 		&o.ID,
 		&o.ProductID,
@@ -129,13 +122,19 @@ func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) (
 	`
 
 	row := repo.db.QueryRow(ctx, query, o.ProductID, o.Quantity, o.Status, o.ID)
-	if err := row.Scan(
+	err := row.Scan(
 		&o.ID,
 		&o.ProductID,
 		&o.Quantity,
 		&o.Status,
 		&o.CreatedAt,
-	); err != nil {
+	)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return order.Order{}, fmt.Errorf("update order: %w", ErrNotFound)
+	}
+
+	if err != nil {
 		return order.Order{}, fmt.Errorf("update order: %w", err)
 	}
 

@@ -115,6 +115,28 @@ func TestFindByID_WhenOrdersExist_ReturnsOrder(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestFindByID_WhenErrorNotExists_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			SELECT order_id, product_id, quantity, status, created_at
+			FROM orders
+			WHERE order_id = $1`).
+		WithArgs(FirstOrderID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"order_id", "product_id", "quantity", "status", "created_at",
+			}).
+				RowError(1, pgx.ErrNoRows),
+		)
+
+	result, err := repo.FindByID(context.Background(), FirstOrderID)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "find order by id: not found")
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
@@ -150,28 +172,6 @@ func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "find order by id: scanning value error for column 'order_id': Scan: invalid UUID length: 12")
-	assert.Empty(t, result)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestFindByID_WhenRowsError_ReturnsError(t *testing.T) {
-	mock, repo := setup(t)
-	mock.ExpectQuery(`
-			SELECT order_id, product_id, quantity, status, created_at
-			FROM orders
-			WHERE order_id = $1`).
-		WithArgs(FirstOrderID).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
-			}).
-				RowError(1, pgx.ErrNoRows),
-		)
-
-	result, err := repo.FindByID(context.Background(), FirstOrderID)
-
-	assert.Error(t, err)
-	assert.EqualError(t, err, "find order by id: not found")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -258,7 +258,7 @@ func TestSave_WhenRowsError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestUpdate_WhenNoDbIssues_ReturnsUpdatedOrder(t *testing.T) {
+func TestUpdate_WhenOrderExists_ReturnsUpdatedOrder(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			UPDATE orders
@@ -277,6 +277,29 @@ func TestUpdate_WhenNoDbIssues_ReturnsUpdatedOrder(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, testO, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdate_WhenOrderNotExists_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			UPDATE orders
+			SET product_id = $1, quantity = $2, status = $3
+			WHERE order_id = $4
+			RETURNING order_id, product_id, quantity, status, created_at;`).
+		WithArgs(testO.ProductID, testO.Quantity, testO.Status, testO.ID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"order_id", "product_id", "quantity", "status", "created_at",
+			}).
+				RowError(1, pgx.ErrNoRows),
+		)
+
+	result, err := repo.Update(context.Background(), testO)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "update order: not found")
+	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -317,29 +340,6 @@ func TestUpdate_WhenScanError_ReturnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "update order: scanning value error for column 'order_id': Scan: invalid UUID length: 12")
-	assert.Empty(t, result)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestUpdate_WhenRowsError_ReturnsError(t *testing.T) {
-	mock, repo := setup(t)
-	mock.ExpectQuery(`
-			UPDATE orders
-			SET product_id = $1, quantity = $2, status = $3
-			WHERE order_id = $4
-			RETURNING order_id, product_id, quantity, status, created_at;`).
-		WithArgs(testO.ProductID, testO.Quantity, testO.Status, testO.ID).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
-			}).
-				RowError(1, errors.New("read failed")),
-		)
-
-	result, err := repo.Update(context.Background(), testO)
-
-	assert.Error(t, err)
-	assert.EqualError(t, err, "update order: no rows in result set")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

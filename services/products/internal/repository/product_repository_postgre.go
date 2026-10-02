@@ -127,14 +127,20 @@ func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product
 	`
 
 	row := r.db.QueryRow(ctx, query, p.Name, p.Category, p.Description, p.Price, p.ID)
-	if err := row.Scan(
+	err := row.Scan(
 		&p.ID,
 		&p.Name,
 		&p.Category,
 		&p.Description,
 		&p.Price,
 		&p.CreatedAt,
-	); err != nil {
+	)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return product.Product{}, fmt.Errorf("update product: %w", ErrNotFound)
+	}
+
+	if err != nil {
 		return product.Product{}, fmt.Errorf("update product: %w", err)
 	}
 

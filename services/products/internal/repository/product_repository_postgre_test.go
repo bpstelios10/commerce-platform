@@ -116,6 +116,28 @@ func TestFindByID_WhenProductsExist_ReturnsProduct(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestFindByID_WhenProductsNotExists_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			SELECT product_id, name, category, description, price, created_at
+			FROM products
+			WHERE product_id = $1`).
+		WithArgs(FirstUUID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				RowError(1, pgx.ErrNoRows),
+		)
+
+	result, err := repo.FindByID(context.Background(), FirstUUID)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "find product by id: not found")
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
@@ -151,28 +173,6 @@ func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "find product by id: scanning value error for column 'product_id': Scan: invalid UUID length: 12")
-	assert.Empty(t, result)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestFindByID_WhenRowsError_ReturnsError(t *testing.T) {
-	mock, repo := setup(t)
-	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
-			FROM products
-			WHERE product_id = $1`).
-		WithArgs(FirstUUID).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				RowError(1, pgx.ErrNoRows),
-		)
-
-	result, err := repo.FindByID(context.Background(), FirstUUID)
-
-	assert.Error(t, err)
-	assert.EqualError(t, err, "find product by id: not found")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -259,7 +259,7 @@ func TestSave_WhenRowsError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestUpdate_WhenNoDbIssues_ReturnsUpdatedProduct(t *testing.T) {
+func TestUpdate_WhenProductExists_ReturnsUpdatedProduct(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			UPDATE products 
@@ -278,6 +278,29 @@ func TestUpdate_WhenNoDbIssues_ReturnsUpdatedProduct(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, testP, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdate_WhenProductNotExists_ReturnsError(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			UPDATE products 
+			SET name = $1, category = $2, description = $3, price = $4
+			WHERE product_id = $5
+			RETURNING product_id, name, category, description, price, created_at;`).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at",
+			}).
+				RowError(1, pgx.ErrNoRows),
+		)
+
+	result, err := repo.Update(context.Background(), testP)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "update product: not found")
+	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -318,29 +341,6 @@ func TestUpdate_WhenScanError_ReturnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "update product: scanning value error for column 'product_id': Scan: invalid UUID length: 12")
-	assert.Empty(t, result)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestUpdate_WhenRowsError_ReturnsError(t *testing.T) {
-	mock, repo := setup(t)
-	mock.ExpectQuery(`
-			UPDATE products 
-			SET name = $1, category = $2, description = $3, price = $4
-			WHERE product_id = $5
-			RETURNING product_id, name, category, description, price, created_at;`).
-		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				RowError(1, errors.New("read failed")),
-		)
-
-	result, err := repo.Update(context.Background(), testP)
-
-	assert.Error(t, err)
-	assert.EqualError(t, err, "update product: no rows in result set")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
