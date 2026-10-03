@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -82,6 +83,8 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Normalize input
+	req.ProductID = strings.TrimSpace(req.ProductID)
 	if err = validateCreateOrder(ctx, req); err != nil {
 		HandleError(ctx, w, err)
 		return
@@ -121,8 +124,9 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// normalize status - to uppercase
+	// normalize input
 	req.Status = req.Status.Normalize()
+	req.ProductID = strings.TrimSpace(req.ProductID)
 	if err = validateUpdateOrder(ctx, req); err != nil {
 		HandleError(ctx, w, err)
 		return

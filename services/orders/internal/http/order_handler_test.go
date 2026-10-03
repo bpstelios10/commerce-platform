@@ -265,7 +265,7 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 		srv.URL+"/orders",
 		"application/json",
 		bytes.NewBufferString(`{
-			"product_id": "`+FirstProductID+`",
+			"product_id": " `+FirstProductID+` ",
 			"quantity": 10
 		}`),
 	)
@@ -404,9 +404,9 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 		http.MethodPut,
 		srv.URL+"/orders/"+FirstOrderID.String(),
 		bytes.NewBufferString(`{
-			"product_id": "`+FirstProductID+`",
+			"product_id": " `+FirstProductID+`",
 			"quantity": 11,
-			"status": "PAID"
+			"status": "paid"
 		}`),
 	)
 	assert.NoError(t, err)
