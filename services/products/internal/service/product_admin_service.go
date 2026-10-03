@@ -30,7 +30,11 @@ func (s *AdminService) CreateProduct(ctx context.Context, name string, category 
 		return product.Product{}, err
 	}
 
-	id, _ := uuid.NewV7()
+	id, err := uuid.NewV7()
+	if err != nil {
+		return product.Product{}, fmt.Errorf("create product: %w", err)
+	}
+
 	p := product.Product{
 		ID:          id,
 		Name:        name,

@@ -64,7 +64,10 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 	}
 	// TODO check quantity is enough, when inventory is added
 
-	id, _ := uuid.NewV7()
+	id, err := uuid.NewV7()
+	if err != nil {
+		return order.Order{}, fmt.Errorf("create order: %w", err)
+	}
 
 	o := order.Order{
 		ID:        id,
@@ -76,7 +79,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, productID string, quanti
 	logger := log(ctx)
 	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("creating order")
 
-	o, err := s.orderRepository.Save(ctx, o)
+	o, err = s.orderRepository.Save(ctx, o)
 	if err != nil {
 		return order.Order{}, fmt.Errorf("create order: %w", err)
 	}

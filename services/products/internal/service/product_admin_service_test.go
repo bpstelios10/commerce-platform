@@ -78,6 +78,33 @@ func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+type failingReader struct {
+	err error
+}
+
+func (r failingReader) Read([]byte) (int, error) {
+	return 0, r.err
+}
+
+func TestCreateProduct_WhenUUIDGenerationFails_ReturnsError(t *testing.T) {
+	entropyErr := errors.New("entropy unavailable")
+	uuid.SetRand(failingReader{err: entropyErr})
+	t.Cleanup(func() { uuid.SetRand(nil) }) // resets to crypto/rand.Reader
+	svc, mock := setup(t)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
+		WithArgs("CATEGORY").
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow("CATEGORY"),
+		)
+
+	_, err := svc.CreateProduct(context.Background(), "name", "CATEGORY", nil, 1)
+
+	assert.ErrorIs(t, err, entropyErr)
+	assert.EqualError(t, err, "create product: entropy unavailable")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock := setup(t)
 	p := product.Product{

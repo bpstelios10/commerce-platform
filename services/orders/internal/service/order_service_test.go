@@ -178,6 +178,29 @@ func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+type failingReader struct {
+	err error
+}
+
+func (r failingReader) Read([]byte) (int, error) {
+	return 0, r.err
+}
+
+func TestCreateOrder_WhenUUIDGenerationFails_ReturnsError(t *testing.T) {
+	entropyErr := errors.New("entropy unavailable")
+	uuid.SetRand(failingReader{err: entropyErr})
+	t.Cleanup(func() { uuid.SetRand(nil) }) // resets to crypto/rand.Reader
+	svc, mock, _ := setup(t)
+
+	_, err := svc.CreateOrder(context.Background(), FirstProductID, 10)
+
+	assert.ErrorIs(t, err, entropyErr)
+	assert.ErrorIs(t, err, entropyErr)
+	assert.ErrorIs(t, err, entropyErr)
+	assert.EqualError(t, err, "create order: entropy unavailable")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestCreateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
 

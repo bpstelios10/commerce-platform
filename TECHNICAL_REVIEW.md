@@ -42,37 +42,11 @@ non-root images, and the vet/race/formatting checks in `make check`.
 
 Ordered by remediation priority; these describe current code, not roadmap omissions.
 
-### 1. Product deletion reports success after failure
-
-[admin_handler.go](services/products/internal/http/admin_handler.go#L108)
-discards `DeleteProduct`'s error and always sends 204. Handle the error before
-writing the response. Add a handler test injecting a delete failure and expecting
-500; [existing tests](services/products/internal/http/admin_handler_test.go#L475)
-cover successful deletion and malformed IDs, not this failure.
-
-### 2. Category reads have two correctness bugs
-
-[product_category_repository_postgre.go](services/products/internal/repository/product_category_repository_postgre.go)
-uses `ILIKE` for identity lookup: `%` and `_` are patterns, not literal names.
-Validation can accept `%`, return it as the category, and then fail the product
-foreign key with a 500. Compare exact canonical database names; keep categories
-database-driven, not a Go enum.
-
-`GetAll` also omits `rows.Err()`, turning iteration failures into successful
-partial responses. Its [iteration-error test](services/products/internal/repository/product_category_repository_postgre_test.go#L99)
-expects an error the implementation does not return. Check the terminal error
-and explicitly choose whether repository errors return nil or partial results.
-
 ### 3. Update races become internal errors
 
 [Orders](services/orders/internal/repository/order_repository_postgre.go) and
 [products](services/products/internal/repository/product_repository_postgre.go)
-translate `pgx.ErrNoRows` in `FindByID`, but not in `Update`. Both services read
-before updating; deletion between those operations becomes 500 instead of
-not-found. Translate missing rows consistently at repository and service
-boundaries; test a successful read followed by an update miss. Separately, decide
-whether concurrent edits are last-write-wins or require optimistic concurrency.
-A transaction alone does not define that policy.
+Separately, decide whether concurrent edits are last-write-wins or require optimistic concurrency. A transaction alone does not define that policy.
 
 ### 4. Invalid input and dependency failures are misclassified
 
@@ -184,8 +158,6 @@ selected fields to control volume and future sensitive-data exposure.
    lookup/result/error contract needed; translate in the adapter. Repository
    sentinels also tie services to storage packages; clarify error ownership without
    introducing a generic error framework.
-- **Handle ID generation errors.** Both create services ignore `uuid.NewV7()`
-   errors. Return the error before persistence; do not save a zero ID.
 - **Separate test responsibilities.** Service and HTTP tests repeatedly wire
    repositories to pgxmock and duplicate exact SQL. Keep selected composition tests,
    but test service decisions through repository stubs and HTTP contracts through
