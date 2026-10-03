@@ -9,6 +9,8 @@ import (
 )
 
 func TestValidateCreateOrder(t *testing.T) {
+	const validUUID = "f47ac10b-58cc-4372-a567-0e02b2c3d009"
+
 	tests := []struct {
 		name                 string
 		request              CreateOrderRequest
@@ -19,7 +21,7 @@ func TestValidateCreateOrder(t *testing.T) {
 		{
 			name: "valid Order",
 			request: CreateOrderRequest{
-				ProductID: "1",
+				ProductID: validUUID,
 				Quantity:  10,
 			},
 			expectError: false,
@@ -54,9 +56,19 @@ func TestValidateCreateOrder(t *testing.T) {
 			expectedErrorMessage: "product-id cannot be blank.",
 		},
 		{
-			name: "missing quantity",
+			name: "product id not valid UUID",
 			request: CreateOrderRequest{
 				ProductID: "1",
+				Quantity:  10,
+			},
+			expectError:          true,
+			numberOfErrors:       1,
+			expectedErrorMessage: "product-id is not a valid UUID.",
+		},
+		{
+			name: "missing quantity",
+			request: CreateOrderRequest{
+				ProductID: validUUID,
 			},
 			expectError:          true,
 			numberOfErrors:       1,
@@ -65,7 +77,7 @@ func TestValidateCreateOrder(t *testing.T) {
 		{
 			name: "negative quantity",
 			request: CreateOrderRequest{
-				ProductID: "1",
+				ProductID: validUUID,
 				Quantity:  -100,
 			},
 			expectError:          true,
@@ -75,7 +87,7 @@ func TestValidateCreateOrder(t *testing.T) {
 		{
 			name: "zero quantity",
 			request: CreateOrderRequest{
-				ProductID: "1",
+				ProductID: validUUID,
 				Quantity:  0,
 			},
 			expectError:          true,
@@ -114,6 +126,8 @@ func TestValidateCreateOrder(t *testing.T) {
 }
 
 func TestValidateUpdateOrder(t *testing.T) {
+	const validUUID = "f47ac10b-58cc-4372-a567-0e02b2c3d009"
+
 	tests := []struct {
 		name                 string
 		request              UpdateOrderRequest
@@ -124,7 +138,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 		{
 			name: "valid Order",
 			request: UpdateOrderRequest{
-				ProductID: "2",
+				ProductID: validUUID,
 				Quantity:  5,
 				Status:    order.PAID,
 			},
@@ -163,9 +177,20 @@ func TestValidateUpdateOrder(t *testing.T) {
 			expectedErrorMessage: "product-id cannot be blank.",
 		},
 		{
+			name: "ProductId not valid UUID",
+			request: UpdateOrderRequest{
+				ProductID: "1",
+				Quantity:  5,
+				Status:    order.PAID,
+			},
+			expectError:          true,
+			numberOfErrors:       1,
+			expectedErrorMessage: "product-id is not a valid UUID.",
+		},
+		{
 			name: "missing quantity",
 			request: UpdateOrderRequest{
-				ProductID: "2",
+				ProductID: validUUID,
 				Status:    order.PAID,
 			},
 			expectError:          true,
@@ -175,7 +200,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 		{
 			name: "negative quantity",
 			request: UpdateOrderRequest{
-				ProductID: "2",
+				ProductID: validUUID,
 				Quantity:  -5,
 				Status:    order.PAID,
 			},
@@ -186,7 +211,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 		{
 			name: "zero quantity",
 			request: UpdateOrderRequest{
-				ProductID: "2",
+				ProductID: validUUID,
 				Quantity:  0,
 				Status:    order.PAID,
 			},
@@ -197,7 +222,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 		{
 			name: "missing status",
 			request: UpdateOrderRequest{
-				ProductID: "2",
+				ProductID: validUUID,
 				Quantity:  1,
 			},
 			expectError:          true,
@@ -207,7 +232,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 		{
 			name: "empty status",
 			request: UpdateOrderRequest{
-				ProductID: "2",
+				ProductID: validUUID,
 				Quantity:  1,
 				Status:    order.OrderStatus(" "),
 			},
@@ -218,7 +243,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 		{
 			name: "invalid status",
 			request: UpdateOrderRequest{
-				ProductID: "2",
+				ProductID: validUUID,
 				Quantity:  1,
 				Status:    order.OrderStatus("PIAD"),
 			},
@@ -229,7 +254,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 		{
 			name: "invalid status with lowercase status",
 			request: UpdateOrderRequest{
-				ProductID: "2",
+				ProductID: validUUID,
 				Quantity:  5,
 				Status:    order.OrderStatus("paid"),
 			},

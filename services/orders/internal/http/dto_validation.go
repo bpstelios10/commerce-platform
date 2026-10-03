@@ -1,6 +1,7 @@
 package http
 
 import (
+	"commerce-platform/services/orders/internal/validation"
 	"context"
 	"strings"
 )
@@ -17,8 +18,11 @@ func validateCreateOrder(ctx context.Context, req CreateOrderRequest) error {
 	logger := log(ctx)
 	validationError := ValidationError{}
 
-	if len(strings.TrimSpace(req.ProductID)) == 0 {
+	trimmedProductId := strings.TrimSpace(req.ProductID)
+	if len(trimmedProductId) == 0 {
 		validationError.Errors = append(validationError.Errors, "product-id cannot be blank.")
+	} else if _, err := validation.GetValidUUID(trimmedProductId); err != nil {
+		validationError.Errors = append(validationError.Errors, "product-id is not a valid UUID.")
 	}
 	if req.Quantity <= 0 {
 		validationError.Errors = append(validationError.Errors, "quantity must be > 0.")
@@ -37,8 +41,11 @@ func validateUpdateOrder(ctx context.Context, req UpdateOrderRequest) error {
 	logger := log(ctx)
 	validationError := ValidationError{}
 
-	if len(strings.TrimSpace(req.ProductID)) == 0 {
+	trimmedProductId := strings.TrimSpace(req.ProductID)
+	if len(trimmedProductId) == 0 {
 		validationError.Errors = append(validationError.Errors, "product-id cannot be blank.")
+	} else if _, err := validation.GetValidUUID(trimmedProductId); err != nil {
+		validationError.Errors = append(validationError.Errors, "product-id is not a valid UUID.")
 	}
 	if req.Quantity <= 0 {
 		validationError.Errors = append(validationError.Errors, "quantity must be > 0.")

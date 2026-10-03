@@ -13,9 +13,10 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       Make partial-result behavior explicit and consistent where appropriate.
 - [x] Translate UPDATE no-rows into repository and service not-found errors in
       both services; test deletion between the preliminary read and write.
-- [ ] Validate order product UUIDs before RPC. Define/test HTTP mappings for
-      unavailable/timed-out products calls and gRPC mappings for wrapped context
-      cancellation/deadline errors. Preserve safe responses and internal causes.
+- [x] Validate order product UUIDs before RPC. 
+- [ ] Define/test HTTP mappings for unavailable/timed-out products calls and gRPC 
+      mappings for wrapped context cancellation/deadline errors. Preserve safe 
+      responses and internal causes.
 - [x] Handle UUIDv7 generation errors in both create services before persistence.
 - [ ] Align input bounds with SQL name/price/quantity limits; reject nonfinite or
       invalid search price bounds. Enforce core invariants below HTTP and add

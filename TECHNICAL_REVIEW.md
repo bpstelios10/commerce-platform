@@ -50,12 +50,7 @@ Separately, decide whether concurrent edits are last-write-wins or require optim
 
 ### 4. Invalid input and dependency failures are misclassified
 
-[Order validation](services/orders/internal/http/dto_validation.go) checks only
-that `product_id` is nonblank. A malformed UUID reaches products, becomes gRPC
-`InvalidArgument`, and returns HTTP 500 through
-[order_service.go](services/orders/internal/service/order_service.go) and
-[HTTP error mapping](services/orders/internal/http/errors.go). Validate before
-the RPC and return 400.
+[Order validation]
 
 Not-found is preserved correctly; unavailable and deadline errors still lack
 an explicit public policy. Map dependency failures deliberately, for example

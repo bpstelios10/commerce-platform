@@ -295,7 +295,7 @@ func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		srv.URL+"/orders",
 		"application/json",
 		bytes.NewBufferString(`{
-			"product_id": "999",
+			"product_id": "`+validUUID+`",
 			"quantity": 1
 		}`),
 	)
@@ -504,7 +504,7 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		http.MethodPut,
 		srv.URL+"/orders/"+testO.ID.String(),
 		bytes.NewBufferString(`{
-			"product_id": "999",
+			"product_id": "`+validUUID+`",
 			"quantity": 2,
 			"status": "PAID"
 		}`),
@@ -753,6 +753,7 @@ func TestDeleteOrder_WhenDbErrorHappens_Returns500(t *testing.T) {
 var (
 	FirstProductID  = "f47ac10b-58cc-4372-a567-0e02b2c3d001"
 	SecondProductID = "f47ac10b-58cc-4372-a567-0e02b2c3d002"
+	validUUID       = "f47ac10b-58cc-4372-a567-0e02b2c3d009"
 
 	FirstOrderID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d011")
 	SecondOrderID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d012")
