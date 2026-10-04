@@ -289,6 +289,72 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestCreateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
+	srv, mock := setupOrderHandlerTest(t)
+
+	req, err := http.NewRequest(
+		http.MethodPost,
+		srv.URL+"/orders",
+		bytes.NewBufferString(`{
+			"product_id": "`+FirstProductID+`",
+			"quantity": 11,
+			"status": "`+strings.Repeat("a", 1<<10)+`"
+		}{"trailing": "json"}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_BODY_TOO_LONG",
+			"message": "Request body exceeds 1024 bytes"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
+	srv, mock := setupOrderHandlerTest(t)
+
+	req, err := http.NewRequest(
+		http.MethodPost,
+		srv.URL+"/orders",
+		bytes.NewBufferString(`{
+			"product_id": "`+FirstProductID+`",
+			"quantity": 11,
+			"status": "paid"
+		}{"trailing": "json"}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_ORDER",
+			"message": "invalid order"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 

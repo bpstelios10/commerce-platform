@@ -3,6 +3,7 @@ package http
 import (
 	"commerce-platform/services/orders/internal/service"
 	"commerce-platform/services/orders/internal/validation"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -73,20 +74,13 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	logger := log(ctx)
 
 	var req CreateOrderRequest
-
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		err = errors.Join(
-			fmt.Errorf("decode create_order request: %w", err),
-			service.ErrInvalidOrder,
-		)
-		HandleError(ctx, w, err)
+	if !isBodyValidAndDecoded(ctx, r.Body, w, &req, "create_order") {
 		return
 	}
 
 	// Normalize input
 	req.ProductID = strings.TrimSpace(req.ProductID)
-	if err = validateCreateOrder(ctx, req); err != nil {
+	if err := validateCreateOrder(ctx, req); err != nil {
 		HandleError(ctx, w, err)
 		return
 	}
@@ -114,31 +108,7 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	logger.Info().Str("order_id", id.String()).Msg("update order request received")
 
 	var req UpdateOrderRequest
-
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<10)
-	dec := json.NewDecoder(r.Body)
-
-	if err = dec.Decode(&req); err != nil {
-		var e *http.MaxBytesError
-		if errors.As(err, &e) {
-			err = errors.Join(
-				fmt.Errorf("decode update_order request: %w", err),
-				TooLongBodyErr{limit: 1 << 10},
-			)
-		} else {
-			err = errors.Join(
-				fmt.Errorf("decode update_order request: %w", err),
-				service.ErrInvalidOrder,
-			)
-		}
-		HandleError(ctx, w, err)
-		return
-	}
-
-	// trailing JSON/content
-	if dec.Decode(&struct{}{}) != io.EOF {
-		err = fmt.Errorf("decode update_order request: %w", service.ErrInvalidOrder)
-		HandleError(ctx, w, err)
+	if !isBodyValidAndDecoded(ctx, r.Body, w, &req, "update_order") {
 		return
 	}
 
@@ -179,4 +149,35 @@ func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	HandleResponse(ctx, w, http.StatusNoContent)
+}
+
+func isBodyValidAndDecoded[T any](ctx context.Context, body io.ReadCloser, w http.ResponseWriter, req *T, action string) bool {
+	body = http.MaxBytesReader(w, body, 1<<10)
+	dec := json.NewDecoder(body)
+
+	if err := dec.Decode(&req); err != nil {
+		var e *http.MaxBytesError
+		if errors.As(err, &e) {
+			err = errors.Join(
+				fmt.Errorf("decode %s request: %w", action, err),
+				TooLongBodyErr{limit: 1 << 10},
+			)
+		} else {
+			err = errors.Join(
+				fmt.Errorf("decode %s request: %w", action, err),
+				service.ErrInvalidOrder,
+			)
+		}
+		HandleError(ctx, w, err)
+		return false
+	}
+
+	// trailing JSON/content
+	if dec.Decode(&struct{}{}) != io.EOF {
+		err := fmt.Errorf("decode %s request: %w", action, service.ErrInvalidOrder)
+		HandleError(ctx, w, err)
+		return false
+	}
+
+	return true
 }
