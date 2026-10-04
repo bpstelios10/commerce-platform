@@ -52,10 +52,6 @@ header/idle timeouts, deliberate read/write limits, and request/dependency/start
 budgets preserving earlier caller deadlines. A server write timeout does not
 replace cancellation of database/RPC work.
 
-POST/PUT handlers decode once without a body limit or EOF check: oversized bodies
-consume resources, and trailing JSON is silently accepted. Enforce body limits
-and one JSON value; explicitly choose an unknown-field policy.
-
 ### 6. Shutdown can skip resources
 
 In [products main](services/products/cmd/main.go), an HTTP shutdown error returns

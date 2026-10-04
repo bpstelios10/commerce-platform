@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -119,6 +120,66 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
+}
+
+func TestCreateProduct_WhenRequestBodyTooBig_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+
+	reqBody := fmt.Sprintf(
+		`{"name":%q,"category":%q,"description":%q,"price":%v}`,
+		strings.Repeat("a", 1<<10), "category", "description", 100,
+	)
+
+	res, err := http.Post(
+		srv.URL+"/admin/products",
+		"application/json",
+		bytes.NewBufferString(reqBody),
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_BODY_TOO_LONG",
+			"message": "Request body exceeds 1024 bytes"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateProduct_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+
+	reqBody := fmt.Sprintf(
+		`{"name":%q,"category":%q,"description":%q,"price":%v}{"trailing": "json"}`,
+		"name", "category", "description", 100,
+	)
+
+	res, err := http.Post(
+		srv.URL+"/admin/products",
+		"application/json",
+		bytes.NewBufferString(reqBody),
+	)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_PRODUCT",
+			"message": "invalid product"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestCreateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
@@ -312,6 +373,74 @@ func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
 		`{
 			"code": "INVALID_UUID",
 			"message": "invalid UUID"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateProduct_WhenRequestBodyTooBig_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		bytes.NewBufferString(`{
+			"name": "`+strings.Repeat("a", 1<<10)+`",
+			"category": "CLOTHES",
+			"description": "Updated description",
+			"price": 1500
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_BODY_TOO_LONG",
+			"message": "Request body exceeds 1024 bytes"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateProduct_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		bytes.NewBufferString(`{
+			"name": "iPhone 15",
+			"category": "CLOTHES",
+			"description": "Updated description",
+			"price": 1500
+		}{"trailing": "json"}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_PRODUCT",
+			"message": "invalid product"
 		}`,
 		string(body),
 	)

@@ -18,7 +18,7 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
 - [ ] Align input bounds with SQL name/price/quantity limits; reject nonfinite or
       invalid search price bounds. Enforce core invariants below HTTP and add
       database CHECK constraints through new migrations.
-- [ ] Limit HTTP request bodies, require one JSON value, and choose/test the
+- [x] Limit HTTP request bodies, require one JSON value, and choose/test the
       unknown-field policy. Cover oversized and trailing-content requests.
 - [ ] Configure HTTP timeouts and request, RPC, database, and startup budgets.
       Verify cancellation reaches dependencies and earlier deadlines are preserved.
