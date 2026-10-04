@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -483,6 +484,72 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 	assert.Equal(t, 11, updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
+	srv, mock := setupOrderHandlerTest(t)
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+FirstOrderID.String(),
+		bytes.NewBufferString(`{
+			"product_id": "`+FirstProductID+`",
+			"quantity": 11,
+			"status": "`+strings.Repeat("a", 1<<10)+`"
+		}{"trailing": "json"}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_BODY_TOO_LONG",
+			"message": "Request body exceeds 1024 bytes"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
+	srv, mock := setupOrderHandlerTest(t)
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+FirstOrderID.String(),
+		bytes.NewBufferString(`{
+			"product_id": "`+FirstProductID+`",
+			"quantity": 11,
+			"status": "paid"
+		}{"trailing": "json"}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_ORDER",
+			"message": "invalid order"
+		}`,
+		string(body),
+	)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

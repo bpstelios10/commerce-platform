@@ -5,14 +5,24 @@ import (
 	"commerce-platform/services/orders/internal/validation"
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 )
+
+type TooLongBodyErr struct {
+	limit int64
+}
+
+func (err TooLongBodyErr) Error() string {
+	return fmt.Sprintf("Request body exceeds %d bytes", err.limit)
+}
 
 func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	logger := log(ctx)
 
 	var validationErr ValidationError
 	var notFoundErr *service.ErrOrderNotFound
+	var tooLongBodyErr TooLongBodyErr
 
 	switch {
 
@@ -34,6 +44,10 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	case errors.Is(err, validation.ErrInvalidUUID):
 		logger.Warn().Err(err).Msg("invalid UUID")
 		writeError(ctx, w, http.StatusBadRequest, "INVALID_UUID", err.Error())
+
+	case errors.As(err, &tooLongBodyErr):
+		logger.Warn().Err(err).Msg("Request body too long")
+		writeError(ctx, w, http.StatusBadRequest, "REQUEST_BODY_TOO_LONG", tooLongBodyErr.Error())
 
 	default:
 		logger.Error().Err(err).Msg("unexpected error handled, with")

@@ -14,12 +14,6 @@ the gRPC boundary) and a couple of untested/duplicated areas — expected at thi
 stage (see [TECH.md](TECH.md) phases 3, 4, 7 which cover Postgres, config, and
 Docker and are not yet implemented).
 
-## Strengths
-
-- **Consistent layering** — both services follow handler → service →
-  repository with constructor injection (`NewXxx`) and interfaces owned by the
-  consumer (e.g. `OrderRepository` defined in [order_service.go](services/orders/internal/service/order_service.go), not in the repository package). This is idiomatic Go and keeps the domain decoupled from storage.
-
 # Technical Review
 
 Reviewed: 2026-09-28. Fresh static review of orders, products, shared packages,
@@ -47,17 +41,6 @@ Ordered by remediation priority; these describe current code, not roadmap omissi
 [Orders](services/orders/internal/repository/order_repository_postgre.go) and
 [products](services/products/internal/repository/product_repository_postgre.go)
 Separately, decide whether concurrent edits are last-write-wins or require optimistic concurrency. A transaction alone does not define that policy.
-
-### 4. Invalid input and dependency failures are misclassified
-
-[Order validation]
-
-Not-found is preserved correctly; unavailable and deadline errors still lack
-an explicit public policy. Map dependency failures deliberately, for example
-503/504, preserving causes internally. Products'
-[gRPC mapper](services/products/internal/grpc/errors.go) should recognize wrapped
-context cancellation/deadline errors rather than defaulting to Internal.
-Test each classification, not just that an error exists.
 
 ### 5. Request work is insufficiently bounded
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -114,12 +115,29 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 
 	var req UpdateOrderRequest
 
-	err = json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		err = errors.Join(
-			fmt.Errorf("decode update_order request: %w", err),
-			service.ErrInvalidOrder,
-		)
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<10)
+	dec := json.NewDecoder(r.Body)
+
+	if err = dec.Decode(&req); err != nil {
+		var e *http.MaxBytesError
+		if errors.As(err, &e) {
+			err = errors.Join(
+				fmt.Errorf("decode update_order request: %w", err),
+				TooLongBodyErr{limit: 1 << 10},
+			)
+		} else {
+			err = errors.Join(
+				fmt.Errorf("decode update_order request: %w", err),
+				service.ErrInvalidOrder,
+			)
+		}
+		HandleError(ctx, w, err)
+		return
+	}
+
+	// trailing JSON/content
+	if dec.Decode(&struct{}{}) != io.EOF {
+		err = fmt.Errorf("decode update_order request: %w", service.ErrInvalidOrder)
 		HandleError(ctx, w, err)
 		return
 	}
