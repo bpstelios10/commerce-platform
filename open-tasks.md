@@ -49,7 +49,7 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
 
 ## 3. Strengthen Verification
 
-- [ ] Focus pgxmock on repository behavior; use repository stubs for service
+- [x] Focus pgxmock on repository behavior; use repository stubs for service
       decisions and isolate HTTP contracts where helpful. Keep selected composition
       tests instead of duplicating SQL throughout every layer.
 - [ ] Use fatal test prerequisites, meaningful UUID assertions, and error identity
