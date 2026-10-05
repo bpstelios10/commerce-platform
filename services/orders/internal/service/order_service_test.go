@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setup(t *testing.T) (*OrderService, *fakeOrderRepo, *fakeProductsClient) {
+func setup(t *testing.T) (*OrderServiceImpl, *fakeOrderRepo, *fakeProductsClient) {
 	t.Helper()
 	fakeRepo := newFakeOrderRepo(t)
 	client := &fakeProductsClient{

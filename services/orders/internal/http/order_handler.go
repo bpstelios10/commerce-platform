@@ -1,6 +1,7 @@
 package http
 
 import (
+	"commerce-platform/services/orders/internal/order"
 	"commerce-platform/services/orders/internal/service"
 	"commerce-platform/services/orders/internal/validation"
 	"context"
@@ -12,16 +13,23 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
-type OrderHandler struct {
-	orderService *service.OrderService
+type OrderService interface {
+	GetOrders(ctx context.Context) ([]order.Order, error)
+	GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error)
+	CreateOrder(ctx context.Context, productID string, quantity int) (order.Order, error)
+	UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error)
+	DeleteOrder(ctx context.Context, id uuid.UUID) error
 }
 
-func NewOrderHandler(orderService *service.OrderService) *OrderHandler {
-	return &OrderHandler{
-		orderService: orderService,
-	}
+type OrderHandler struct {
+	orderService OrderService
+}
+
+func NewOrderHandler(service OrderService) *OrderHandler {
+	return &OrderHandler{orderService: service}
 }
 
 func (h *OrderHandler) RegisterRoutes(r chi.Router) {
