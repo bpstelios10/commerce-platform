@@ -391,358 +391,320 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 	)
 }
 
-// func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
-// 	srv, mock := setupOrderHandlerTest(t)
-// 	mock.ExpectQuery(`
-// 			SELECT order_id, product_id, quantity, status, created_at
-// 			FROM orders
-// 			WHERE order_id = $1`).
-// 		WithArgs(testO.ID).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{
-// 				"order_id", "product_id", "quantity", "status", "created_at",
-// 			}).
-// 				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt),
-// 		)
-// 	mock.ExpectQuery(`
-// 			UPDATE orders
-// 			SET product_id = $1, quantity = $2, status = $3
-// 			WHERE order_id = $4
-// 			RETURNING order_id, product_id, quantity, status, created_at;`).
-// 		WithArgs(FirstProductID, 11, order.PAID, testO.ID).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{
-// 				"order_id", "product_id", "quantity", "status", "created_at",
-// 			}).
-// 				AddRow(testO.ID, FirstProductID, 11, order.PAID, testO.CreatedAt),
-// 		)
+func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
+	srv, mock := setupOrderHandlerTest(t)
+	mock.expectUpdateOrder(
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+			return order.Order{
+				ID:        id,
+				ProductID: productID,
+				Quantity:  quantity,
+				Status:    status,
+				CreatedAt: testO.CreatedAt,
+			}, nil
+		})
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/orders/"+FirstOrderID.String(),
-// 		bytes.NewBufferString(`{
-// 			"product_id": " `+FirstProductID+`",
-// 			"quantity": 11,
-// 			"status": "paid"
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+FirstOrderID.String(),
+		bytes.NewBufferString(`{
+			"product_id": " `+FirstProductID+`",
+			"quantity": 11,
+			"status": "paid"
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusOK, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	var updated order.Order
-// 	err = json.Unmarshal(body, &updated)
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, testO.ID, updated.ID)
-// 	assert.Equal(t, FirstProductID, updated.ProductID)
-// 	assert.Equal(t, 11, updated.Quantity)
-// 	assert.Equal(t, order.PAID, updated.Status)
-// 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
-// }
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	var updated order.Order
+	err = json.Unmarshal(body, &updated)
+	assert.NoError(t, err)
+	assert.Equal(t, testO.ID, updated.ID)
+	assert.Equal(t, FirstProductID, updated.ProductID)
+	assert.Equal(t, 11, updated.Quantity)
+	assert.Equal(t, order.PAID, updated.Status)
+	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
+}
 
-// func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing.T) {
-// 	srv, mock := setupOrderHandlerTest(t)
-// 	mock.ExpectQuery(`
-// 			SELECT order_id, product_id, quantity, status, created_at
-// 			FROM orders
-// 			WHERE order_id = $1`).
-// 		WithArgs(testO.ID).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{
-// 				"order_id", "product_id", "quantity", "status", "created_at",
-// 			}).
-// 				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt),
-// 		)
-// 	mock.ExpectQuery(`
-// 			UPDATE orders
-// 			SET product_id = $1, quantity = $2, status = $3
-// 			WHERE order_id = $4
-// 			RETURNING order_id, product_id, quantity, status, created_at;`).
-// 		WithArgs(FirstProductID, 11, order.PAID, testO.ID).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{
-// 				"order_id", "product_id", "quantity", "status", "created_at",
-// 			}).
-// 				AddRow(testO.ID, FirstProductID, 11, order.PAID, testO.CreatedAt),
-// 		)
+func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing.T) {
+	srv, mock := setupOrderHandlerTest(t)
+	mock.expectUpdateOrder(
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+			return order.Order{
+				ID:        id,
+				ProductID: productID,
+				Quantity:  quantity,
+				Status:    status,
+				CreatedAt: testO.CreatedAt,
+			}, nil
+		})
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/orders/"+FirstOrderID.String(),
-// 		bytes.NewBufferString(`{
-// 			"product_id": "`+FirstProductID+`",
-// 			"quantity": 11,
-// 			"status": "paid"
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+FirstOrderID.String(),
+		bytes.NewBufferString(`{
+			"product_id": "`+FirstProductID+`",
+			"quantity": 11,
+			"status": "paid"
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusOK, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	var updated order.Order
-// 	err = json.Unmarshal(body, &updated)
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, testO.ID, updated.ID)
-// 	assert.Equal(t, FirstProductID, updated.ProductID)
-// 	assert.Equal(t, 11, updated.Quantity)
-// 	assert.Equal(t, order.PAID, updated.Status)
-// 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
-// }
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	var updated order.Order
+	err = json.Unmarshal(body, &updated)
+	assert.NoError(t, err)
+	assert.Equal(t, testO.ID, updated.ID)
+	assert.Equal(t, FirstProductID, updated.ProductID)
+	assert.Equal(t, 11, updated.Quantity)
+	assert.Equal(t, order.PAID, updated.Status)
+	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
+}
 
-// func TestUpdateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
-// 	srv, mock := setupOrderHandlerTest(t)
+func TestUpdateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
+	srv, _ := setupOrderHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/orders/"+FirstOrderID.String(),
-// 		bytes.NewBufferString(`{
-// 			"product_id": "`+FirstProductID+`",
-// 			"quantity": 11,
-// 			"status": "`+strings.Repeat("a", 1<<10)+`"
-// 		}{"trailing": "json"}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+FirstOrderID.String(),
+		bytes.NewBufferString(`{
+			"product_id": "`+FirstProductID+`",
+			"quantity": 11,
+			"status": "`+strings.Repeat("a", 1<<10)+`"
+		}{"trailing": "json"}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "REQUEST_BODY_TOO_LONG",
-// 			"message": "Request body exceeds 1024 bytes"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_BODY_TOO_LONG",
+			"message": "Request body exceeds 1024 bytes"
+		}`,
+		string(body),
+	)
+}
 
-// func TestUpdateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
-// 	srv, mock := setupOrderHandlerTest(t)
+func TestUpdateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
+	srv, _ := setupOrderHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/orders/"+FirstOrderID.String(),
-// 		bytes.NewBufferString(`{
-// 			"product_id": "`+FirstProductID+`",
-// 			"quantity": 11,
-// 			"status": "paid"
-// 		}{"trailing": "json"}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+FirstOrderID.String(),
+		bytes.NewBufferString(`{
+			"product_id": "`+FirstProductID+`",
+			"quantity": 11,
+			"status": "paid"
+		}{"trailing": "json"}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "INVALID_ORDER",
-// 			"message": "invalid order"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_ORDER",
+			"message": "invalid order"
+		}`,
+		string(body),
+	)
+}
 
-// func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
-// 	srv, mock := setupOrderHandlerTest(t)
-// 	mock.ExpectQuery(`
-// 			SELECT order_id, product_id, quantity, status, created_at
-// 			FROM orders
-// 			WHERE order_id = $1`).
-// 		WithArgs(testO.ID).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{
-// 				"order_id", "product_id", "quantity", "status", "created_at",
-// 			}).
-// 				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt),
-// 		)
+func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
+	srv, mock := setupOrderHandlerTest(t)
+	mock.expectUpdateOrder(
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+			return order.Order{}, service.ErrProductNotFound
+		})
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/orders/"+testO.ID.String(),
-// 		bytes.NewBufferString(`{
-// 			"product_id": "`+validUUID+`",
-// 			"quantity": 2,
-// 			"status": "PAID"
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+testO.ID.String(),
+		bytes.NewBufferString(`{
+			"product_id": "`+validUUID+`",
+			"quantity": 2,
+			"status": "PAID"
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusConflict, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "PRODUCT_NOT_FOUND",
-// 			"message": "product not found for the given id"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "PRODUCT_NOT_FOUND",
+			"message": "product not found for the given id"
+		}`,
+		string(body),
+	)
+}
 
-// func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
-// 	srv, mock := setupOrderHandlerTest(t)
+func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
+	srv, _ := setupOrderHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/orders/"+FirstOrderID.String(),
-// 		bytes.NewBufferString(`{
-// 			"error-to-cause": "extra comma, so invalid json",
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+FirstOrderID.String(),
+		bytes.NewBufferString(`{
+			"error-to-cause": "extra comma, so invalid json",
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "INVALID_ORDER",
-// 			"message": "invalid order"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_ORDER",
+			"message": "invalid order"
+		}`,
+		string(body),
+	)
+}
 
-// func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
-// 	srv, mock := setupOrderHandlerTest(t)
+func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
+	srv, _ := setupOrderHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/orders/"+FirstOrderID.String(),
-// 		bytes.NewBufferString(`{
-// 			"product_id": "",
-// 			"quantity": 0,
-// 			"status": "PIAD"
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+FirstOrderID.String(),
+		bytes.NewBufferString(`{
+			"product_id": "",
+			"quantity": 0,
+			"status": "PIAD"
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "VALIDATION_ERROR",
-// 			"message": "product-id cannot be blank.; quantity must be > 0.; status is not valid."
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "VALIDATION_ERROR",
+			"message": "product-id cannot be blank.; quantity must be > 0.; status is not valid."
+		}`,
+		string(body),
+	)
+}
 
-// func TestUpdateOrder_WhenBadUUID_Returns400(t *testing.T) {
-// 	srv, mock := setupOrderHandlerTest(t)
+func TestUpdateOrder_WhenBadUUID_Returns400(t *testing.T) {
+	srv, _ := setupOrderHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/orders/1234",
-// 		bytes.NewBufferString(`{
-// 			"product_id": "`+FirstProductID+`",
-// 			"quantity": 1,
-// 			"status": "PAID"
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/1234",
+		bytes.NewBufferString(`{
+			"product_id": "`+FirstProductID+`",
+			"quantity": 1,
+			"status": "PAID"
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "INVALID_UUID",
-// 			"message": "invalid UUID"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_UUID",
+			"message": "invalid UUID"
+		}`,
+		string(body),
+	)
+}
 
-// func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
-// 	srv, mock := setupOrderHandlerTest(t)
-// 	id, _ := uuid.NewV7()
-// 	mock.ExpectQuery(`
-// 			SELECT order_id, product_id, quantity, status, created_at
-// 			FROM orders
-// 			WHERE order_id = $1`).
-// 		WithArgs(id).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{
-// 				"order_id", "product_id", "quantity", "status", "created_at",
-// 			}))
+func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
+	srv, mock := setupOrderHandlerTest(t)
+	id, _ := uuid.NewV7()
+	mock.expectUpdateOrder(
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+			return order.Order{}, &service.ErrOrderNotFound{OrderID: id}
+		})
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/orders/"+id.String(),
-// 		bytes.NewBufferString(`{
-// 			"product_id": "`+FirstProductID+`",
-// 			"quantity": 1,
-// 			"status": "PAiD"
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+id.String(),
+		bytes.NewBufferString(`{
+			"product_id": "`+FirstProductID+`",
+			"quantity": 1,
+			"status": "PAiD"
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusNotFound, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "ORDER_NOT_FOUND",
-// 			"message": "Order with id [`+id.String()+`] was not found"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "ORDER_NOT_FOUND",
+			"message": "Order with id [`+id.String()+`] was not found"
+		}`,
+		string(body),
+	)
+}
 
 func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
