@@ -3,12 +3,16 @@ package http
 import (
 	"bytes"
 	"commerce-platform/services/orders/internal/order"
+	"commerce-platform/services/orders/internal/repository"
+	"commerce-platform/services/orders/internal/service"
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
@@ -16,8 +20,35 @@ import (
 
 // happy path and cutting cross concerns tests
 
+func setupOrderHandlerCompositionTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface) {
+	t.Helper()
+	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	assert.NoError(t, err)
+
+	t.Cleanup(func() {
+		mock.Close()
+	})
+	repo := repository.NewPostgreOrderRepository(mock)
+	client := &mockProductsClient{
+		productIDs: map[string]bool{
+			FirstProductID:  true,
+			SecondProductID: true,
+		},
+	}
+	svc := service.NewOrderService(repo, client)
+	handler := NewOrderHandler(svc)
+
+	r := chi.NewRouter()
+	handler.RegisterRoutes(r)
+
+	srv := httptest.NewServer(r)
+	t.Cleanup(srv.Close)
+
+	return srv, mock
+}
+
 func TestGetOrdersComposition_WhenOrdersExist_Returns200(t *testing.T) {
-	srv, mock := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerCompositionTest(t)
 	mock.ExpectQuery(`SELECT order_id, product_id, quantity, status, created_at FROM orders`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
@@ -65,7 +96,7 @@ func TestGetOrdersComposition_WhenOrdersExist_Returns200(t *testing.T) {
 }
 
 func TestGetOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
-	srv, mock := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerCompositionTest(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectQuery(`
 			SELECT order_id, product_id, quantity, status, created_at
@@ -97,7 +128,7 @@ func TestGetOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
 }
 
 func TestCreateOrderComposition_WhenRequestValid_CreatesOrder(t *testing.T) {
-	srv, mock := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerCompositionTest(t)
 	mock.ExpectQuery(`
 			INSERT INTO orders (order_id, product_id, quantity, status)
 			VALUES ($1, $2, $3, $4)
@@ -138,7 +169,7 @@ func TestCreateOrderComposition_WhenRequestValid_CreatesOrder(t *testing.T) {
 }
 
 func TestCreateOrderComposition_WhenProductNotExists_Returns409(t *testing.T) {
-	srv, mock := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerCompositionTest(t)
 
 	res, err := http.Post(
 		srv.URL+"/orders",
@@ -167,7 +198,7 @@ func TestCreateOrderComposition_WhenProductNotExists_Returns409(t *testing.T) {
 }
 
 func TestUpdateOrderComposition_WhenRequestValid_UpdatesOrder(t *testing.T) {
-	srv, mock := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerCompositionTest(t)
 	mock.ExpectQuery(`
 			SELECT order_id, product_id, quantity, status, created_at
 			FROM orders
@@ -223,7 +254,7 @@ func TestUpdateOrderComposition_WhenRequestValid_UpdatesOrder(t *testing.T) {
 }
 
 func TestUpdateOrderComposition_WhenProductNotExists_Returns409(t *testing.T) {
-	srv, mock := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerCompositionTest(t)
 	mock.ExpectQuery(`
 			SELECT order_id, product_id, quantity, status, created_at
 			FROM orders
@@ -267,7 +298,7 @@ func TestUpdateOrderComposition_WhenProductNotExists_Returns409(t *testing.T) {
 }
 
 func TestUpdateOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
-	srv, mock := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerCompositionTest(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectQuery(`
 			SELECT order_id, product_id, quantity, status, created_at
@@ -310,7 +341,7 @@ func TestUpdateOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
 }
 
 func TestDeleteOrderComposition_WhenOrderExists_DeletesOrder(t *testing.T) {
-	srv, mock := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerCompositionTest(t)
 	mock.ExpectExec(`
 			DELETE FROM orders
 			WHERE order_id = $1`).

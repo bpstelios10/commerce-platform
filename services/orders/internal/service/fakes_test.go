@@ -12,6 +12,23 @@ import (
 	"github.com/google/uuid"
 )
 
+// ---- GRPC fakes ----
+
+type fakeProductsClient struct {
+	productIDs map[string]bool // product IDs that "exist"
+}
+
+func (f *fakeProductsClient) GetProductByID(_ context.Context, id string) (*grpc.GetProductByIDResponse, error) {
+	if f.productIDs[id] {
+		return &grpc.GetProductByIDResponse{Id: id}, nil
+	} else if id == "error" {
+		return nil, status.Error(codes.Internal, "unexpected error")
+	}
+	return nil, status.Error(codes.NotFound, "product not found")
+}
+
+// ---- REPO fakes ----
+
 type fakeOrderRepo struct {
 	t        *testing.T
 	findAll  func(context.Context) ([]order.Order, error)
@@ -104,20 +121,3 @@ func (f *fakeOrderRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	f.deleted = append(f.deleted, id)
 	return f.delete(ctx, id)
 }
-
-// ---- GRPC fakes ----
-
-type fakeProductsClient struct {
-	productIDs map[string]bool // product IDs that "exist"
-}
-
-func (f *fakeProductsClient) GetProductByID(_ context.Context, id string) (*grpc.GetProductByIDResponse, error) {
-	if f.productIDs[id] {
-		return &grpc.GetProductByIDResponse{Id: id}, nil
-	} else if id == "error" {
-		return nil, status.Error(codes.Internal, "unexpected error")
-	}
-	return nil, status.Error(codes.NotFound, "product not found")
-}
-
-func echoSave(_ context.Context, o order.Order) (order.Order, error) { return o, nil }
