@@ -127,7 +127,8 @@ func TestFindByID_WhenProductsNotExists_ReturnsError(t *testing.T) {
 			pgxmock.NewRows([]string{
 				"product_id", "name", "category", "description", "price", "created_at",
 			}).
-				RowError(1, pgx.ErrNoRows),
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now()).
+				RowError(0, pgx.ErrNoRows),
 		)
 
 	result, err := repo.FindByID(context.Background(), FirstUUID)
@@ -248,13 +249,14 @@ func TestSave_WhenRowsError_ReturnsError(t *testing.T) {
 			pgxmock.NewRows([]string{
 				"product_id", "name", "category", "description", "price", "created_at",
 			}).
-				RowError(1, errors.New("read failed")),
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now()).
+				RowError(0, errors.New("read failed")),
 		)
 
 	result, err := repo.Save(context.Background(), testP)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "save product: no rows in result set")
+	assert.EqualError(t, err, "save product: read failed\nread failed")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -293,7 +295,8 @@ func TestUpdate_WhenProductNotExists_ReturnsError(t *testing.T) {
 			pgxmock.NewRows([]string{
 				"product_id", "name", "category", "description", "price", "created_at",
 			}).
-				RowError(1, pgx.ErrNoRows),
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now()).
+				RowError(0, pgx.ErrNoRows),
 		)
 
 	result, err := repo.Update(context.Background(), testP)

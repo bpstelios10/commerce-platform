@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"testing"
-	"time"
 
 	"commerce-platform/services/orders/internal/grpc"
 	"commerce-platform/services/orders/internal/order"
@@ -113,27 +112,18 @@ func (f *fakeOrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (orde
 
 func (f *fakeOrderService) CreateOrder(ctx context.Context, productID string, quantity int) (order.Order, error) {
 	f.take("CreateOrder")
-	o := order.Order{
-		ID:        uuid.New(),
-		ProductID: productID,
-		Quantity:  quantity,
-		Status:    order.CREATED,
-		CreatedAt: time.Now(),
-	}
+	o, err := f.createOrder(ctx, productID, quantity)
 	f.created = append(f.created, o)
-	return f.createOrder(ctx, productID, quantity)
+
+	return o, err
 }
 
 func (f *fakeOrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
 	f.take("UpdateOrder")
-	o := order.Order{
-		ID:        id,
-		ProductID: productID,
-		Quantity:  quantity,
-		Status:    status,
-	}
+	o, err := f.updateOrder(ctx, id, productID, quantity, status)
 	f.updated = append(f.updated, o)
-	return f.updateOrder(ctx, id, productID, quantity, status)
+
+	return o, err
 }
 
 func (f *fakeOrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {

@@ -725,6 +725,7 @@ func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 	assert.NoError(t, err)
 	res, err := http.DefaultClient.Do(req)
 
+	assert.NoError(t, err)
 	assert.Equal(t, http.StatusNoContent, res.StatusCode)
 }
 
