@@ -20,6 +20,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type mockProductsClient struct {
@@ -30,7 +32,7 @@ func (m *mockProductsClient) GetProductByID(_ context.Context, id string) (*grpc
 	if m.productIDs[id] {
 		return &grpc.GetProductByIDResponse{Id: id}, nil
 	}
-	return nil, service.ErrProductNotFound
+	return nil, status.Error(codes.NotFound, "product not found")
 }
 
 // To be used as BeforeEach
