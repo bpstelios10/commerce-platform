@@ -32,8 +32,8 @@ type fakeOrderService struct {
 	t            *testing.T
 	getOrders    func(context.Context) ([]order.Order, error)
 	getOrderByID func(context.Context, uuid.UUID) (order.Order, error)
-	createOrder  func(context.Context, order.Order) (order.Order, error)
-	updateOrder  func(context.Context, order.Order) (order.Order, error)
+	createOrder  func(context.Context, string, int) (order.Order, error)
+	updateOrder  func(context.Context, uuid.UUID, string, int, order.OrderStatus) (order.Order, error)
 	deleteOrder  func(context.Context, uuid.UUID) error
 
 	foundIDs []uuid.UUID
@@ -60,12 +60,20 @@ func (f *fakeOrderService) expectGetOrderByID(fn func(context.Context, uuid.UUID
 	f.pending["GetOrderByID"]++
 }
 
-func (f *fakeOrderService) expectCreateOrder(fn func(context.Context, order.Order) (order.Order, error)) {
+func (f *fakeOrderService) expectCreateOrder(
+	fn func(ctx context.Context, productId string, quantity int) (order.Order, error)) {
 	f.createOrder = fn
 	f.pending["CreateOrder"]++
 }
 
-func (f *fakeOrderService) expectUpdateOrder(fn func(context.Context, order.Order) (order.Order, error)) {
+func (f *fakeOrderService) expectUpdateOrder(
+	fn func(
+		ctx context.Context,
+		id uuid.UUID,
+		productID string,
+		quantity int,
+		status order.OrderStatus,
+	) (order.Order, error)) {
 	f.updateOrder = fn
 	f.pending["UpdateOrder"]++
 }
@@ -113,7 +121,7 @@ func (f *fakeOrderService) CreateOrder(ctx context.Context, productID string, qu
 		CreatedAt: time.Now(),
 	}
 	f.created = append(f.created, o)
-	return f.createOrder(ctx, o)
+	return f.createOrder(ctx, productID, quantity)
 }
 
 func (f *fakeOrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
@@ -125,7 +133,7 @@ func (f *fakeOrderService) UpdateOrder(ctx context.Context, id uuid.UUID, produc
 		Status:    status,
 	}
 	f.updated = append(f.updated, o)
-	return f.updateOrder(ctx, o)
+	return f.updateOrder(ctx, id, productID, quantity, status)
 }
 
 func (f *fakeOrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {
