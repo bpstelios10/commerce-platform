@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setup(t *testing.T) (*AdminService, pgxmock.PgxPoolIface) {
+func setup(t *testing.T) (*AdminService, pgxmock.PgxPoolIface, *fakeProductCategoryRepo) {
 	t.Helper()
 	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
 	assert.NoError(t, err)
@@ -23,27 +23,26 @@ func setup(t *testing.T) (*AdminService, pgxmock.PgxPoolIface) {
 	})
 	repo := repository.NewPostgreProductRepository(mock)
 	productService := NewProductService(repo)
-	categoryRepo := repository.NewPostgreProductCategoryRepository(mock)
+
+	categoryRepo := newFakeProductCategoryRepo(t)
 	categoryService := NewProductCategoryService(categoryRepo)
 	svc := NewAdminService(productService, categoryService, repo)
 
-	return svc, mock
+	return svc, mock, categoryRepo
 }
 
 func TestCreateProduct_WhenProductNotExists(t *testing.T) {
-	svc, mock := setup(t)
+	svc, mock, categRepo := setup(t)
 	p := product.Product{
 		Name:        "MacBook Pro M4",
 		Category:    "ACCESSORY",
 		Description: new("some-description"),
 		Price:       2501.0,
 	}
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
-		WithArgs(p.Category).
-		WillReturnRows(
-			pgxmock.NewRows([]string{"name"}).
-				AddRow(p.Category),
-		)
+	categRepo.expectExists(
+		func(ctx context.Context, s string) (bool, error) {
+			return true, nil
+		})
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
 			VALUES ($1, $2, $3, $4, $5)
@@ -59,15 +58,16 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, p)
+	assert.Equal(t, p.Category, categRepo.searchedCategories[0])
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
-	svc, mock := setup(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
-		WithArgs("UNKNOWN").
-		WillReturnRows(
-			pgxmock.NewRows([]string{"name"}))
+	svc, _, categRepo := setup(t)
+	categRepo.expectExists(
+		func(ctx context.Context, s string) (bool, error) {
+			return false, nil
+		})
 
 	p, err := svc.CreateProduct(context.Background(), "MacBook Pro M4", "UNKNOWN", new("some-description"), 2501.0)
 
@@ -75,7 +75,7 @@ func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 	assert.ErrorIs(t, err, ErrInvalidCategory)
 	assert.EqualError(t, err, "validate product category UNKNOWN: invalid category")
 	assert.Empty(t, p)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, "UNKNOWN", categRepo.searchedCategories[0])
 }
 
 type failingReader struct {
@@ -90,35 +90,31 @@ func TestCreateProduct_WhenUUIDGenerationFails_ReturnsError(t *testing.T) {
 	entropyErr := errors.New("entropy unavailable")
 	uuid.SetRand(failingReader{err: entropyErr})
 	t.Cleanup(func() { uuid.SetRand(nil) }) // resets to crypto/rand.Reader
-	svc, mock := setup(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
-		WithArgs("CATEGORY").
-		WillReturnRows(
-			pgxmock.NewRows([]string{"name"}).
-				AddRow("CATEGORY"),
-		)
+	svc, _, categRepo := setup(t)
+	categRepo.expectExists(
+		func(ctx context.Context, s string) (bool, error) {
+			return true, nil
+		})
 
 	_, err := svc.CreateProduct(context.Background(), "name", "CATEGORY", nil, 1)
 
 	assert.ErrorIs(t, err, entropyErr)
 	assert.EqualError(t, err, "create product: entropy unavailable")
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, "CATEGORY", categRepo.searchedCategories[0])
 }
 
 func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
-	svc, mock := setup(t)
+	svc, mock, categRepo := setup(t)
 	p := product.Product{
 		Name:        "MacBook Pro M4",
 		Category:    "ACCESSORY",
 		Description: new("some-description"),
 		Price:       2501.0,
 	}
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
-		WithArgs(p.Category).
-		WillReturnRows(
-			pgxmock.NewRows([]string{"name"}).
-				AddRow(p.Category),
-		)
+	categRepo.expectExists(
+		func(ctx context.Context, s string) (bool, error) {
+			return true, nil
+		})
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
 			VALUES ($1, $2, $3, $4, $5)
@@ -131,11 +127,12 @@ func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "create product: save product: database unavailable")
 	assert.Empty(t, p)
+	assert.Equal(t, "ACCESSORY", categRepo.searchedCategories[0])
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
-	svc, mock := setup(t)
+	svc, mock, _ := setup(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
@@ -159,7 +156,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 }
 
 func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
-	svc, mock := setup(t)
+	svc, mock, categRepo := setup(t)
 	p := &product.Product{
 		ID:          SecondUUID,
 		Name:        "iPhone 15",
@@ -180,12 +177,10 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, createdAt),
 		)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
-		WithArgs(p.Category).
-		WillReturnRows(
-			pgxmock.NewRows([]string{"name"}).
-				AddRow(p.Category),
-		)
+	categRepo.expectExists(
+		func(ctx context.Context, s string) (bool, error) {
+			return true, nil
+		})
 	mock.ExpectQuery(`
 			UPDATE products 
 			SET name = $1, category = $2, description = $3, price = $4
@@ -207,11 +202,12 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, p.Description, updated.Description)
 	assert.Equal(t, p.Price, updated.Price)
 	assert.True(t, updated.CreatedAt.Equal(createdAt))
+	assert.Equal(t, p.Category, categRepo.searchedCategories[0])
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
-	svc, mock := setup(t)
+	svc, mock, categRepo := setup(t)
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
 			FROM products
@@ -223,10 +219,10 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
 		)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
-		WithArgs("UNKNOWN").
-		WillReturnRows(
-			pgxmock.NewRows([]string{"name"}))
+	categRepo.expectExists(
+		func(ctx context.Context, s string) (bool, error) {
+			return false, nil
+		})
 
 	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "UNKNOWN", new(""), 1201.0)
 
@@ -234,11 +230,12 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 	assert.ErrorIs(t, err, ErrInvalidCategory)
 	assert.EqualError(t, err, "updating product: validate product category UNKNOWN: invalid category")
 	assert.Empty(t, updated)
+	assert.Equal(t, "UNKNOWN", categRepo.searchedCategories[0])
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
-	svc, mock := setup(t)
+	svc, mock, categRepo := setup(t)
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
 			FROM products
@@ -250,12 +247,10 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 			}).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
 		)
-	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
-		WithArgs("CLOTHES").
-		WillReturnRows(
-			pgxmock.NewRows([]string{"name"}).
-				AddRow("CLOTHES"),
-		)
+	categRepo.expectExists(
+		func(ctx context.Context, s string) (bool, error) {
+			return true, nil
+		})
 	mock.ExpectQuery(`
 			UPDATE products 
 			SET name = $1, category = $2, description = $3, price = $4
@@ -269,11 +264,12 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating product: update product: database unavailable")
 	assert.Empty(t, updated)
+	assert.Equal(t, "CLOTHES", categRepo.searchedCategories[0])
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
-	svc, mock := setup(t)
+	svc, mock, _ := setup(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectExec(`
 			DELETE FROM products
@@ -288,7 +284,7 @@ func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
-	svc, mock := setup(t)
+	svc, mock, _ := setup(t)
 	mock.ExpectExec(`
 			DELETE FROM products
 			WHERE product_id = $1`).
@@ -302,7 +298,7 @@ func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 }
 
 func TestDeleteProduct_WhenDbError_ReturnsError(t *testing.T) {
-	svc, mock := setup(t)
+	svc, mock, _ := setup(t)
 	mock.ExpectExec(`
 			DELETE FROM products
 			WHERE product_id = $1`).
