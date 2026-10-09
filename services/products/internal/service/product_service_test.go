@@ -1,6 +1,7 @@
 package service
 
 import (
+	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"context"
 	"errors"
@@ -8,70 +9,60 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 )
 
-func setupProductServiceTest(t *testing.T) (*ProductService, pgxmock.PgxPoolIface) {
+func setupProductServiceTest(t *testing.T) (*ProductService, *fakeProductRepo) {
 	t.Helper()
-	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
-	assert.NoError(t, err)
-
-	t.Cleanup(func() {
-		mock.Close()
-	})
-	repo := repository.NewPostgreProductRepository(mock)
+	repo := newFakeProductRepo(t)
 	svc := NewProductService(repo)
 
-	return svc, mock
+	return svc, repo
 }
 
 func TestGetProducts_WhenProductExists_ReturnsProducts(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
-				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
-				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
-		)
+	mock.expectFindAll(
+		func(ctx context.Context) ([]product.Product, error) {
+			return allProducts, nil
+		})
 
 	p, err := svc.GetProducts(context.Background())
 
 	assert.NoError(t, err)
 	assert.Equal(t, 4, len(p))
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetProducts_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
-		WillReturnError(errors.New("database unavailable"))
+	mock.expectFindAll(
+		func(ctx context.Context) ([]product.Product, error) {
+			return []product.Product{}, errors.New("query products: database unavailable")
+		})
 
 	p, err := svc.GetProducts(context.Background())
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "get products: query products: database unavailable")
 	assert.Nil(t, p)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
-			FROM products
-			WHERE product_id = $1`).
-		WithArgs(FirstUUID).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()),
-		)
+	mock.expectFindByID(
+		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
+			if id == FirstUUID {
+				return product.Product{
+					ID:          FirstUUID,
+					Name:        "MacBook Pro",
+					Category:    "ACCESSORY",
+					Description: new("Apple laptop"),
+					Price:       2500,
+					CreatedAt:   time.Now(),
+				}, nil
+			}
+			return product.Product{}, nil
+		})
 
 	p, err := svc.GetProductByID(context.Background(), FirstUUID)
 
@@ -82,20 +73,16 @@ func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	assert.Equal(t, new("Apple laptop"), p.Description)
 	assert.Equal(t, 2500.0, p.Price)
 	assert.WithinDuration(t, time.Now(), p.CreatedAt, time.Second)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, FirstUUID, mock.foundIDs[0])
 }
 
 func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
 	id, _ := uuid.NewV7()
-	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
-			FROM products
-			WHERE product_id = $1`).
-		WithArgs(id).
-		WillReturnRows(pgxmock.NewRows([]string{
-			"product_id", "name", "category", "description", "price", "created_at",
-		}))
+	mock.expectFindByID(
+		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
+			return product.Product{}, repository.ErrNotFound
+		})
 
 	p, err := svc.GetProductByID(context.Background(), id)
 
@@ -104,60 +91,45 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	assert.Equal(t, id, notFoundErr.ProductID)
 	assert.EqualError(t, err, "Product with id ["+id.String()+"] was not found")
 	assert.Empty(t, p)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Empty(t, mock.foundIDs)
 }
 
 func TestGetProductByID_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
 	id, _ := uuid.NewV7()
-	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
-			FROM products
-			WHERE product_id = $1`).
-		WithArgs(id).
-		WillReturnError(errors.New("database unavailable"))
+	mock.expectFindByID(
+		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
+			return product.Product{}, errors.New("find product by id: database unavailable")
+		})
 
 	p, err := svc.GetProductByID(context.Background(), id)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "get product by id: find product by id: database unavailable")
 	assert.Empty(t, p)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Empty(t, mock.foundIDs)
 }
 
 func TestSearchProducts_WhenOnlyQueryProvided_FiltersByName(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
-				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
-				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
-		)
+	mock.expectFindAll(
+		func(ctx context.Context) ([]product.Product, error) {
+			return allProducts, nil
+		})
 
 	products, err := svc.SearchProducts(context.Background(), "hoodie", nil, "")
 
 	assert.NoError(t, err)
 	assert.Len(t, products, 1)
 	assert.Equal(t, ThirdUUID, products[0].ID)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenQueryAndMaxPriceProvided_FiltersByBoth(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
-				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
-				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
-		)
+	mock.expectFindAll(
+		func(ctx context.Context) ([]product.Product, error) {
+			return allProducts, nil
+		})
 	maxPrice := 200.0
 
 	products, err := svc.SearchProducts(context.Background(), "necklace", &maxPrice, "")
@@ -165,21 +137,14 @@ func TestSearchProducts_WhenQueryAndMaxPriceProvided_FiltersByBoth(t *testing.T)
 	assert.NoError(t, err)
 	assert.Len(t, products, 1)
 	assert.Equal(t, FourthUUID, products[0].ID)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenOnlyMaxPriceProvided_FiltersByPriceAndKeepsEqualBoundary(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
-				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
-				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
-		)
+	mock.expectFindAll(
+		func(ctx context.Context) ([]product.Product, error) {
+			return allProducts, nil
+		})
 	maxPrice := 150.0
 
 	products, err := svc.SearchProducts(context.Background(), "", &maxPrice, "")
@@ -190,41 +155,27 @@ func TestSearchProducts_WhenOnlyMaxPriceProvided_FiltersByPriceAndKeepsEqualBoun
 	ids := []string{products[0].ID.String(), products[1].ID.String()}
 	assert.Contains(t, ids, ThirdUUID.String())
 	assert.Contains(t, ids, FourthUUID.String())
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenOnlyCategoryProvided_FiltersByCategory(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
-				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
-				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
-		)
+	mock.expectFindAll(
+		func(ctx context.Context) ([]product.Product, error) {
+			return allProducts, nil
+		})
 
 	products, err := svc.SearchProducts(context.Background(), "", nil, "accessory")
 
 	assert.NoError(t, err)
 	assert.Len(t, products, 2)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenAllCriteriaProvided_FiltersByCombinedCriteria(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
-				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
-				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
-		)
+	mock.expectFindAll(
+		func(ctx context.Context) ([]product.Product, error) {
+			return allProducts, nil
+		})
 	maxPrice := 100.0
 
 	products, err := svc.SearchProducts(context.Background(), "hoodie", &maxPrice, "clothes")
@@ -232,13 +183,14 @@ func TestSearchProducts_WhenAllCriteriaProvided_FiltersByCombinedCriteria(t *tes
 	assert.NoError(t, err)
 	assert.Len(t, products, 1)
 	assert.Equal(t, ThirdUUID, products[0].ID)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestSearchProducts_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
-		WillReturnError(errors.New("database unavailable"))
+	mock.expectFindAll(
+		func(ctx context.Context) ([]product.Product, error) {
+			return allProducts, errors.New("query products: database unavailable")
+		})
 	maxPrice := 100.0
 
 	ctx := context.Background()
@@ -249,7 +201,6 @@ func TestSearchProducts_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "get products: query products: database unavailable")
 	assert.Nil(t, products)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 var (
@@ -257,4 +208,11 @@ var (
 	SecondUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d002")
 	ThirdUUID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d003")
 	FourthUUID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d004")
+
+	allProducts = []product.Product{
+		{ID: FirstUUID, Name: "MacBook Pro", Category: "ACCESSORY", Description: new("Apple laptop"), Price: 2500, CreatedAt: time.Now()},
+		{ID: SecondUUID, Name: "iPhone", Category: "ACCESSORY", Description: new("Apple smartphone"), Price: 1200, CreatedAt: time.Now()},
+		{ID: ThirdUUID, Name: `hoodie Mykonos`, Category: "CLOTHES", Description: new("Comfortable hoodie"), Price: 80, CreatedAt: time.Now()},
+		{ID: FourthUUID, Name: "Eye necklace", Category: "JEWELRY", Description: new("Stylish eye necklace"), Price: 150, CreatedAt: time.Now()},
+	}
 )

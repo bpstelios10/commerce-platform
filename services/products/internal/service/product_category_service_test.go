@@ -22,15 +22,15 @@ func TestProductCategoryService_Validate_WhenCategoryExists_ReturnsNil(t *testin
 		func(ctx context.Context, s string) (bool, error) {
 			if s == "ACCESSORY" {
 				return true, nil
-			} else {
-				return false, nil
 			}
+			return false, nil
 		})
 
 	normalized, err := svc.Validate(context.Background(), "accessory")
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ACCESSORY", normalized)
+	assert.Equal(t, "ACCESSORY", mock.foundCategories[0])
 }
 
 func TestProductCategoryService_Validate_WhenCategoryNotExists_ReturnsInvalidCategory(t *testing.T) {
