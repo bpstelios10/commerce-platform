@@ -74,3 +74,57 @@ func (f *fakeProductService) SearchProducts(
 	f.take("SearchProducts")
 	return f.searchProducts(ctx, query, maxPrice, category)
 }
+
+type fakeProductCategoryService struct {
+	t                    *testing.T
+	validate             func(context.Context, string) (string, error)
+	getProductCategories func(context.Context) ([]string, error)
+
+	searchedCategories []string
+
+	pending map[string]int // track method pending
+}
+
+func newFakeProductCategoryService(t *testing.T) *fakeProductCategoryService {
+	f := &fakeProductCategoryService{t: t, pending: map[string]int{}}
+	t.Cleanup(f.verify)
+	return f
+}
+
+func (f *fakeProductCategoryService) expectValidate(fn func(context.Context, string) (string, error)) {
+	f.validate = fn
+	f.pending["Validate"]++
+}
+
+func (f *fakeProductCategoryService) expectGetProductCategories(fn func(context.Context) ([]string, error)) {
+	f.getProductCategories = fn
+	f.pending["GetProductCategories"]++
+}
+
+func (f *fakeProductCategoryService) take(method string) {
+	f.t.Helper()
+	if f.pending[method] == 0 {
+		f.t.Fatalf("unexpected call: %s", method)
+	}
+	f.pending[method]--
+}
+
+func (f *fakeProductCategoryService) verify() {
+	f.t.Helper()
+	for method, n := range f.pending {
+		if n != 0 {
+			f.t.Errorf("repository %s: %d expected call(s) did not happen", method, n)
+		}
+	}
+}
+
+func (f *fakeProductCategoryService) Validate(ctx context.Context, category string) (string, error) {
+	f.take("Validate")
+	f.searchedCategories = append(f.searchedCategories, category)
+	return f.validate(ctx, category)
+}
+
+func (f *fakeProductCategoryService) GetProductCategories(ctx context.Context) ([]string, error) {
+	f.take("GetProductCategories")
+	return f.getProductCategories(ctx)
+}

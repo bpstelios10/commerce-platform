@@ -1,8 +1,6 @@
 package http
 
 import (
-	"commerce-platform/services/products/internal/repository"
-	"commerce-platform/services/products/internal/service"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,39 +9,26 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 )
 
-func productCategoryHandlerTest(t *testing.T) (*chi.Mux, pgxmock.PgxPoolIface) {
+func productCategoryHandlerTest(t *testing.T) (*chi.Mux, *fakeProductCategoryService) {
 	t.Helper()
-	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
-	assert.NoError(t, err)
-
-	t.Cleanup(func() {
-		mock.Close()
-	})
-	repo := repository.NewPostgreProductCategoryRepository(mock)
-	svc := service.NewProductCategoryServiceImpl(repo)
+	svc := newFakeProductCategoryService(t)
 	handler := NewProductCategoryHandler(svc)
 
 	r := chi.NewRouter()
 	handler.RegisterRoutes(r)
 
-	return r, mock
+	return r, svc
 }
 
 func TestGetProductCategories_WhenCategoriesExist_Returns200(t *testing.T) {
 	r, mock := productCategoryHandlerTest(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories`).
-		WillReturnRows(
-			pgxmock.NewRows([]string{"name"}).
-				AddRow("MAGNET").
-				AddRow("POSTCARD").
-				AddRow("ACCESSORY").
-				AddRow("JEWELRY").
-				AddRow("CLOTHES"),
-		)
+	mock.expectGetProductCategories(
+		func(ctx context.Context) ([]string, error) {
+			return []string{"MAGNET", "POSTCARD", "ACCESSORY", "JEWELRY", "CLOTHES"}, nil
+		})
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -63,23 +48,45 @@ func TestGetProductCategories_WhenCategoriesExist_Returns200(t *testing.T) {
 
 	expectedCategories := []string{"MAGNET", "POSTCARD", "ACCESSORY", "JEWELRY", "CLOTHES"}
 	assert.ElementsMatch(t, expectedCategories, resCategories)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestGetProductCategories_WhenDbError_Returns500(t *testing.T) {
+func TestGetProductCategories_WhenCategoriesNotExist_Returns200(t *testing.T) {
 	r, mock := productCategoryHandlerTest(t)
-	mock.ExpectQuery(`SELECT name FROM product_categories`).
-		WillReturnError(errors.New("database unavailable"))
-
-	ctx := context.Background()
-	ctxWithError := context.WithValue(ctx, "errorEnabler", "unexpected error")
+	mock.expectGetProductCategories(
+		func(ctx context.Context) ([]string, error) {
+			return []string{}, nil
+		})
 
 	req := httptest.NewRequest(
 		http.MethodGet,
 		"/products/categories",
 		nil,
 	)
-	req = req.WithContext(ctxWithError)
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+
+	var resCategories []string
+	err := json.Unmarshal(res.Body.Bytes(), &resCategories)
+	assert.NoError(t, err)
+	assert.Empty(t, resCategories)
+}
+
+func TestGetProductCategories_WhenDbError_Returns500(t *testing.T) {
+	r, mock := productCategoryHandlerTest(t)
+	mock.expectGetProductCategories(
+		func(ctx context.Context) ([]string, error) {
+			return []string{}, errors.New("unexpected error")
+		})
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/products/categories",
+		nil,
+	)
 	res := httptest.NewRecorder()
 
 	r.ServeHTTP(res, req)
@@ -94,5 +101,4 @@ func TestGetProductCategories_WhenDbError_Returns500(t *testing.T) {
 		}`,
 		res.Body.String(),
 	)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
