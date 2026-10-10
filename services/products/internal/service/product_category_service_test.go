@@ -30,7 +30,7 @@ func TestProductCategoryService_Validate_WhenCategoryExists_ReturnsNil(t *testin
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ACCESSORY", normalized)
-	assert.Equal(t, "ACCESSORY", mock.foundCategories[0])
+	assert.Equal(t, "ACCESSORY", mock.searchedCategories[0])
 }
 
 func TestProductCategoryService_Validate_WhenCategoryNotExists_ReturnsInvalidCategory(t *testing.T) {
@@ -45,6 +45,7 @@ func TestProductCategoryService_Validate_WhenCategoryNotExists_ReturnsInvalidCat
 	assert.Empty(t, normalized)
 	assert.ErrorIs(t, err, ErrInvalidCategory)
 	assert.EqualError(t, err, "validate product category UNKNOWN: invalid category")
+	assert.Equal(t, "UNKNOWN", mock.searchedCategories[0])
 }
 
 func TestProductCategoryService_Validate_WhenDbError_ReturnsError(t *testing.T) {

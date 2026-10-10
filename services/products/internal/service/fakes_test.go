@@ -15,7 +15,7 @@ type fakeProductCategoryRepo struct {
 	exists func(context.Context, string) (bool, error)
 	getAll func(context.Context) ([]string, error)
 
-	foundCategories []string
+	searchedCategories []string
 
 	pending map[string]int // track method pending
 }
@@ -55,7 +55,7 @@ func (f *fakeProductCategoryRepo) verify() {
 
 func (f *fakeProductCategoryRepo) Exists(ctx context.Context, category string) (bool, error) {
 	f.take("exists")
-	f.foundCategories = append(f.foundCategories, category)
+	f.searchedCategories = append(f.searchedCategories, category)
 	return f.exists(ctx, category)
 }
 
@@ -70,8 +70,14 @@ type fakeProductRepo struct {
 	t        *testing.T
 	findAll  func(context.Context) ([]product.Product, error)
 	findByID func(context.Context, uuid.UUID) (product.Product, error)
+	save     func(context.Context, product.Product) (product.Product, error)
+	update   func(context.Context, product.Product) (product.Product, error)
+	delete   func(context.Context, uuid.UUID) error
 
-	foundIDs []uuid.UUID
+	searchedIDs []uuid.UUID
+	saved       []product.Product
+	updated     []product.Product
+	deleted     []uuid.UUID
 
 	pending map[string]int // track method pending
 }
@@ -90,6 +96,21 @@ func (f *fakeProductRepo) expectFindAll(fn func(context.Context) ([]product.Prod
 func (f *fakeProductRepo) expectFindByID(fn func(context.Context, uuid.UUID) (product.Product, error)) {
 	f.findByID = fn
 	f.pending["FindByID"]++
+}
+
+func (f *fakeProductRepo) expectSave(fn func(context.Context, product.Product) (product.Product, error)) {
+	f.save = fn
+	f.pending["Save"]++
+}
+
+func (f *fakeProductRepo) expectUpdate(fn func(context.Context, product.Product) (product.Product, error)) {
+	f.update = fn
+	f.pending["Update"]++
+}
+
+func (f *fakeProductRepo) expectDelete(fn func(context.Context, uuid.UUID) error) {
+	f.delete = fn
+	f.pending["Delete"]++
 }
 
 func (f *fakeProductRepo) take(method string) {
@@ -116,9 +137,24 @@ func (f *fakeProductRepo) FindAll(ctx context.Context) ([]product.Product, error
 
 func (f *fakeProductRepo) FindByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
 	f.take("FindByID")
-	p, err := f.findByID(ctx, id)
-	if p != (product.Product{}) {
-		f.foundIDs = append(f.foundIDs, id)
-	}
-	return p, err
+	f.searchedIDs = append(f.searchedIDs, id)
+	return f.findByID(ctx, id)
+}
+
+func (f *fakeProductRepo) Save(ctx context.Context, o product.Product) (product.Product, error) {
+	f.take("Save")
+	f.saved = append(f.saved, o)
+	return f.save(ctx, o)
+}
+
+func (f *fakeProductRepo) Update(ctx context.Context, o product.Product) (product.Product, error) {
+	f.take("Update")
+	f.updated = append(f.updated, o)
+	return f.update(ctx, o)
+}
+
+func (f *fakeProductRepo) Delete(ctx context.Context, id uuid.UUID) error {
+	f.take("Delete")
+	f.deleted = append(f.deleted, id)
+	return f.delete(ctx, id)
 }

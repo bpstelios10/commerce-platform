@@ -9,30 +9,24 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 )
 
-func setup(t *testing.T) (*AdminService, pgxmock.PgxPoolIface, *fakeProductCategoryRepo) {
+func setup(t *testing.T) (*AdminService, *fakeProductRepo, *fakeProductCategoryRepo) {
 	t.Helper()
-	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
-	assert.NoError(t, err)
 
-	t.Cleanup(func() {
-		mock.Close()
-	})
-	repo := repository.NewPostgreProductRepository(mock)
+	repo := newFakeProductRepo(t)
 	productService := NewProductService(repo)
 
 	categoryRepo := newFakeProductCategoryRepo(t)
 	categoryService := NewProductCategoryService(categoryRepo)
 	svc := NewAdminService(productService, categoryService, repo)
 
-	return svc, mock, categoryRepo
+	return svc, repo, categoryRepo
 }
 
 func TestCreateProduct_WhenProductNotExists(t *testing.T) {
-	svc, mock, categRepo := setup(t)
+	svc, productRepo, categRepo := setup(t)
 	p := product.Product{
 		Name:        "MacBook Pro M4",
 		Category:    "ACCESSORY",
@@ -43,23 +37,19 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 		func(ctx context.Context, s string) (bool, error) {
 			return true, nil
 		})
-	mock.ExpectQuery(`
-			INSERT INTO products (product_id, name, category, description, price)
-			VALUES ($1, $2, $3, $4, $5)
-			RETURNING product_id, name, category, description, price, created_at;`).
-		WithArgs(pgxmock.OfType[uuid.UUID](), p.Name, p.Category, p.Description, p.Price).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).AddRow(uuid.New(), p.Name, p.Category, p.Description, p.Price, time.Now()),
-		)
+	productRepo.expectSave(
+		func(ctx context.Context, p product.Product) (product.Product, error) {
+			p.CreatedAt = time.Now()
+			return p, nil
+		})
 
 	p, err := svc.CreateProduct(context.Background(), p.Name, p.Category, p.Description, p.Price)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, p)
 	assert.Equal(t, p.Category, categRepo.searchedCategories[0])
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, p.Name, productRepo.saved[0].Name)
+	assert.NotEmpty(t, productRepo.saved[0].ID) // the id should be created in the service
 }
 
 func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
@@ -104,8 +94,8 @@ func TestCreateProduct_WhenUUIDGenerationFails_ReturnsError(t *testing.T) {
 }
 
 func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
-	svc, mock, categRepo := setup(t)
-	p := product.Product{
+	svc, productRepo, categRepo := setup(t)
+	existing := product.Product{
 		Name:        "MacBook Pro M4",
 		Category:    "ACCESSORY",
 		Description: new("some-description"),
@@ -115,34 +105,29 @@ func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
 		func(ctx context.Context, s string) (bool, error) {
 			return true, nil
 		})
-	mock.ExpectQuery(`
-			INSERT INTO products (product_id, name, category, description, price)
-			VALUES ($1, $2, $3, $4, $5)
-			RETURNING product_id, name, category, description, price, created_at;`).
-		WithArgs(pgxmock.OfType[uuid.UUID](), p.Name, p.Category, p.Description, p.Price).
-		WillReturnError(errors.New("database unavailable"))
+	productRepo.expectSave(
+		func(ctx context.Context, p product.Product) (product.Product, error) {
+			return product.Product{}, errors.New("save product: database unavailable")
+		})
 
-	p, err := svc.CreateProduct(context.Background(), p.Name, p.Category, p.Description, p.Price)
+	p, err := svc.CreateProduct(
+		context.Background(),
+		existing.Name, existing.Category, existing.Description, existing.Price)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "create product: save product: database unavailable")
 	assert.Empty(t, p)
 	assert.Equal(t, "ACCESSORY", categRepo.searchedCategories[0])
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, existing.Name, productRepo.saved[0].Name)
 }
 
 func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
-	svc, mock, _ := setup(t)
+	svc, productRepo, _ := setup(t)
 	id, _ := uuid.NewV7()
-	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
-			FROM products
-			WHERE product_id = $1`).
-		WithArgs(id).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}))
+	productRepo.expectFindByID(
+		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
+			return product.Product{}, repository.ErrNotFound
+		})
 
 	updated, err := svc.UpdateProduct(context.Background(), id, "whatever", "ACCESSORY", new(""), 1201.0)
 
@@ -152,46 +137,39 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	assert.Equal(t, id, notFoundErr.ProductID)
 	assert.EqualError(t, err, "updating product: Product with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, id, productRepo.searchedIDs[0])
 }
 
 func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
-	svc, mock, categRepo := setup(t)
+	svc, productRepo, categRepo := setup(t)
+	createdAt := time.Now()
 	p := &product.Product{
 		ID:          SecondUUID,
 		Name:        "iPhone 15",
 		Category:    "CLOTHES",
 		Description: new("Updated description"),
 		Price:       1500.0,
+		CreatedAt:   createdAt,
 	}
-	// product exists
-	createdAt := time.Now()
-	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
-			FROM products
-			WHERE product_id = $1`).
-		WithArgs(SecondUUID).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, createdAt),
-		)
+	productRepo.expectFindByID(
+		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
+			p.CreatedAt = createdAt
+			return product.Product{
+				ID:          SecondUUID,
+				Name:        "iPhone",
+				Category:    "ACCESSORY",
+				Description: new("Apple smartphone"),
+				Price:       1200,
+				CreatedAt:   createdAt}, nil
+		})
 	categRepo.expectExists(
 		func(ctx context.Context, s string) (bool, error) {
 			return true, nil
 		})
-	mock.ExpectQuery(`
-			UPDATE products 
-			SET name = $1, category = $2, description = $3, price = $4
-			WHERE product_id = $5
-			RETURNING product_id, name, category, description, price, created_at;`).
-		WithArgs(p.Name, p.Category, p.Description, p.Price, p.ID).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).AddRow(p.ID, p.Name, p.Category, p.Description, p.Price, createdAt),
-		)
+	productRepo.expectUpdate(
+		func(ctx context.Context, p product.Product) (product.Product, error) {
+			return p, nil
+		})
 
 	updated, err := svc.UpdateProduct(context.Background(), p.ID, p.Name, p.Category, p.Description, p.Price)
 
@@ -203,22 +181,22 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, p.Price, updated.Price)
 	assert.True(t, updated.CreatedAt.Equal(createdAt))
 	assert.Equal(t, p.Category, categRepo.searchedCategories[0])
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, p.ID, productRepo.searchedIDs[0])
+	assert.Equal(t, p.Name, productRepo.updated[0].Name)
 }
 
 func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
-	svc, mock, categRepo := setup(t)
-	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
-			FROM products
-			WHERE product_id = $1`).
-		WithArgs(SecondUUID).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
-		)
+	svc, productRepo, categRepo := setup(t)
+	productRepo.expectFindByID(
+		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
+			return product.Product{
+				ID:          SecondUUID,
+				Name:        "iPhone",
+				Category:    "ACCESSORY",
+				Description: new("Apple smartphone"),
+				Price:       1200,
+				CreatedAt:   time.Now()}, nil
+		})
 	categRepo.expectExists(
 		func(ctx context.Context, s string) (bool, error) {
 			return false, nil
@@ -230,34 +208,30 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 	assert.ErrorIs(t, err, ErrInvalidCategory)
 	assert.EqualError(t, err, "updating product: validate product category UNKNOWN: invalid category")
 	assert.Empty(t, updated)
+	assert.Equal(t, SecondUUID, productRepo.searchedIDs[0])
 	assert.Equal(t, "UNKNOWN", categRepo.searchedCategories[0])
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
-	svc, mock, categRepo := setup(t)
-	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
-			FROM products
-			WHERE product_id = $1`).
-		WithArgs(SecondUUID).
-		WillReturnRows(
-			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
-			}).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
-		)
+	svc, productRepo, categRepo := setup(t)
+	productRepo.expectFindByID(
+		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
+			return product.Product{
+				ID:          SecondUUID,
+				Name:        "iPhone",
+				Category:    "ACCESSORY",
+				Description: new("Apple smartphone"),
+				Price:       1200,
+				CreatedAt:   time.Now()}, nil
+		})
 	categRepo.expectExists(
 		func(ctx context.Context, s string) (bool, error) {
 			return true, nil
 		})
-	mock.ExpectQuery(`
-			UPDATE products 
-			SET name = $1, category = $2, description = $3, price = $4
-			WHERE product_id = $5
-			RETURNING product_id, name, category, description, price, created_at;`).
-		WithArgs("iPhone 7", "CLOTHES", new(""), 1201.0, SecondUUID).
-		WillReturnError(errors.New("database unavailable"))
+	productRepo.expectUpdate(
+		func(ctx context.Context, p product.Product) (product.Product, error) {
+			return p, errors.New("update product: database unavailable")
+		})
 
 	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "CLOTHES", new(""), 1201.0)
 
@@ -265,49 +239,45 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	assert.EqualError(t, err, "updating product: update product: database unavailable")
 	assert.Empty(t, updated)
 	assert.Equal(t, "CLOTHES", categRepo.searchedCategories[0])
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
-	svc, mock, _ := setup(t)
+	svc, productRepo, _ := setup(t)
 	id, _ := uuid.NewV7()
-	mock.ExpectExec(`
-			DELETE FROM products
-			WHERE product_id = $1`).
-		WithArgs(id).
-		WillReturnResult(pgxmock.NewResult("DELETE", 0))
+	productRepo.expectDelete(
+		func(ctx context.Context, u uuid.UUID) error {
+			return nil
+		})
 
 	err := svc.DeleteProduct(context.Background(), id)
 
 	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, id, productRepo.deleted[0])
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
-	svc, mock, _ := setup(t)
-	mock.ExpectExec(`
-			DELETE FROM products
-			WHERE product_id = $1`).
-		WithArgs(SecondUUID).
-		WillReturnResult(pgxmock.NewResult("DELETE", 1))
+	svc, productRepo, _ := setup(t)
+	productRepo.expectDelete(
+		func(ctx context.Context, u uuid.UUID) error {
+			return nil
+		})
 
 	err := svc.DeleteProduct(context.Background(), SecondUUID)
 
 	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, SecondUUID, productRepo.deleted[0])
 }
 
 func TestDeleteProduct_WhenDbError_ReturnsError(t *testing.T) {
-	svc, mock, _ := setup(t)
-	mock.ExpectExec(`
-			DELETE FROM products
-			WHERE product_id = $1`).
-		WithArgs(SecondUUID).
-		WillReturnError(errors.New("database unavailable"))
+	svc, productRepo, _ := setup(t)
+	productRepo.expectDelete(
+		func(ctx context.Context, u uuid.UUID) error {
+			return errors.New("delete product: database unavailable")
+		})
 
 	err := svc.DeleteProduct(context.Background(), SecondUUID)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "deleting product: delete product: database unavailable")
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Equal(t, SecondUUID, productRepo.deleted[0])
 }

@@ -73,7 +73,7 @@ func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	assert.Equal(t, new("Apple laptop"), p.Description)
 	assert.Equal(t, 2500.0, p.Price)
 	assert.WithinDuration(t, time.Now(), p.CreatedAt, time.Second)
-	assert.Equal(t, FirstUUID, mock.foundIDs[0])
+	assert.Equal(t, FirstUUID, mock.searchedIDs[0])
 }
 
 func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
@@ -91,7 +91,7 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	assert.Equal(t, id, notFoundErr.ProductID)
 	assert.EqualError(t, err, "Product with id ["+id.String()+"] was not found")
 	assert.Empty(t, p)
-	assert.Empty(t, mock.foundIDs)
+	assert.Equal(t, mock.searchedIDs[0], id)
 }
 
 func TestGetProductByID_WhenDbError_ReturnsError(t *testing.T) {
@@ -107,7 +107,7 @@ func TestGetProductByID_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "get product by id: find product by id: database unavailable")
 	assert.Empty(t, p)
-	assert.Empty(t, mock.foundIDs)
+	assert.Equal(t, mock.searchedIDs[0], id)
 }
 
 func TestSearchProducts_WhenOnlyQueryProvided_FiltersByName(t *testing.T) {
