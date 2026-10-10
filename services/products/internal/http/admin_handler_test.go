@@ -259,324 +259,287 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 	assert.Empty(t, mock.created[0])
 }
 
-// func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
-// 	srv, mock := setupAdminHandlerTest(t)
-// 	p := &product.Product{
-// 		ID:          SecondUUID,
-// 		Name:        "iPhone 15",
-// 		Category:    "CLOTHES",
-// 		Description: new("Updated description"),
-// 		Price:       1500.0,
-// 	}
-// 	createdAt := time.Now()
-// 	mock.ExpectQuery(`
-// 			SELECT product_id, name, category, description, price, created_at
-// 			FROM products
-// 			WHERE product_id = $1`).
-// 		WithArgs(SecondUUID).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{
-// 				"product_id", "name", "category", "description", "price", "created_at",
-// 			}).
-// 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, createdAt),
-// 		)
-// 	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
-// 		WithArgs(p.Category).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{"name"}).
-// 				AddRow(p.Category),
-// 		)
-// 	mock.ExpectQuery(`
-// 			UPDATE products
-// 			SET name = $1, category = $2, description = $3, price = $4
-// 			WHERE product_id = $5
-// 			RETURNING product_id, name, category, description, price, created_at;`).
-// 		WithArgs(p.Name, p.Category, p.Description, p.Price, p.ID).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{
-// 				"product_id", "name", "category", "description", "price", "created_at",
-// 			}).AddRow(p.ID, p.Name, p.Category, p.Description, p.Price, createdAt),
-// 		)
+func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+	p := product.Product{
+		ID:          SecondUUID,
+		Name:        "iPhone 15",
+		Category:    "CLOTHES",
+		Description: new("Updated description"),
+		Price:       1500.0,
+		CreatedAt:   time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+	}
+	mock.expectUpdateProduct(
+		func(ctx context.Context, id uuid.UUID, name, category string, description *string, price float64) (product.Product, error) {
+			return p, nil
+		})
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/admin/products/"+SecondUUID.String(),
-// 		bytes.NewBufferString(`{
-// 			"name": "iPhone 15",
-// 			"category": "CLOTHES",
-// 			"description": "Updated description",
-// 			"price": 1500
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		bytes.NewBufferString(`{
+			"name": "iPhone 15",
+			"category": "CLOTHES",
+			"description": "Updated description",
+			"price": 1500
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusOK, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	var updated product.Product
-// 	err = json.Unmarshal(body, &updated)
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, p.ID, updated.ID)
-// 	assert.Equal(t, p.Name, updated.Name)
-// 	assert.Equal(t, p.Category, updated.Category)
-// 	assert.Equal(t, p.Description, updated.Description)
-// 	assert.Equal(t, p.Price, updated.Price)
-// 	assert.True(t, updated.CreatedAt.Equal(createdAt))
-// }
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	var updated product.Product
+	err = json.Unmarshal(body, &updated)
+	assert.NoError(t, err)
+	assert.Equal(t, p, updated)
+	assert.Equal(t, p, mock.updated[0])
+}
 
-// func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
-// 	srv, mock := setupAdminHandlerTest(t)
+func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/admin/products/1234",
-// 		bytes.NewBufferString(`{
-// 			"name": "iPhone 15",
-// 			"category": "CLOTHES",
-// 			"price": 1500
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/1234",
+		bytes.NewBufferString(`{
+			"name": "iPhone 15",
+			"category": "CLOTHES",
+			"price": 1500
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "INVALID_UUID",
-// 			"message": "invalid UUID"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_UUID",
+			"message": "invalid UUID"
+		}`,
+		string(body),
+	)
+	assert.Empty(t, mock.updated)
+}
 
-// func TestUpdateProduct_WhenRequestBodyTooBig_Returns400(t *testing.T) {
-// 	srv, mock := setupAdminHandlerTest(t)
+func TestUpdateProduct_WhenRequestBodyTooBig_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/admin/products/"+SecondUUID.String(),
-// 		bytes.NewBufferString(`{
-// 			"name": "`+strings.Repeat("a", 1<<10)+`",
-// 			"category": "CLOTHES",
-// 			"description": "Updated description",
-// 			"price": 1500
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		bytes.NewBufferString(`{
+			"name": "`+strings.Repeat("a", 1<<10)+`",
+			"category": "CLOTHES",
+			"description": "Updated description",
+			"price": 1500
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "REQUEST_BODY_TOO_LONG",
-// 			"message": "Request body exceeds 1024 bytes"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_BODY_TOO_LONG",
+			"message": "Request body exceeds 1024 bytes"
+		}`,
+		string(body),
+	)
+	assert.Empty(t, mock.updated)
+}
 
-// func TestUpdateProduct_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
-// 	srv, mock := setupAdminHandlerTest(t)
+func TestUpdateProduct_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/admin/products/"+SecondUUID.String(),
-// 		bytes.NewBufferString(`{
-// 			"name": "iPhone 15",
-// 			"category": "CLOTHES",
-// 			"description": "Updated description",
-// 			"price": 1500
-// 		}{"trailing": "json"}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		bytes.NewBufferString(`{
+			"name": "iPhone 15",
+			"category": "CLOTHES",
+			"description": "Updated description",
+			"price": 1500
+		}{"trailing": "json"}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "INVALID_PRODUCT",
-// 			"message": "invalid product"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_PRODUCT",
+			"message": "invalid product"
+		}`,
+		string(body),
+	)
+	assert.Empty(t, mock.updated)
+}
 
-// func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
-// 	srv, mock := setupAdminHandlerTest(t)
+func TestUpdateProduct_WhenBadRequestBody_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/admin/products/"+SecondUUID.String(),
-// 		bytes.NewBufferString(`{
-// 			"error-to-cause": "extra comma, so invalid json",
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		bytes.NewBufferString(`{
+			"error-to-cause": "extra comma, so invalid json",
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "INVALID_PRODUCT",
-// 			"message": "invalid product"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_PRODUCT",
+			"message": "invalid product"
+		}`,
+		string(body),
+	)
+	assert.Empty(t, mock.updated)
+}
 
-// func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
-// 	srv, mock := setupAdminHandlerTest(t)
+func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/admin/products/"+FirstUUID.String(),
-// 		bytes.NewBufferString(`{
-// 			"name": "",
-// 			"category": "",
-// 			"price": 0
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+FirstUUID.String(),
+		bytes.NewBufferString(`{
+			"name": "",
+			"category": "",
+			"price": 0
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "VALIDATION_ERROR",
-// 			"message": "name cannot be blank.; category cannot be blank.; price must be > 0."
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "VALIDATION_ERROR",
+			"message": "name cannot be blank.; category cannot be blank.; price must be > 0."
+		}`,
+		string(body),
+	)
+	assert.Empty(t, mock.updated)
+}
 
-// func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
-// 	srv, mock := setupAdminHandlerTest(t)
-// 	id, _ := uuid.NewV7()
-// 	mock.ExpectQuery(`
-// 			SELECT product_id, name, category, description, price, created_at
-// 			FROM products
-// 			WHERE product_id = $1`).
-// 		WithArgs(id).
-// 		WillReturnRows(pgxmock.NewRows([]string{
-// 			"product_id", "name", "category", "description", "price", "created_at",
-// 		}))
+func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+	id, _ := uuid.NewV7()
+	mock.expectUpdateProduct(
+		func(ctx context.Context, id uuid.UUID, name, category string, description *string, price float64) (product.Product, error) {
+			return product.Product{}, &service.ErrProductNotFound{ProductID: id}
+		})
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/admin/products/"+id.String(),
-// 		bytes.NewBufferString(`{
-// 			"name": "non-existing-product",
-// 			"category": "ACCESSORY",
-// 			"price": 1000.1
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+id.String(),
+		bytes.NewBufferString(`{
+			"name": "non-existing-product",
+			"category": "ACCESSORY",
+			"price": 1000.1
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusNotFound, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "PRODUCT_NOT_FOUND",
-// 			"message": "Product with id [`+id.String()+`] was not found"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "PRODUCT_NOT_FOUND",
+			"message": "Product with id [`+id.String()+`] was not found"
+		}`,
+		string(body),
+	)
+	assert.Empty(t, mock.updated[0])
+}
 
-// func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
-// 	srv, mock := setupAdminHandlerTest(t)
-// 	mock.ExpectQuery(`
-// 			SELECT product_id, name, category, description, price, created_at
-// 			FROM products
-// 			WHERE product_id = $1`).
-// 		WithArgs(SecondUUID).
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{
-// 				"product_id", "name", "category", "description", "price", "created_at",
-// 			}).
-// 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()),
-// 		)
-// 	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
-// 		WithArgs("UNKNOWN").
-// 		WillReturnRows(
-// 			pgxmock.NewRows([]string{"name"}),
-// 		)
+func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+	mock.expectUpdateProduct(
+		func(ctx context.Context, id uuid.UUID, name, category string, description *string, price float64) (product.Product, error) {
+			return product.Product{}, service.ErrInvalidCategory
+		})
 
-// 	req, err := http.NewRequest(
-// 		http.MethodPut,
-// 		srv.URL+"/admin/products/"+SecondUUID.String(),
-// 		bytes.NewBufferString(`{
-// 			"name": "iPhone 15",
-// 			"category": "UNKNOWN",
-// 			"price": 1500
-// 		}`),
-// 	)
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
-// 	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		bytes.NewBufferString(`{
+			"name": "iPhone 15",
+			"category": "UNKNOWN",
+			"price": 1500
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
 
-// 	assert.NoError(t, err)
-// 	defer res.Body.Close()
-// 	body, _ := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-// 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-// 	assert.JSONEq(
-// 		t,
-// 		`{
-// 			"code": "INVALID_CATEGORY",
-// 			"message": "invalid category"
-// 		}`,
-// 		string(body),
-// 	)
-// }
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "INVALID_CATEGORY",
+			"message": "invalid category"
+		}`,
+		string(body),
+	)
+	assert.Empty(t, mock.updated[0])
+}
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
