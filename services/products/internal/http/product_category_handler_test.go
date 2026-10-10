@@ -24,7 +24,7 @@ func productCategoryHandlerTest(t *testing.T) (*chi.Mux, pgxmock.PgxPoolIface) {
 		mock.Close()
 	})
 	repo := repository.NewPostgreProductCategoryRepository(mock)
-	svc := service.NewProductCategoryService(repo)
+	svc := service.NewProductCategoryServiceImpl(repo)
 	handler := NewProductCategoryHandler(svc)
 
 	r := chi.NewRouter()

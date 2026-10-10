@@ -12,15 +12,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setup(t *testing.T) (*AdminService, *fakeProductRepo, *fakeProductCategoryRepo) {
+func setup(t *testing.T) (*AdminServiceImpl, *fakeProductRepo, *fakeProductCategoryRepo) {
 	t.Helper()
 
 	repo := newFakeProductRepo(t)
 	productService := NewProductServiceImpl(repo)
 
 	categoryRepo := newFakeProductCategoryRepo(t)
-	categoryService := NewProductCategoryService(categoryRepo)
-	svc := NewAdminService(productService, categoryService, repo)
+	categoryService := NewProductCategoryServiceImpl(categoryRepo)
+	svc := NewAdminServiceImpl(productService, categoryService, repo)
 
 	return svc, repo, categoryRepo
 }

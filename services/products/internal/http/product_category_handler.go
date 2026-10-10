@@ -1,18 +1,23 @@
 package http
 
 import (
-	"commerce-platform/services/products/internal/service"
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
 
-type ProductCategoryHandler struct {
-	productCategoryService *service.ProductCategoryService
+type ProductCategoryService interface {
+	Validate(ctx context.Context, category string) (string, error)
+	GetProductCategories(ctx context.Context) ([]string, error)
 }
 
-func NewProductCategoryHandler(productCategoryService *service.ProductCategoryService) *ProductCategoryHandler {
+type ProductCategoryHandler struct {
+	productCategoryService ProductCategoryService
+}
+
+func NewProductCategoryHandler(productCategoryService ProductCategoryService) *ProductCategoryHandler {
 	return &ProductCategoryHandler{
 		productCategoryService: productCategoryService,
 	}

@@ -8,23 +8,27 @@ import (
 	"github.com/google/uuid"
 )
 
+type ProductCategoryService interface {
+	Validate(ctx context.Context, category string) (string, error)
+}
+
 type ProductWriter interface {
 	Save(ctx context.Context, p product.Product) (product.Product, error)
 	Update(ctx context.Context, p product.Product) (product.Product, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
-type AdminService struct {
+type AdminServiceImpl struct {
 	productService  *ProductServiceImpl
-	categoryService *ProductCategoryService
+	categoryService ProductCategoryService
 	repo            ProductWriter
 }
 
-func NewAdminService(productService *ProductServiceImpl, categoryService *ProductCategoryService, repo ProductWriter) *AdminService {
-	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
+func NewAdminServiceImpl(productService *ProductServiceImpl, categoryService ProductCategoryService, repo ProductWriter) *AdminServiceImpl {
+	return &AdminServiceImpl{productService: productService, categoryService: categoryService, repo: repo}
 }
 
-func (s *AdminService) CreateProduct(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error) {
+func (s *AdminServiceImpl) CreateProduct(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error) {
 	validatedCategory, err := s.categoryService.Validate(ctx, category)
 	if err != nil {
 		return product.Product{}, err
@@ -54,7 +58,7 @@ func (s *AdminService) CreateProduct(ctx context.Context, name string, category 
 	return p, nil
 }
 
-func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error) {
+func (s *AdminServiceImpl) UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error) {
 	p, err := s.productService.GetProductByID(ctx, id)
 	if err != nil {
 		return product.Product{}, fmt.Errorf("updating product: %w", err)
@@ -81,7 +85,7 @@ func (s *AdminService) UpdateProduct(ctx context.Context, id uuid.UUID, name str
 	return p, nil
 }
 
-func (s *AdminService) DeleteProduct(ctx context.Context, id uuid.UUID) error {
+func (s *AdminServiceImpl) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 	logger := log(ctx)
 	logger.Info().Str("product_id", id.String()).Msg("attempting to delete product")
 

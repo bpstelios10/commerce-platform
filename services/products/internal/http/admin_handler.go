@@ -8,17 +8,25 @@ import (
 	"io"
 	"net/http"
 
+	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
-type AdminHandler struct {
-	adminService *service.AdminService
+type AdminService interface {
+	CreateProduct(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error)
+	UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error)
+	DeleteProduct(ctx context.Context, id uuid.UUID) error
 }
 
-func NewAdminHandler(adminService *service.AdminService) *AdminHandler {
+type AdminHandler struct {
+	adminService AdminService
+}
+
+func NewAdminHandler(adminService AdminService) *AdminHandler {
 	return &AdminHandler{adminService: adminService}
 }
 

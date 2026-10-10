@@ -32,8 +32,8 @@ func setupAdminHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface
 	repo := repository.NewPostgreProductRepository(mock)
 	productService := service.NewProductServiceImpl(repo)
 	categoryRepo := repository.NewPostgreProductCategoryRepository(mock)
-	categoryService := service.NewProductCategoryService(categoryRepo)
-	adminSvc := service.NewAdminService(productService, categoryService, repo)
+	categoryService := service.NewProductCategoryServiceImpl(categoryRepo)
+	adminSvc := service.NewAdminServiceImpl(productService, categoryService, repo)
 	handler := NewAdminHandler(adminSvc)
 
 	r := chi.NewRouter()

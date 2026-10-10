@@ -76,12 +76,12 @@ func main() {
 
 	// product category handler
 	categoryRepo := repository.NewPostgreProductCategoryRepository(db)
-	categoryService := service.NewProductCategoryService(categoryRepo)
+	categoryService := service.NewProductCategoryServiceImpl(categoryRepo)
 	categoryHandler := httpx.NewProductCategoryHandler(categoryService)
 	categoryHandler.RegisterRoutes(r)
 
 	// admin handler
-	adminProductService := service.NewAdminService(productService, categoryService, productRepo)
+	adminProductService := service.NewAdminServiceImpl(productService, categoryService, productRepo)
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
