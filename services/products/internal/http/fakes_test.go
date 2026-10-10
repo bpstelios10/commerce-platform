@@ -13,8 +13,14 @@ type fakeProductService struct {
 	getProducts    func(context.Context) ([]product.Product, error)
 	getProductByID func(context.Context, uuid.UUID) (product.Product, error)
 	searchProducts func(ctx context.Context, query string, maxPrice *float64, category string) ([]product.Product, error)
+	createProduct  func(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error)
+	updateProduct  func(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error)
+	deleteProduct  func(context.Context, uuid.UUID) error
 
 	searchedIDs []uuid.UUID
+	created     []product.Product
+	updated     []product.Product
+	deleted     []uuid.UUID
 
 	pending map[string]int // track method pending
 }
@@ -39,6 +45,23 @@ func (f *fakeProductService) expectSearchProducts(
 	fn func(ctx context.Context, query string, maxPrice *float64, category string) ([]product.Product, error)) {
 	f.searchProducts = fn
 	f.pending["SearchProducts"]++
+}
+
+func (f *fakeProductService) expectCreateProduct(
+	fn func(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error)) {
+	f.createProduct = fn
+	f.pending["CreateProduct"]++
+}
+
+func (f *fakeProductService) expectUpdateProduct(
+	fn func(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error)) {
+	f.updateProduct = fn
+	f.pending["UpdateProduct"]++
+}
+
+func (f *fakeProductService) expectDeleteProduct(fn func(context.Context, uuid.UUID) error) {
+	f.deleteProduct = fn
+	f.pending["DeleteProduct"]++
 }
 
 func (f *fakeProductService) take(method string) {
@@ -74,6 +97,35 @@ func (f *fakeProductService) SearchProducts(
 	f.take("SearchProducts")
 	return f.searchProducts(ctx, query, maxPrice, category)
 }
+
+// TODO make all these only test as 'created' the input. verify the expected value was passed in.
+// the outcome we can verify from the result
+func (f *fakeProductService) CreateProduct(
+	ctx context.Context, name string, category string, description *string, price float64) (product.Product, error) {
+	f.take("CreateProduct")
+	p, err := f.createProduct(ctx, name, category, description, price)
+	f.created = append(f.created, p)
+
+	return p, err
+}
+
+func (f *fakeProductService) UpdateProduct(
+	ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error) {
+	f.take("UpdateProduct")
+	p, err := f.updateProduct(ctx, id, name, category, description, price)
+	f.updated = append(f.updated, p)
+
+	return p, err
+}
+
+func (f *fakeProductService) DeleteProduct(ctx context.Context, id uuid.UUID) error {
+	f.take("DeleteProduct")
+	f.deleted = append(f.deleted, id)
+
+	return f.deleteProduct(ctx, id)
+}
+
+// ---- Product Category Fake ---- //
 
 type fakeProductCategoryService struct {
 	t                    *testing.T
