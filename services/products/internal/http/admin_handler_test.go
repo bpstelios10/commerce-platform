@@ -30,7 +30,7 @@ func setupAdminHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface
 		mock.Close()
 	})
 	repo := repository.NewPostgreProductRepository(mock)
-	productService := service.NewProductService(repo)
+	productService := service.NewProductServiceImpl(repo)
 	categoryRepo := repository.NewPostgreProductCategoryRepository(mock)
 	categoryService := service.NewProductCategoryService(categoryRepo)
 	adminSvc := service.NewAdminService(productService, categoryService, repo)

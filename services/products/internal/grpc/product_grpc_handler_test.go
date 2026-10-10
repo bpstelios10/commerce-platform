@@ -27,7 +27,7 @@ func setupProductHandlerTest(t *testing.T) (ProductServiceClient, pgxmock.PgxPoo
 		mock.Close()
 	})
 	repo := repository.NewPostgreProductRepository(mock)
-	svc := service.NewProductService(repo)
+	svc := service.NewProductServiceImpl(repo)
 	handler := NewProductGrpcHandler(svc)
 
 	server := grpc.NewServer()

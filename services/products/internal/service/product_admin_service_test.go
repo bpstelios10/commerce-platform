@@ -16,7 +16,7 @@ func setup(t *testing.T) (*AdminService, *fakeProductRepo, *fakeProductCategoryR
 	t.Helper()
 
 	repo := newFakeProductRepo(t)
-	productService := NewProductService(repo)
+	productService := NewProductServiceImpl(repo)
 
 	categoryRepo := newFakeProductCategoryRepo(t)
 	categoryService := NewProductCategoryService(categoryRepo)

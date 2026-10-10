@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupProductServiceTest(t *testing.T) (*ProductService, *fakeProductRepo) {
+func setupProductServiceTest(t *testing.T) (*ProductServiceImpl, *fakeProductRepo) {
 	t.Helper()
 	repo := newFakeProductRepo(t)
-	svc := NewProductService(repo)
+	svc := NewProductServiceImpl(repo)
 
 	return svc, repo
 }

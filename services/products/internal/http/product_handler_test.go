@@ -19,26 +19,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupProductHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface) {
-	t.Helper()
-	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
-	assert.NoError(t, err)
+// func setupProductHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface) {
+// 	t.Helper()
+// 	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+// 	assert.NoError(t, err)
 
-	t.Cleanup(func() {
-		mock.Close()
-	})
-	repo := repository.NewPostgreProductRepository(mock)
-	svc := service.NewProductService(repo)
-	handler := NewProductHandler(svc)
+// 	t.Cleanup(func() {
+// 		mock.Close()
+// 	})
+// 	repo := repository.NewPostgreProductRepository(mock)
+// 	svc := service.NewProductService(repo)
+// 	handler := NewProductHandler(svc)
 
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
+// 	r := chi.NewRouter()
+// 	handler.RegisterRoutes(r)
 
-	srv := httptest.NewServer(r)
-	t.Cleanup(srv.Close)
+// 	srv := httptest.NewServer(r)
+// 	t.Cleanup(srv.Close)
 
-	return srv, mock
-}
+// 	return srv, mock
+// }
 
 func setupProductMuxHandlerTest(t *testing.T) (*chi.Mux, pgxmock.PgxPoolIface) {
 	t.Helper()
@@ -49,7 +49,7 @@ func setupProductMuxHandlerTest(t *testing.T) (*chi.Mux, pgxmock.PgxPoolIface) {
 		mock.Close()
 	})
 	repo := repository.NewPostgreProductRepository(mock)
-	svc := service.NewProductService(repo)
+	svc := service.NewProductServiceImpl(repo)
 	handler := NewProductHandler(svc)
 
 	r := chi.NewRouter()

@@ -15,12 +15,12 @@ type ProductWriter interface {
 }
 
 type AdminService struct {
-	productService  *ProductService
+	productService  *ProductServiceImpl
 	categoryService *ProductCategoryService
 	repo            ProductWriter
 }
 
-func NewAdminService(productService *ProductService, categoryService *ProductCategoryService, repo ProductWriter) *AdminService {
+func NewAdminService(productService *ProductServiceImpl, categoryService *ProductCategoryService, repo ProductWriter) *AdminService {
 	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 

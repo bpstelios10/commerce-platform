@@ -1,20 +1,29 @@
 package http
 
 import (
+	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
-type ProductHandler struct {
-	productService *service.ProductService
+type ProductService interface {
+	GetProducts(ctx context.Context) ([]product.Product, error)
+	GetProductByID(ctx context.Context, id uuid.UUID) (product.Product, error)
+	SearchProducts(ctx context.Context, query string, maxPrice *float64, category string) ([]product.Product, error)
 }
 
-func NewProductHandler(productService *service.ProductService) *ProductHandler {
+type ProductHandler struct {
+	productService *service.ProductServiceImpl
+}
+
+func NewProductHandler(productService *service.ProductServiceImpl) *ProductHandler {
 	return &ProductHandler{
 		productService: productService,
 	}

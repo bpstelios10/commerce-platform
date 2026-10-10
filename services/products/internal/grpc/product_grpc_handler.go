@@ -10,10 +10,10 @@ import (
 type ProductGrpcHandler struct {
 	UnimplementedProductServiceServer
 
-	service *service.ProductService
+	service *service.ProductServiceImpl
 }
 
-func NewProductGrpcHandler(service *service.ProductService) *ProductGrpcHandler {
+func NewProductGrpcHandler(service *service.ProductServiceImpl) *ProductGrpcHandler {
 	return &ProductGrpcHandler{
 		service: service,
 	}

@@ -66,7 +66,7 @@ func main() {
 
 	// product handler
 	productRepo := repository.NewPostgreProductRepository(db)
-	productService := service.NewProductService(productRepo)
+	productService := service.NewProductServiceImpl(productRepo)
 	productHandler := httpx.NewProductHandler(productService)
 	productHandler.RegisterRoutes(r)
 
