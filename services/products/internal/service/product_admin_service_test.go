@@ -239,6 +239,8 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	assert.EqualError(t, err, "updating product: update product: database unavailable")
 	assert.Empty(t, updated)
 	assert.Equal(t, "CLOTHES", categRepo.searchedCategories[0])
+	assert.Equal(t, SecondUUID, productRepo.searchedIDs[0])
+	assert.Equal(t, "iPhone 7", productRepo.updated[0].Name)
 }
 
 func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {

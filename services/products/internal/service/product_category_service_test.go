@@ -60,6 +60,7 @@ func TestProductCategoryService_Validate_WhenDbError_ReturnsError(t *testing.T) 
 	assert.Empty(t, normalized)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "validate product category: product category exists: database unavailable")
+	assert.Equal(t, "ERRORNOUS_CATEGORY", mock.searchedCategories[0])
 }
 
 func TestProductCategoryService_GetProductCategories_ReturnsAllCategories(t *testing.T) {
