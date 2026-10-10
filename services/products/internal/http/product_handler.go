@@ -2,7 +2,6 @@ package http
 
 import (
 	"commerce-platform/services/products/internal/product"
-	"commerce-platform/services/products/internal/service"
 	"commerce-platform/services/products/internal/validation"
 	"context"
 	"fmt"
@@ -20,10 +19,10 @@ type ProductService interface {
 }
 
 type ProductHandler struct {
-	productService *service.ProductServiceImpl
+	productService ProductService
 }
 
-func NewProductHandler(productService *service.ProductServiceImpl) *ProductHandler {
+func NewProductHandler(productService ProductService) *ProductHandler {
 	return &ProductHandler{
 		productService: productService,
 	}

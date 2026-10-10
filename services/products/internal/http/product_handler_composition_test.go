@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupProductHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface) {
+func setupProductHandlerCompositionTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIface) {
 	t.Helper()
 	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
 	assert.NoError(t, err)
@@ -39,7 +39,7 @@ func setupProductHandlerTest(t *testing.T) (*httptest.Server, pgxmock.PgxPoolIfa
 }
 
 func TestGetProductsComposition_WhenProductsExist_Returns200(t *testing.T) {
-	srv, mock := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerCompositionTest(t)
 	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
@@ -105,7 +105,7 @@ func TestGetProductsComposition_WhenProductsExist_Returns200(t *testing.T) {
 }
 
 func TestGetProductComposition_WhenProductExists_Returns200(t *testing.T) {
-	srv, mock := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerCompositionTest(t)
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
 			FROM products
@@ -139,7 +139,7 @@ func TestGetProductComposition_WhenProductExists_Returns200(t *testing.T) {
 }
 
 func TestGetProductComposition_WhenProductNotExists_Returns404(t *testing.T) {
-	srv, mock := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerCompositionTest(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
@@ -170,7 +170,7 @@ func TestGetProductComposition_WhenProductNotExists_Returns404(t *testing.T) {
 }
 
 func TestSearchProductsComposition_WhenOnlyQueryProvided_ReturnsMatches(t *testing.T) {
-	srv, mock := setupProductHandlerTest(t)
+	srv, mock := setupProductHandlerCompositionTest(t)
 	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
