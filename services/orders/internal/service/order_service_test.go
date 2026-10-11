@@ -67,17 +67,14 @@ func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 	svc, mock, _ := setup(t)
 	mock.expectFindByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
-			if id == testO.ID {
-				return testO, nil
-			} else {
-				return order.Order{}, errors.New("wrong id passed in fake")
-			}
+			return testO, nil
 		})
 
 	o, err := svc.GetOrderByID(context.Background(), testO.ID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, testO, o)
+	assert.Equal(t, testO.ID, mock.foundIDs[0])
 }
 
 func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
@@ -96,6 +93,7 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	assert.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.OrderID)
 	assert.Empty(t, o)
+	assert.Equal(t, id, mock.foundIDs[0])
 }
 
 func TestGetOrderByID_WhenDbError_ReturnsError(t *testing.T) {
@@ -111,11 +109,12 @@ func TestGetOrderByID_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "get order by id: find order by id: database unavailable")
 	assert.Empty(t, o)
+	assert.Equal(t, id, mock.foundIDs[0])
 }
 
 func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
-	svc, mockRepo, _ := setup(t)
-	mockRepo.expectSave(
+	svc, mock, _ := setup(t)
+	mock.expectSave(
 		func(_ context.Context, o order.Order) (order.Order, error) {
 			o.CreatedAt = time.Now() // the database fills this in
 			return o, nil
@@ -124,21 +123,22 @@ func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
 	o, err := svc.CreateOrder(context.Background(), FirstProductID, 10)
 
 	require.NoError(t, err)
-	assert.NotEqual(t, uuid.Nil, mockRepo.saved[0].ID)
-	assert.Equal(t, FirstProductID, mockRepo.saved[0].ProductID)
-	assert.Equal(t, 10, mockRepo.saved[0].Quantity)
-	assert.Equal(t, order.CREATED, mockRepo.saved[0].Status)
-	assert.Equal(t, mockRepo.saved[0].ID, o.ID)
+	assert.NotEmpty(t, o)
 	assert.WithinDuration(t, time.Now(), o.CreatedAt, time.Second)
+	assert.Equal(t, o.ID, mock.saved[0].ID)
+	assert.Equal(t, FirstProductID, mock.saved[0].ProductID)
+	assert.Equal(t, 10, mock.saved[0].Quantity)
+	assert.Equal(t, order.CREATED, mock.saved[0].Status)
 }
 
 func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
-	svc, _, _ := setup(t)
+	svc, mock, _ := setup(t)
 
 	o, err := svc.CreateOrder(context.Background(), "999", 10)
 
 	assert.ErrorIs(t, err, ErrProductNotFound)
 	assert.Empty(t, o)
+	assert.Empty(t, mock.saved)
 }
 
 type failingReader struct {
@@ -153,7 +153,7 @@ func TestCreateOrder_WhenUUIDGenerationFails_ReturnsError(t *testing.T) {
 	entropyErr := errors.New("entropy unavailable")
 	uuid.SetRand(failingReader{err: entropyErr})
 	t.Cleanup(func() { uuid.SetRand(nil) }) // resets to crypto/rand.Reader
-	svc, _, _ := setup(t)
+	svc, mock, _ := setup(t)
 
 	_, err := svc.CreateOrder(context.Background(), FirstProductID, 10)
 
@@ -161,16 +161,18 @@ func TestCreateOrder_WhenUUIDGenerationFails_ReturnsError(t *testing.T) {
 	assert.ErrorIs(t, err, entropyErr)
 	assert.ErrorIs(t, err, entropyErr)
 	assert.EqualError(t, err, "create order: entropy unavailable")
+	assert.Empty(t, mock.saved)
 }
 
 func TestCreateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
-	svc, _, _ := setup(t)
+	svc, mock, _ := setup(t)
 
 	o, err := svc.CreateOrder(context.Background(), "error", 10)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "create order: get product error from products service: rpc error: code = Internal desc = unexpected error")
 	assert.Empty(t, o)
+	assert.Empty(t, mock.saved)
 }
 
 func TestCreateOrder_WhenDbError_ReturnsError(t *testing.T) {
@@ -185,17 +187,17 @@ func TestCreateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "create order: save order: database unavailable")
 	assert.Empty(t, o)
+	assert.NotEqual(t, uuid.Nil, mock.saved[0].ID)
+	assert.Equal(t, FirstProductID, mock.saved[0].ProductID)
+	assert.Equal(t, 10, mock.saved[0].Quantity)
+	assert.Equal(t, order.CREATED, mock.saved[0].Status)
 }
 
 func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	svc, mock, _ := setup(t)
 	mock.expectFindByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
-			if id == testO.ID {
-				return testO, nil
-			} else {
-				return order.Order{}, errors.New("wrong id passed in fake")
-			}
+			return testO, nil
 		})
 	mock.expectUpdate(
 		func(_ context.Context, o order.Order) (order.Order, error) {
@@ -210,6 +212,11 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	assert.Equal(t, 11, updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, testO.CreatedAt.Equal(updated.CreatedAt))
+
+	assert.Equal(t, testO.ID, mock.updated[0].ID)
+	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
+	assert.Equal(t, 11, mock.updated[0].Quantity)
+	assert.Equal(t, order.PAID, mock.updated[0].Status)
 }
 
 func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
@@ -225,19 +232,17 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: Order with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)
+	assert.Equal(t, id, mock.foundIDs[0])
+	assert.Empty(t, mock.updated)
 }
 
 func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
 	mock.expectFindByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
-			if id == testO.ID {
-				o := testO
-				o.CreatedAt = time.Now()
-				return o, nil
-			} else {
-				return order.Order{}, errors.New("wrong id passed in fake")
-			}
+			o := testO
+			o.CreatedAt = time.Now()
+			return o, nil
 		})
 
 	updated, err := svc.UpdateOrder(context.Background(), FirstOrderID, "999", 11, order.PAID)
@@ -245,17 +250,15 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: get product 999 from products service: rpc error: code = NotFound desc = product not found\nproduct not found for the given id")
 	assert.Empty(t, updated)
+	assert.Equal(t, testO.ID, mock.foundIDs[0])
+	assert.Empty(t, mock.updated)
 }
 
 func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
 	mock.expectFindByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
-			if id == testO.ID {
-				return testO, nil
-			} else {
-				return order.Order{}, errors.New("wrong id passed in fake")
-			}
+			return testO, nil
 		})
 	mock.expectUpdate(
 		func(_ context.Context, o order.Order) (order.Order, error) {
@@ -267,6 +270,11 @@ func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: update order: database unavailable")
 	assert.Empty(t, updated)
+	assert.Equal(t, testO.ID, mock.foundIDs[0])
+	assert.Equal(t, testO.ID, mock.updated[0].ID)
+	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
+	assert.Equal(t, 10, mock.updated[0].Quantity)
+	assert.Equal(t, order.CANCELED, mock.updated[0].Status)
 }
 
 func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
@@ -274,16 +282,13 @@ func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
 	toDelete, _ := uuid.NewV7()
 	mock.expectDelete(
 		func(_ context.Context, id uuid.UUID) error {
-			if id == toDelete {
-				return nil
-			} else {
-				return errors.New("wrong id passed in fake")
-			}
+			return nil
 		})
 
 	err := svc.DeleteOrder(context.Background(), toDelete)
 
 	assert.NoError(t, err)
+	assert.Equal(t, toDelete, mock.deleted[0])
 }
 
 func TestDeleteOrder_WhenDbError_ReturnsError(t *testing.T) {
@@ -298,6 +303,7 @@ func TestDeleteOrder_WhenDbError_ReturnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "deleting order: delete order: database unavailable")
+	assert.Equal(t, toDelete, mock.deleted[0])
 }
 
 var (
