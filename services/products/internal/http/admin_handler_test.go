@@ -101,7 +101,9 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 			assert.Equal(t, "/products/"+created.ID.String(), res.Header.Get("Location"))
 			assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 			assert.Equal(t, tt.name, mock.created[0].Name)
-			assert.NotNil(t, mock.created[0].ID)
+			assert.Equal(t, tt.category, mock.created[0].Category)
+			assert.Equal(t, tt.description, *mock.created[0].Description)
+			assert.Equal(t, tt.price, mock.created[0].Price)
 		})
 	}
 }
@@ -256,7 +258,10 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-	assert.Empty(t, mock.created[0])
+	assert.Equal(t, "iPad", mock.created[0].Name)
+	assert.Equal(t, "UNKNOWN", mock.created[0].Category)
+	assert.Nil(t, mock.created[0].Description)
+	assert.Equal(t, 999.0, mock.created[0].Price)
 }
 
 func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
@@ -298,7 +303,11 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	err = json.Unmarshal(body, &updated)
 	assert.NoError(t, err)
 	assert.Equal(t, p, updated)
-	assert.Equal(t, p, mock.updated[0])
+	assert.Equal(t, p.ID, mock.updated[0].ID)
+	assert.Equal(t, p.Name, mock.updated[0].Name)
+	assert.Equal(t, p.Category, mock.updated[0].Category)
+	assert.Equal(t, p.Description, mock.updated[0].Description)
+	assert.Equal(t, p.Price, mock.updated[0].Price)
 }
 
 func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
@@ -501,7 +510,11 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		}`,
 		string(body),
 	)
-	assert.Empty(t, mock.updated[0])
+	assert.Equal(t, id, mock.updated[0].ID)
+	assert.Equal(t, "non-existing-product", mock.updated[0].Name)
+	assert.Equal(t, "ACCESSORY", mock.updated[0].Category)
+	assert.Nil(t, mock.updated[0].Description)
+	assert.Equal(t, 1000.1, mock.updated[0].Price)
 }
 
 func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
@@ -538,7 +551,11 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
-	assert.Empty(t, mock.updated[0])
+	assert.Equal(t, SecondUUID, mock.updated[0].ID)
+	assert.Equal(t, "iPhone 15", mock.updated[0].Name)
+	assert.Equal(t, "UNKNOWN", mock.updated[0].Category)
+	assert.Nil(t, mock.updated[0].Description)
+	assert.Equal(t, 1500.0, mock.updated[0].Price)
 }
 
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {

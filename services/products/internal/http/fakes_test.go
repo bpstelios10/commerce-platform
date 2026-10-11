@@ -17,6 +17,7 @@ type fakeProductService struct {
 	updateProduct  func(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error)
 	deleteProduct  func(context.Context, uuid.UUID) error
 
+	// capture the input params, so that i can validate they are the expected ones
 	searchedIDs []uuid.UUID
 	created     []product.Product
 	updated     []product.Product
@@ -98,24 +99,37 @@ func (f *fakeProductService) SearchProducts(
 	return f.searchProducts(ctx, query, maxPrice, category)
 }
 
-// TODO make all these only test as 'created' the input. verify the expected value was passed in.
-// the outcome we can verify from the result
 func (f *fakeProductService) CreateProduct(
-	ctx context.Context, name string, category string, description *string, price float64) (product.Product, error) {
+	ctx context.Context,
+	name, category string,
+	description *string,
+	price float64,
+) (product.Product, error) {
 	f.take("CreateProduct")
-	p, err := f.createProduct(ctx, name, category, description, price)
-	f.created = append(f.created, p)
-
-	return p, err
+	f.created = append(f.created, product.Product{
+		Name:        name,
+		Category:    category,
+		Description: description,
+		Price:       price})
+	return f.createProduct(ctx, name, category, description, price)
 }
 
 func (f *fakeProductService) UpdateProduct(
-	ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error) {
+	ctx context.Context,
+	id uuid.UUID,
+	name, category string,
+	description *string,
+	price float64,
+) (product.Product, error) {
 	f.take("UpdateProduct")
-	p, err := f.updateProduct(ctx, id, name, category, description, price)
-	f.updated = append(f.updated, p)
+	f.updated = append(f.updated, product.Product{
+		ID:          id,
+		Name:        name,
+		Category:    category,
+		Description: description,
+		Price:       price})
 
-	return p, err
+	return f.updateProduct(ctx, id, name, category, description, price)
 }
 
 func (f *fakeProductService) DeleteProduct(ctx context.Context, id uuid.UUID) error {
