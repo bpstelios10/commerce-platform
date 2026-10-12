@@ -35,6 +35,7 @@ type fakeOrderService struct {
 	updateOrder  func(context.Context, uuid.UUID, string, int, order.OrderStatus) (order.Order, error)
 	deleteOrder  func(context.Context, uuid.UUID) error
 
+	// capture the input params, so that i can validate they are the expected ones
 	searchedIDs []uuid.UUID
 	created     []order.Order
 	updated     []order.Order

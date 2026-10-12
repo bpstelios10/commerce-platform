@@ -26,7 +26,7 @@ func setup(t *testing.T) (pgxmock.PgxPoolIface, *PostgreOrderRepository) {
 	return mock, NewPostgreOrderRepository(mock)
 }
 
-func TestFindAll_WhenOrdersExist_ReturnsAllOrders(t *testing.T) {
+func TestList_WhenOrdersExist_ReturnsAllOrders(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`SELECT order_id, product_id, quantity, status, created_at FROM orders`).
 		WillReturnRows(
@@ -37,19 +37,19 @@ func TestFindAll_WhenOrdersExist_ReturnsAllOrders(t *testing.T) {
 				AddRow(SecondOrderID, SecondProductID, 1, order.PAID, time.Now()),
 		)
 
-	result, err := repo.FindAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindAll_WhenDbError_ReturnsError(t *testing.T) {
+func TestList_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`SELECT order_id, product_id, quantity, status, created_at FROM orders`).
 		WillReturnError(errors.New("database unavailable"))
 
-	result, err := repo.FindAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "query orders: database unavailable")
@@ -57,7 +57,7 @@ func TestFindAll_WhenDbError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindAll_WhenScanError_ReturnsError(t *testing.T) {
+func TestList_WhenScanError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`SELECT order_id, product_id, quantity, status, created_at FROM orders`).
 		WillReturnRows(
@@ -67,7 +67,7 @@ func TestFindAll_WhenScanError_ReturnsError(t *testing.T) {
 				AddRow("invalid-uuid", "invalid-uuid", 2, order.CREATED, time.Now()),
 		)
 
-	result, err := repo.FindAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "scan order: scanning value error for column 'order_id': Scan: invalid UUID length: 12")
@@ -75,7 +75,7 @@ func TestFindAll_WhenScanError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
+func TestList_WhenRowsError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`SELECT order_id, product_id, quantity, status, created_at FROM orders`).
 		WillReturnRows(
@@ -86,7 +86,7 @@ func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
 				RowError(1, errors.New("read failed")),
 		)
 
-	result, err := repo.FindAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "iterate orders: read failed")
@@ -94,7 +94,7 @@ func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindByID_WhenOrdersExist_ReturnsOrder(t *testing.T) {
+func TestGetByID_WhenOrdersExist_ReturnsOrder(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			SELECT order_id, product_id, quantity, status, created_at
@@ -108,14 +108,14 @@ func TestFindByID_WhenOrdersExist_ReturnsOrder(t *testing.T) {
 				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt),
 		)
 
-	result, err := repo.FindByID(context.Background(), FirstOrderID)
+	result, err := repo.GetByID(context.Background(), FirstOrderID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, testO, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindByID_WhenErrorNotExists_ReturnsError(t *testing.T) {
+func TestGetByID_WhenErrorNotExists_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			SELECT order_id, product_id, quantity, status, created_at
@@ -130,7 +130,7 @@ func TestFindByID_WhenErrorNotExists_ReturnsError(t *testing.T) {
 				RowError(0, pgx.ErrNoRows),
 		)
 
-	result, err := repo.FindByID(context.Background(), FirstOrderID)
+	result, err := repo.GetByID(context.Background(), FirstOrderID)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "find order by id: not found")
@@ -138,7 +138,7 @@ func TestFindByID_WhenErrorNotExists_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
+func TestGetByID_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			SELECT order_id, product_id, quantity, status, created_at
@@ -147,7 +147,7 @@ func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
 		WithArgs(FirstOrderID).
 		WillReturnError(errors.New("database unavailable"))
 
-	result, err := repo.FindByID(context.Background(), FirstOrderID)
+	result, err := repo.GetByID(context.Background(), FirstOrderID)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "find order by id: database unavailable")
@@ -155,7 +155,7 @@ func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
+func TestGetByID_WhenScanError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			SELECT order_id, product_id, quantity, status, created_at
@@ -169,7 +169,7 @@ func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
 				AddRow("invalid-uuid", "invalid-uuid", 2, order.CREATED, time.Now()),
 		)
 
-	result, err := repo.FindByID(context.Background(), FirstOrderID)
+	result, err := repo.GetByID(context.Background(), FirstOrderID)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "find order by id: scanning value error for column 'order_id': Scan: invalid UUID length: 12")
@@ -177,7 +177,7 @@ func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestSave_WhenNoDbIssues_ReturnsNewOrder(t *testing.T) {
+func TestCreate_WhenNoDbIssues_ReturnsNewOrder(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			INSERT INTO orders (order_id, product_id, quantity, status)
@@ -191,14 +191,14 @@ func TestSave_WhenNoDbIssues_ReturnsNewOrder(t *testing.T) {
 				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt),
 		)
 
-	result, err := repo.Save(context.Background(), testO)
+	result, err := repo.Create(context.Background(), testO)
 
 	assert.NoError(t, err)
 	assert.Equal(t, testO, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestSave_WhenDbError_ReturnsError(t *testing.T) {
+func TestCreate_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			INSERT INTO orders (order_id, product_id, quantity, status)
@@ -207,7 +207,7 @@ func TestSave_WhenDbError_ReturnsError(t *testing.T) {
 		WithArgs(testO.ID, testO.ProductID, testO.Quantity, testO.Status).
 		WillReturnError(errors.New("database unavailable"))
 
-	result, err := repo.Save(context.Background(), testO)
+	result, err := repo.Create(context.Background(), testO)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "save order: database unavailable")
@@ -215,7 +215,7 @@ func TestSave_WhenDbError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestSave_WhenScanError_ReturnsError(t *testing.T) {
+func TestCreate_WhenScanError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			INSERT INTO orders (order_id, product_id, quantity, status)
@@ -229,7 +229,7 @@ func TestSave_WhenScanError_ReturnsError(t *testing.T) {
 				AddRow("invalid-uuid", testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt),
 		)
 
-	result, err := repo.Save(context.Background(), testO)
+	result, err := repo.Create(context.Background(), testO)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "save order: scanning value error for column 'order_id': Scan: invalid UUID length: 12")
@@ -237,7 +237,7 @@ func TestSave_WhenScanError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestSave_WhenRowsError_ReturnsError(t *testing.T) {
+func TestCreate_WhenRowsError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			INSERT INTO orders (order_id, product_id, quantity, status)
@@ -252,7 +252,7 @@ func TestSave_WhenRowsError_ReturnsError(t *testing.T) {
 				RowError(0, errors.New("read failed")),
 		)
 
-	result, err := repo.Save(context.Background(), testO)
+	result, err := repo.Create(context.Background(), testO)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "save order: read failed\nread failed")

@@ -29,7 +29,7 @@ func setup(t *testing.T) (*OrderServiceImpl, *fakeOrderRepo, *fakeProductsClient
 
 func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
 	svc, mock, _ := setup(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(_ context.Context) ([]order.Order, error) {
 			return []order.Order{
 				testO,
@@ -51,7 +51,7 @@ func TestGetOrders_WhenOrdersExist_ReturnsOrders(t *testing.T) {
 
 func TestGetOrders_WhenOtherError_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(_ context.Context) ([]order.Order, error) {
 			return nil, errors.New("query orders: database unavailable")
 		})
@@ -65,7 +65,7 @@ func TestGetOrders_WhenOtherError_ReturnsError(t *testing.T) {
 
 func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 	svc, mock, _ := setup(t)
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
 			return testO, nil
 		})
@@ -80,7 +80,7 @@ func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	svc, mock, _ := setup(t)
 	id, _ := uuid.NewV7()
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(_ context.Context, _ uuid.UUID) (order.Order, error) {
 			return order.Order{}, repository.ErrNotFound
 		})
@@ -99,7 +99,7 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 func TestGetOrderByID_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
 	id, _ := uuid.NewV7()
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(_ context.Context, _ uuid.UUID) (order.Order, error) {
 			return order.Order{}, errors.New("find order by id: database unavailable")
 		})
@@ -195,7 +195,7 @@ func TestCreateOrder_WhenDbError_ReturnsError(t *testing.T) {
 
 func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	svc, mock, _ := setup(t)
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
 			return testO, nil
 		})
@@ -222,7 +222,7 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	svc, mock, _ := setup(t)
 	id := uuid.New()
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(_ context.Context, _ uuid.UUID) (order.Order, error) {
 			return order.Order{}, repository.ErrNotFound
 		})
@@ -238,7 +238,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 
 func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
 			o := testO
 			o.CreatedAt = time.Now()
@@ -256,7 +256,7 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 
 func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
 			return testO, nil
 		})

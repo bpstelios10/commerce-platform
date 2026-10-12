@@ -28,7 +28,7 @@ func NewPostgreOrderRepository(db DB) *PostgreOrderRepository {
 	return &PostgreOrderRepository{db: db}
 }
 
-func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order, error) {
+func (repo *PostgreOrderRepository) List(ctx context.Context) ([]order.Order, error) {
 	const query = `
 		SELECT order_id, product_id, quantity, status, created_at
 		FROM orders
@@ -65,7 +65,7 @@ func (repo *PostgreOrderRepository) FindAll(ctx context.Context) ([]order.Order,
 	return orders, nil
 }
 
-func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
+func (repo *PostgreOrderRepository) GetByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
 	const query = `
 		SELECT order_id, product_id, quantity, status, created_at
 		FROM orders
@@ -92,7 +92,7 @@ func (repo *PostgreOrderRepository) FindByID(ctx context.Context, id uuid.UUID) 
 	return o, nil
 }
 
-func (repo *PostgreOrderRepository) Save(ctx context.Context, o order.Order) (order.Order, error) {
+func (repo *PostgreOrderRepository) Create(ctx context.Context, o order.Order) (order.Order, error) {
 	const query = `
 		INSERT INTO orders (order_id, product_id, quantity, status)
 		VALUES ($1, $2, $3, $4)

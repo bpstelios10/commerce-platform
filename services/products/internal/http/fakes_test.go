@@ -146,6 +146,7 @@ type fakeProductCategoryService struct {
 	validate             func(context.Context, string) (string, error)
 	getProductCategories func(context.Context) ([]string, error)
 
+	// capture the input params, so that i can validate they are the expected ones
 	searchedCategories []string
 
 	pending map[string]int // track method pending

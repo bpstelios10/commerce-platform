@@ -30,13 +30,14 @@ func (f *fakeProductsClient) GetProductByID(_ context.Context, id string) (*grpc
 // ---- REPO fakes ----
 
 type fakeOrderRepo struct {
-	t        *testing.T
-	findAll  func(context.Context) ([]order.Order, error)
-	findByID func(context.Context, uuid.UUID) (order.Order, error)
-	save     func(context.Context, order.Order) (order.Order, error)
-	update   func(context.Context, order.Order) (order.Order, error)
-	delete   func(context.Context, uuid.UUID) error
+	t       *testing.T
+	list    func(context.Context) ([]order.Order, error)
+	getByID func(context.Context, uuid.UUID) (order.Order, error)
+	save    func(context.Context, order.Order) (order.Order, error)
+	update  func(context.Context, order.Order) (order.Order, error)
+	delete  func(context.Context, uuid.UUID) error
 
+	// capture the input params, so that i can validate they are the expected ones
 	searchedIDs []uuid.UUID
 	saved       []order.Order
 	updated     []order.Order
@@ -51,14 +52,14 @@ func newFakeOrderRepo(t *testing.T) *fakeOrderRepo {
 	return f
 }
 
-func (f *fakeOrderRepo) expectFindAll(fn func(context.Context) ([]order.Order, error)) {
-	f.findAll = fn
-	f.pending["FindAll"]++
+func (f *fakeOrderRepo) expectList(fn func(context.Context) ([]order.Order, error)) {
+	f.list = fn
+	f.pending["List"]++
 }
 
-func (f *fakeOrderRepo) expectFindByID(fn func(context.Context, uuid.UUID) (order.Order, error)) {
-	f.findByID = fn
-	f.pending["FindByID"]++
+func (f *fakeOrderRepo) expectGetByID(fn func(context.Context, uuid.UUID) (order.Order, error)) {
+	f.getByID = fn
+	f.pending["GetByID"]++
 }
 
 func (f *fakeOrderRepo) expectSave(fn func(context.Context, order.Order) (order.Order, error)) {
@@ -93,18 +94,18 @@ func (f *fakeOrderRepo) verify() {
 	}
 }
 
-func (f *fakeOrderRepo) FindAll(ctx context.Context) ([]order.Order, error) {
-	f.take("FindAll")
-	return f.findAll(ctx)
+func (f *fakeOrderRepo) List(ctx context.Context) ([]order.Order, error) {
+	f.take("List")
+	return f.list(ctx)
 }
 
-func (f *fakeOrderRepo) FindByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
-	f.take("FindByID")
+func (f *fakeOrderRepo) GetByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
+	f.take("GetByID")
 	f.searchedIDs = append(f.searchedIDs, id)
-	return f.findByID(ctx, id)
+	return f.getByID(ctx, id)
 }
 
-func (f *fakeOrderRepo) Save(ctx context.Context, o order.Order) (order.Order, error) {
+func (f *fakeOrderRepo) Create(ctx context.Context, o order.Order) (order.Order, error) {
 	f.take("Save")
 	f.saved = append(f.saved, o)
 	return f.save(ctx, o)

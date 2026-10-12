@@ -15,6 +15,7 @@ type fakeProductCategoryRepo struct {
 	exists func(context.Context, string) (bool, error)
 	getAll func(context.Context) ([]string, error)
 
+	// capture the input params, so that i can validate they are the expected ones
 	searchedCategories []string
 
 	pending map[string]int // track method pending
@@ -74,6 +75,7 @@ type fakeProductRepo struct {
 	update   func(context.Context, product.Product) (product.Product, error)
 	delete   func(context.Context, uuid.UUID) error
 
+	// capture the input params, so that i can validate they are the expected ones
 	searchedIDs []uuid.UUID
 	saved       []product.Product
 	updated     []product.Product

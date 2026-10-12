@@ -16,9 +16,9 @@ import (
 )
 
 type OrderRepository interface {
-	FindAll(ctx context.Context) ([]order.Order, error)
-	FindByID(ctx context.Context, id uuid.UUID) (order.Order, error)
-	Save(ctx context.Context, o order.Order) (order.Order, error)
+	List(ctx context.Context) ([]order.Order, error)
+	GetByID(ctx context.Context, id uuid.UUID) (order.Order, error)
+	Create(ctx context.Context, o order.Order) (order.Order, error)
 	Update(ctx context.Context, o order.Order) (order.Order, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -37,7 +37,7 @@ func NewOrderService(repository OrderRepository, productsClient ProductsClient) 
 }
 
 func (s *OrderServiceImpl) GetOrders(ctx context.Context) ([]order.Order, error) {
-	orders, err := s.orderRepository.FindAll(ctx)
+	orders, err := s.orderRepository.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get orders: %w", err)
 	}
@@ -46,7 +46,7 @@ func (s *OrderServiceImpl) GetOrders(ctx context.Context) ([]order.Order, error)
 }
 
 func (s *OrderServiceImpl) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
-	o, err := s.orderRepository.FindByID(ctx, id)
+	o, err := s.orderRepository.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return order.Order{}, &ErrOrderNotFound{OrderID: id}
@@ -79,7 +79,7 @@ func (s *OrderServiceImpl) CreateOrder(ctx context.Context, productID string, qu
 	logger := log(ctx)
 	logger.Info().Str("order_id", o.ID.String()).Str("product_id", o.ProductID).Msg("creating order")
 
-	o, err = s.orderRepository.Save(ctx, o)
+	o, err = s.orderRepository.Create(ctx, o)
 	if err != nil {
 		return order.Order{}, fmt.Errorf("create order: %w", err)
 	}
