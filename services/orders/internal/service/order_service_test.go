@@ -74,7 +74,7 @@ func TestGetOrderByID_WhenOrderExists_ReturnsOrder(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, testO, o)
-	assert.Equal(t, testO.ID, mock.foundIDs[0])
+	assert.Equal(t, testO.ID, mock.searchedIDs[0])
 }
 
 func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
@@ -93,7 +93,7 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	assert.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.OrderID)
 	assert.Empty(t, o)
-	assert.Equal(t, id, mock.foundIDs[0])
+	assert.Equal(t, id, mock.searchedIDs[0])
 }
 
 func TestGetOrderByID_WhenDbError_ReturnsError(t *testing.T) {
@@ -109,7 +109,7 @@ func TestGetOrderByID_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "get order by id: find order by id: database unavailable")
 	assert.Empty(t, o)
-	assert.Equal(t, id, mock.foundIDs[0])
+	assert.Equal(t, id, mock.searchedIDs[0])
 }
 
 func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
@@ -232,7 +232,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: Order with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)
-	assert.Equal(t, id, mock.foundIDs[0])
+	assert.Equal(t, id, mock.searchedIDs[0])
 	assert.Empty(t, mock.updated)
 }
 
@@ -250,7 +250,7 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: get product 999 from products service: rpc error: code = NotFound desc = product not found\nproduct not found for the given id")
 	assert.Empty(t, updated)
-	assert.Equal(t, testO.ID, mock.foundIDs[0])
+	assert.Equal(t, testO.ID, mock.searchedIDs[0])
 	assert.Empty(t, mock.updated)
 }
 
@@ -270,7 +270,7 @@ func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: update order: database unavailable")
 	assert.Empty(t, updated)
-	assert.Equal(t, testO.ID, mock.foundIDs[0])
+	assert.Equal(t, testO.ID, mock.searchedIDs[0])
 	assert.Equal(t, testO.ID, mock.updated[0].ID)
 	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
 	assert.Equal(t, 10, mock.updated[0].Quantity)

@@ -37,10 +37,10 @@ type fakeOrderRepo struct {
 	update   func(context.Context, order.Order) (order.Order, error)
 	delete   func(context.Context, uuid.UUID) error
 
-	foundIDs []uuid.UUID
-	saved    []order.Order
-	updated  []order.Order
-	deleted  []uuid.UUID
+	searchedIDs []uuid.UUID
+	saved       []order.Order
+	updated     []order.Order
+	deleted     []uuid.UUID
 
 	pending map[string]int // track method pending
 }
@@ -100,7 +100,7 @@ func (f *fakeOrderRepo) FindAll(ctx context.Context) ([]order.Order, error) {
 
 func (f *fakeOrderRepo) FindByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
 	f.take("FindByID")
-	f.foundIDs = append(f.foundIDs, id)
+	f.searchedIDs = append(f.searchedIDs, id)
 	return f.findByID(ctx, id)
 }
 
