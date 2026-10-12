@@ -118,8 +118,7 @@ Use chi's established response-writer wrapper; test implicit 200, repeated
 headers, and required streaming/controller behavior. Define panic recovery and
 completion logging at HTTP and gRPC boundaries.
 
-Response helpers still discard `w.Write` errors after marshaling; log these
-without sending a second response. Replace whole request DTO Info logs with
+Replace whole request DTO Info logs with
 selected fields to control volume and future sensitive-data exposure.
 
 ## Go Design And Tests
@@ -132,11 +131,6 @@ selected fields to control volume and future sensitive-data exposure.
    lookup/result/error contract needed; translate in the adapter. Repository
    sentinels also tie services to storage packages; clarify error ownership without
    introducing a generic error framework.
-- **Separate test responsibilities.** Service and HTTP tests repeatedly wire
-   repositories to pgxmock and duplicate exact SQL. Keep selected composition tests,
-   but test service decisions through repository stubs and HTTP contracts through
-   narrow dependencies where useful. SQL expectations belong primarily in repository
-   tests. Removing in-memory storage does not require SQL mocks in every layer.
 - **Repair misleading assertions.** Use `require` before dereferencing responses
    or inspecting typed errors; prefer `ErrorIs`/`ErrorAs` over asserting every wrapped
    error string. `assert.NotNil` on a value UUID does not check it is nonzero. Audit

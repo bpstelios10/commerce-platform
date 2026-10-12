@@ -44,8 +44,8 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       Test that creating one logger does not change another's level.
 - [ ] Use a proven HTTP response-writer wrapper; test implicit/repeated statuses
       and required capabilities. Define/test HTTP and gRPC panic recovery.
-- [ ] Log response-write failures without a second response; replace whole DTO
-      Info logs with selected fields. Preserve context without duplicate noise.
+- [/] Log response-write failures without a second response; 
+- [ ] replace whole DTO Info logs with selected fields. Preserve context without duplicate noise.
 - [ ] Decide concurrent-update semantics; use optimistic concurrency where lost
       updates violate the intended contract.
 

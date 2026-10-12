@@ -21,7 +21,16 @@ func HandleResponseWithBody(ctx context.Context, w http.ResponseWriter, statusCo
 		// let's assume for now that it will always be JSON
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
-		w.Write(responseBody)
+		written, err := w.Write(responseBody)
+		if err != nil {
+			logger := log(ctx)
+			logger.Warn().
+				Err(err).
+				Int("status", statusCode).
+				Int("bytes_written", written).
+				Int("body_bytes", len(responseBody)).
+				Msg("failed to write HTTP response body")
+		}
 	} else {
 		HandleResponse(ctx, w, statusCode)
 	}
@@ -39,7 +48,16 @@ func HandlePostResponse(ctx context.Context, w http.ResponseWriter, statusCode i
 		// let's assume for now that it will always be JSON
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
-		w.Write(responseBody)
+		written, err := w.Write(responseBody)
+		if err != nil {
+			logger := log(ctx)
+			logger.Warn().
+				Err(err).
+				Int("status", statusCode).
+				Int("bytes_written", written).
+				Int("body_bytes", len(responseBody)).
+				Msg("failed to write HTTP response body")
+		}
 	} else {
 		HandleResponse(ctx, w, statusCode)
 	}
