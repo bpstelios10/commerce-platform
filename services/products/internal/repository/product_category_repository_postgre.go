@@ -41,7 +41,7 @@ func (r *PostgreProductCategoryRepository) Exists(ctx context.Context, category 
 	return true, nil
 }
 
-func (r *PostgreProductCategoryRepository) GetAll(ctx context.Context) ([]string, error) {
+func (r *PostgreProductCategoryRepository) List(ctx context.Context) ([]string, error) {
 	const query = `
 		SELECT name
 		FROM product_categories

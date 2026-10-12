@@ -8,7 +8,7 @@ import (
 
 type ProductCategoryRepository interface {
 	Exists(ctx context.Context, category string) (bool, error)
-	GetAll(ctx context.Context) ([]string, error)
+	List(ctx context.Context) ([]string, error)
 }
 
 type ProductCategoryServiceImpl struct {
@@ -35,7 +35,7 @@ func (s *ProductCategoryServiceImpl) Validate(ctx context.Context, category stri
 
 // TODO add category as domain, including the description
 func (s *ProductCategoryServiceImpl) GetProductCategories(ctx context.Context) ([]string, error) {
-	categories, err := s.repo.GetAll(ctx)
+	categories, err := s.repo.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get product categories: %w", err)
 	}

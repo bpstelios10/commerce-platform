@@ -65,7 +65,7 @@ func TestProductCategoryService_Validate_WhenDbError_ReturnsError(t *testing.T) 
 
 func TestProductCategoryService_GetProductCategories_ReturnsAllCategories(t *testing.T) {
 	svc, mock := setupProductCategoryServiceTest(t)
-	mock.expectGetAll(
+	mock.expectList(
 		func(ctx context.Context) ([]string, error) {
 			return []string{"MAGNET", "POSTCARD", "ACCESSORY", "JEWELRY", "CLOTHES"}, nil
 		})
@@ -78,7 +78,7 @@ func TestProductCategoryService_GetProductCategories_ReturnsAllCategories(t *tes
 
 func TestProductCategoryService_GetProductCategories_ReturnsDbError(t *testing.T) {
 	svc, mock := setupProductCategoryServiceTest(t)
-	mock.expectGetAll(
+	mock.expectList(
 		func(ctx context.Context) ([]string, error) {
 			return []string{}, errors.New("query product categories: database unavailable")
 		})

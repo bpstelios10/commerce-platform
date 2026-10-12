@@ -37,7 +37,7 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 		func(ctx context.Context, s string) (bool, error) {
 			return true, nil
 		})
-	productRepo.expectSave(
+	productRepo.expectCreate(
 		func(ctx context.Context, p product.Product) (product.Product, error) {
 			p.CreatedAt = time.Now()
 			return p, nil
@@ -48,8 +48,8 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, p)
 	assert.Equal(t, p.Category, categRepo.searchedCategories[0])
-	assert.Equal(t, p.Name, productRepo.saved[0].Name)
-	assert.NotEmpty(t, productRepo.saved[0].ID) // the id should be created in the service
+	assert.Equal(t, p.Name, productRepo.created[0].Name)
+	assert.NotEmpty(t, productRepo.created[0].ID) // the id should be created in the service
 }
 
 func TestCreateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
@@ -105,7 +105,7 @@ func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
 		func(ctx context.Context, s string) (bool, error) {
 			return true, nil
 		})
-	productRepo.expectSave(
+	productRepo.expectCreate(
 		func(ctx context.Context, p product.Product) (product.Product, error) {
 			return product.Product{}, errors.New("save product: database unavailable")
 		})
@@ -118,13 +118,13 @@ func TestCreateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	assert.EqualError(t, err, "create product: save product: database unavailable")
 	assert.Empty(t, p)
 	assert.Equal(t, "ACCESSORY", categRepo.searchedCategories[0])
-	assert.Equal(t, existing.Name, productRepo.saved[0].Name)
+	assert.Equal(t, existing.Name, productRepo.created[0].Name)
 }
 
 func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	svc, productRepo, _ := setup(t)
 	id, _ := uuid.NewV7()
-	productRepo.expectFindByID(
+	productRepo.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
 			return product.Product{}, repository.ErrNotFound
 		})
@@ -151,7 +151,7 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Price:       1500.0,
 		CreatedAt:   createdAt,
 	}
-	productRepo.expectFindByID(
+	productRepo.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
 			p.CreatedAt = createdAt
 			return product.Product{
@@ -187,7 +187,7 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 
 func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
 	svc, productRepo, categRepo := setup(t)
-	productRepo.expectFindByID(
+	productRepo.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
 			return product.Product{
 				ID:          SecondUUID,
@@ -214,7 +214,7 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 
 func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	svc, productRepo, categRepo := setup(t)
-	productRepo.expectFindByID(
+	productRepo.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
 			return product.Product{
 				ID:          SecondUUID,

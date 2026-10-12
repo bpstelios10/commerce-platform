@@ -22,7 +22,7 @@ func setupProductServiceTest(t *testing.T) (*ProductServiceImpl, *fakeProductRep
 
 func TestGetProducts_WhenProductExists_ReturnsProducts(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(ctx context.Context) ([]product.Product, error) {
 			return allProducts, nil
 		})
@@ -35,7 +35,7 @@ func TestGetProducts_WhenProductExists_ReturnsProducts(t *testing.T) {
 
 func TestGetProducts_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(ctx context.Context) ([]product.Product, error) {
 			return []product.Product{}, errors.New("query products: database unavailable")
 		})
@@ -49,7 +49,7 @@ func TestGetProducts_WhenDbError_ReturnsError(t *testing.T) {
 
 func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
 			if id == FirstUUID {
 				return product.Product{
@@ -79,7 +79,7 @@ func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
 	id, _ := uuid.NewV7()
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
 			return product.Product{}, repository.ErrNotFound
 		})
@@ -97,7 +97,7 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 func TestGetProductByID_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
 	id, _ := uuid.NewV7()
-	mock.expectFindByID(
+	mock.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
 			return product.Product{}, errors.New("find product by id: database unavailable")
 		})
@@ -112,7 +112,7 @@ func TestGetProductByID_WhenDbError_ReturnsError(t *testing.T) {
 
 func TestSearchProducts_WhenOnlyQueryProvided_FiltersByName(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(ctx context.Context) ([]product.Product, error) {
 			return allProducts, nil
 		})
@@ -126,7 +126,7 @@ func TestSearchProducts_WhenOnlyQueryProvided_FiltersByName(t *testing.T) {
 
 func TestSearchProducts_WhenQueryAndMaxPriceProvided_FiltersByBoth(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(ctx context.Context) ([]product.Product, error) {
 			return allProducts, nil
 		})
@@ -141,7 +141,7 @@ func TestSearchProducts_WhenQueryAndMaxPriceProvided_FiltersByBoth(t *testing.T)
 
 func TestSearchProducts_WhenOnlyMaxPriceProvided_FiltersByPriceAndKeepsEqualBoundary(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(ctx context.Context) ([]product.Product, error) {
 			return allProducts, nil
 		})
@@ -159,7 +159,7 @@ func TestSearchProducts_WhenOnlyMaxPriceProvided_FiltersByPriceAndKeepsEqualBoun
 
 func TestSearchProducts_WhenOnlyCategoryProvided_FiltersByCategory(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(ctx context.Context) ([]product.Product, error) {
 			return allProducts, nil
 		})
@@ -172,7 +172,7 @@ func TestSearchProducts_WhenOnlyCategoryProvided_FiltersByCategory(t *testing.T)
 
 func TestSearchProducts_WhenAllCriteriaProvided_FiltersByCombinedCriteria(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(ctx context.Context) ([]product.Product, error) {
 			return allProducts, nil
 		})
@@ -187,7 +187,7 @@ func TestSearchProducts_WhenAllCriteriaProvided_FiltersByCombinedCriteria(t *tes
 
 func TestSearchProducts_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock := setupProductServiceTest(t)
-	mock.expectFindAll(
+	mock.expectList(
 		func(ctx context.Context) ([]product.Product, error) {
 			return allProducts, errors.New("query products: database unavailable")
 		})

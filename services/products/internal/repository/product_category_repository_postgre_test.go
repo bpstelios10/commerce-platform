@@ -63,7 +63,7 @@ func TestExists_WhenDbError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestGetAll_WhenCategoriesExist_ReturnsAllCategories(t *testing.T) {
+func TestList_WhenCategoriesExist_ReturnsAllCategories(t *testing.T) {
 	mock, repo := setupCategoriesRepo(t)
 	mock.ExpectQuery(`SELECT name FROM product_categories`).
 		WillReturnRows(
@@ -75,19 +75,19 @@ func TestGetAll_WhenCategoriesExist_ReturnsAllCategories(t *testing.T) {
 				AddRow("CLOTHES"),
 		)
 
-	result, err := repo.GetAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 5)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestGetAll_WhenDbError_ReturnsError(t *testing.T) {
+func TestListCategories_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setupCategoriesRepo(t)
 	mock.ExpectQuery(`SELECT name FROM product_categories`).
 		WillReturnError(errors.New("database unavailable"))
 
-	result, err := repo.GetAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "query product categories: database unavailable")
@@ -95,7 +95,7 @@ func TestGetAll_WhenDbError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestGetAll_WhenRowWithError_StopsScanning(t *testing.T) {
+func TestList_WhenRowWithError_StopsScanning(t *testing.T) {
 	mock, repo := setupCategoriesRepo(t)
 	mock.ExpectQuery(`SELECT name FROM product_categories`).
 		WillReturnRows(
@@ -107,7 +107,7 @@ func TestGetAll_WhenRowWithError_StopsScanning(t *testing.T) {
 				AddRow("POSTCARD"),
 		)
 
-	result, err := repo.GetAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "scan product categories: row error")

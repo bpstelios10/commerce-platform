@@ -13,7 +13,7 @@ type ProductCategoryService interface {
 }
 
 type ProductWriter interface {
-	Save(ctx context.Context, p product.Product) (product.Product, error)
+	Create(ctx context.Context, p product.Product) (product.Product, error)
 	Update(ctx context.Context, p product.Product) (product.Product, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -50,7 +50,7 @@ func (s *AdminServiceImpl) CreateProduct(ctx context.Context, name string, categ
 	logger := log(ctx)
 	logger.Info().Str("product_id", p.ID.String()).Str("category", p.Category).Msg("creating product")
 
-	p, err = s.repo.Save(ctx, p)
+	p, err = s.repo.Create(ctx, p)
 	if err != nil {
 		return product.Product{}, fmt.Errorf("create product: %w", err)
 	}

@@ -25,7 +25,7 @@ func setup(t *testing.T) (pgxmock.PgxPoolIface, *PostgreProductRepository) {
 	return mock, NewPostgreProductRepository(mock)
 }
 
-func TestFindAll_WhenProductsExist_ReturnsAllProducts(t *testing.T) {
+func TestList_WhenProductsExist_ReturnsAllProducts(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
 		WillReturnRows(
@@ -38,19 +38,19 @@ func TestFindAll_WhenProductsExist_ReturnsAllProducts(t *testing.T) {
 				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
 		)
 
-	result, err := repo.FindAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 4)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindAll_WhenDbError_ReturnsError(t *testing.T) {
+func TestListProducts_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
 		WillReturnError(errors.New("database unavailable"))
 
-	result, err := repo.FindAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "query products: database unavailable")
@@ -58,7 +58,7 @@ func TestFindAll_WhenDbError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindAll_WhenScanError_ReturnsError(t *testing.T) {
+func TestList_WhenScanError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
 		WillReturnRows(
@@ -68,7 +68,7 @@ func TestFindAll_WhenScanError_ReturnsError(t *testing.T) {
 				AddRow("invalid-uuid", "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()),
 		)
 
-	result, err := repo.FindAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "scan product: scanning value error for column 'product_id': Scan: invalid UUID length: 12")
@@ -76,7 +76,7 @@ func TestFindAll_WhenScanError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
+func TestList_WhenRowsError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
 		WillReturnRows(
@@ -87,7 +87,7 @@ func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
 				RowError(1, errors.New("read failed")),
 		)
 
-	result, err := repo.FindAll(context.Background())
+	result, err := repo.List(context.Background())
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "iterate products: read failed")
@@ -95,7 +95,7 @@ func TestFindAll_WhenRowsError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindByID_WhenProductsExist_ReturnsProduct(t *testing.T) {
+func TestGetByID_WhenProductsExist_ReturnsProduct(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
@@ -109,14 +109,14 @@ func TestFindByID_WhenProductsExist_ReturnsProduct(t *testing.T) {
 				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
 		)
 
-	result, err := repo.FindByID(context.Background(), FirstUUID)
+	result, err := repo.GetByID(context.Background(), FirstUUID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, testP, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindByID_WhenProductsNotExists_ReturnsError(t *testing.T) {
+func TestGetByID_WhenProductsNotExists_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
@@ -131,7 +131,7 @@ func TestFindByID_WhenProductsNotExists_ReturnsError(t *testing.T) {
 				RowError(0, pgx.ErrNoRows),
 		)
 
-	result, err := repo.FindByID(context.Background(), FirstUUID)
+	result, err := repo.GetByID(context.Background(), FirstUUID)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "find product by id: not found")
@@ -139,7 +139,7 @@ func TestFindByID_WhenProductsNotExists_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
+func TestGetByID_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
@@ -148,7 +148,7 @@ func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
 		WithArgs(FirstUUID).
 		WillReturnError(errors.New("database unavailable"))
 
-	result, err := repo.FindByID(context.Background(), FirstUUID)
+	result, err := repo.GetByID(context.Background(), FirstUUID)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "find product by id: database unavailable")
@@ -156,7 +156,7 @@ func TestFindByID_WhenDbError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
+func TestGetByID_WhenScanError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			SELECT product_id, name, category, description, price, created_at
@@ -170,7 +170,7 @@ func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
 				AddRow("invalid-uuid", "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()),
 		)
 
-	result, err := repo.FindByID(context.Background(), FirstUUID)
+	result, err := repo.GetByID(context.Background(), FirstUUID)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "find product by id: scanning value error for column 'product_id': Scan: invalid UUID length: 12")
@@ -178,7 +178,7 @@ func TestFindByID_WhenScanError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestSave_WhenNoDbIssues_ReturnsNewProduct(t *testing.T) {
+func TestCreate_WhenNoDbIssues_ReturnsNewProduct(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
@@ -192,14 +192,14 @@ func TestSave_WhenNoDbIssues_ReturnsNewProduct(t *testing.T) {
 				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
 		)
 
-	result, err := repo.Save(context.Background(), testP)
+	result, err := repo.Create(context.Background(), testP)
 
 	assert.NoError(t, err)
 	assert.Equal(t, testP, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestSave_WhenDbError_ReturnsError(t *testing.T) {
+func TestCreate_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
@@ -208,7 +208,7 @@ func TestSave_WhenDbError_ReturnsError(t *testing.T) {
 		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
 		WillReturnError(errors.New("database unavailable"))
 
-	result, err := repo.Save(context.Background(), testP)
+	result, err := repo.Create(context.Background(), testP)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "save product: database unavailable")
@@ -216,7 +216,7 @@ func TestSave_WhenDbError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestSave_WhenScanError_ReturnsError(t *testing.T) {
+func TestCreate_WhenScanError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
@@ -230,7 +230,7 @@ func TestSave_WhenScanError_ReturnsError(t *testing.T) {
 				AddRow("invalid-uuid", testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
 		)
 
-	result, err := repo.Save(context.Background(), testP)
+	result, err := repo.Create(context.Background(), testP)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "save product: scanning value error for column 'product_id': Scan: invalid UUID length: 12")
@@ -238,7 +238,7 @@ func TestSave_WhenScanError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestSave_WhenRowsError_ReturnsError(t *testing.T) {
+func TestCreate_WhenRowsError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
@@ -253,7 +253,7 @@ func TestSave_WhenRowsError_ReturnsError(t *testing.T) {
 				RowError(0, errors.New("read failed")),
 		)
 
-	result, err := repo.Save(context.Background(), testP)
+	result, err := repo.Create(context.Background(), testP)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "save product: read failed\nread failed")

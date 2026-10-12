@@ -28,7 +28,7 @@ func NewPostgreProductRepository(db ProductDB) *PostgreProductRepository {
 	return &PostgreProductRepository{db: db}
 }
 
-func (r *PostgreProductRepository) FindAll(ctx context.Context) ([]product.Product, error) {
+func (r *PostgreProductRepository) List(ctx context.Context) ([]product.Product, error) {
 	const query = `
 		SELECT product_id, name, category, description, price, created_at
 		FROM products
@@ -67,7 +67,7 @@ func (r *PostgreProductRepository) FindAll(ctx context.Context) ([]product.Produ
 	return products, nil
 }
 
-func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
+func (r *PostgreProductRepository) GetByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
 	const query = `
 		SELECT product_id, name, category, description, price, created_at
 		FROM products
@@ -96,7 +96,7 @@ func (r *PostgreProductRepository) FindByID(ctx context.Context, id uuid.UUID) (
 	return p, nil
 }
 
-func (r *PostgreProductRepository) Save(ctx context.Context, p product.Product) (product.Product, error) {
+func (r *PostgreProductRepository) Create(ctx context.Context, p product.Product) (product.Product, error) {
 	const query = `
 		INSERT INTO products (product_id, name, category, description, price)
 		VALUES ($1, $2, $3, $4, $5)
