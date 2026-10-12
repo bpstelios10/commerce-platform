@@ -35,10 +35,10 @@ type fakeOrderService struct {
 	updateOrder  func(context.Context, uuid.UUID, string, int, order.OrderStatus) (order.Order, error)
 	deleteOrder  func(context.Context, uuid.UUID) error
 
-	foundIDs []uuid.UUID
-	created  []order.Order
-	updated  []order.Order
-	deleted  []uuid.UUID
+	searchedIDs []uuid.UUID
+	created     []order.Order
+	updated     []order.Order
+	deleted     []uuid.UUID
 
 	pending map[string]int // track method pending
 }
@@ -106,24 +106,36 @@ func (f *fakeOrderService) GetOrders(ctx context.Context) ([]order.Order, error)
 
 func (f *fakeOrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
 	f.take("GetOrderByID")
-	f.foundIDs = append(f.foundIDs, id)
+	f.searchedIDs = append(f.searchedIDs, id)
 	return f.getOrderByID(ctx, id)
 }
 
 func (f *fakeOrderService) CreateOrder(ctx context.Context, productID string, quantity int) (order.Order, error) {
 	f.take("CreateOrder")
-	o, err := f.createOrder(ctx, productID, quantity)
-	f.created = append(f.created, o)
+	f.created = append(f.created, order.Order{
+		ProductID: productID,
+		Quantity:  quantity,
+	})
 
-	return o, err
+	return f.createOrder(ctx, productID, quantity)
 }
 
-func (f *fakeOrderService) UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+func (f *fakeOrderService) UpdateOrder(
+	ctx context.Context,
+	id uuid.UUID,
+	productID string,
+	quantity int,
+	status order.OrderStatus,
+) (order.Order, error) {
 	f.take("UpdateOrder")
-	o, err := f.updateOrder(ctx, id, productID, quantity, status)
-	f.updated = append(f.updated, o)
+	f.updated = append(f.updated, order.Order{
+		ID:        id,
+		ProductID: productID,
+		Quantity:  quantity,
+		Status:    status,
+	})
 
-	return o, err
+	return f.updateOrder(ctx, id, productID, quantity, status)
 }
 
 func (f *fakeOrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {

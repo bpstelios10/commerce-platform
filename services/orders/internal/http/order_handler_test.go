@@ -129,11 +129,7 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectGetOrderByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
-			if id == testO.ID {
-				return testO, nil
-			} else {
-				return order.Order{}, errors.New("wrong id passed in fake")
-			}
+			return testO, nil
 		})
 
 	res, err := http.Get(srv.URL + "/orders/" + testO.ID.String())
@@ -152,6 +148,7 @@ func TestGetOrder_WhenOrderExists_Returns200(t *testing.T) {
 	assert.Equal(t, testO.Quantity, existing.Quantity)
 	assert.Equal(t, testO.Status, existing.Status)
 	assert.WithinDuration(t, testO.CreatedAt, existing.CreatedAt, time.Millisecond)
+	assert.Equal(t, testO.ID, mock.searchedIDs[0])
 }
 
 func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
@@ -178,10 +175,11 @@ func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Equal(t, id, mock.searchedIDs[0])
 }
 
 func TestGetOrder_WhenBadUUID_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	res, err := http.Get(srv.URL + "/orders/1234")
 	assert.NoError(t, err)
@@ -198,6 +196,7 @@ func TestGetOrder_WhenBadUUID_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.searchedIDs)
 }
 
 func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
@@ -238,10 +237,12 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.Equal(t, order.CREATED, created.Status)
 	assert.WithinDuration(t, time.Now(), created.CreatedAt, time.Second)
 	assert.Equal(t, "/orders/"+created.ID.String(), res.Header.Get("Location"))
+	assert.Equal(t, FirstProductID, mock.created[0].ProductID)
+	assert.Equal(t, 10, mock.created[0].Quantity)
 }
 
 func TestCreateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPost,
@@ -270,10 +271,11 @@ func TestCreateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.created)
 }
 
 func TestCreateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPost,
@@ -302,6 +304,7 @@ func TestCreateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.created)
 }
 
 func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
@@ -334,10 +337,12 @@ func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Equal(t, validUUID, mock.created[0].ProductID)
+	assert.Equal(t, 1, mock.created[0].Quantity)
 }
 
 func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	res, err := http.Post(
 		srv.URL+"/orders",
@@ -361,10 +366,11 @@ func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.created)
 }
 
 func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	res, err := http.Post(
 		srv.URL+"/orders",
@@ -389,6 +395,7 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.created)
 }
 
 func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
@@ -431,6 +438,10 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	assert.Equal(t, 11, updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
+	assert.Equal(t, FirstOrderID, mock.updated[0].ID)
+	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
+	assert.Equal(t, 11, mock.updated[0].Quantity)
+	assert.Equal(t, order.PAID, mock.updated[0].Status)
 }
 
 func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing.T) {
@@ -473,10 +484,14 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 	assert.Equal(t, 11, updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
+	assert.Equal(t, FirstOrderID, mock.updated[0].ID)
+	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
+	assert.Equal(t, 11, mock.updated[0].Quantity)
+	assert.Equal(t, order.PAID, mock.updated[0].Status)
 }
 
 func TestUpdateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
@@ -505,10 +520,11 @@ func TestUpdateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.updated)
 }
 
 func TestUpdateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
@@ -537,6 +553,7 @@ func TestUpdateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.updated)
 }
 
 func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
@@ -573,10 +590,14 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Equal(t, testO.ID, mock.updated[0].ID)
+	assert.Equal(t, validUUID, mock.updated[0].ProductID)
+	assert.Equal(t, 2, mock.updated[0].Quantity)
+	assert.Equal(t, order.PAID, mock.updated[0].Status)
 }
 
 func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
@@ -603,10 +624,11 @@ func TestUpdateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.updated)
 }
 
 func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
@@ -635,10 +657,11 @@ func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.updated)
 }
 
 func TestUpdateOrder_WhenBadUUID_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodPut,
@@ -667,6 +690,7 @@ func TestUpdateOrder_WhenBadUUID_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.updated)
 }
 
 func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
@@ -704,17 +728,17 @@ func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Equal(t, id, mock.updated[0].ID)
+	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
+	assert.Equal(t, 1, mock.updated[0].Quantity)
+	assert.Equal(t, order.PAID, mock.updated[0].Status)
 }
 
 func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectDeleteOrder(
 		func(_ context.Context, id uuid.UUID) error {
-			if id == SecondOrderID {
-				return nil
-			} else {
-				return errors.New("wrong id passed in fake")
-			}
+			return nil
 		})
 
 	req, err := http.NewRequest(
@@ -727,10 +751,11 @@ func TestDeleteOrder_WhenOrderExists_DeletesOrder(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusNoContent, res.StatusCode)
+	assert.Equal(t, SecondOrderID, mock.deleted[0])
 }
 
 func TestDeleteOrder_WhenBadUUID_Returns400(t *testing.T) {
-	srv, _ := setupOrderHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 
 	req, err := http.NewRequest(
 		http.MethodDelete,
@@ -754,6 +779,7 @@ func TestDeleteOrder_WhenBadUUID_Returns400(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Empty(t, mock.deleted)
 }
 
 func TestDeleteOrder_WhenDbErrorHappens_Returns500(t *testing.T) {
@@ -784,6 +810,7 @@ func TestDeleteOrder_WhenDbErrorHappens_Returns500(t *testing.T) {
 		}`,
 		string(body),
 	)
+	assert.Equal(t, SecondOrderID, mock.deleted[0])
 }
 
 var (
