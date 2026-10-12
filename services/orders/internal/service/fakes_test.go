@@ -33,13 +33,13 @@ type fakeOrderRepo struct {
 	t       *testing.T
 	list    func(context.Context) ([]order.Order, error)
 	getByID func(context.Context, uuid.UUID) (order.Order, error)
-	save    func(context.Context, order.Order) (order.Order, error)
+	create  func(context.Context, order.Order) (order.Order, error)
 	update  func(context.Context, order.Order) (order.Order, error)
 	delete  func(context.Context, uuid.UUID) error
 
 	// capture the input params, so that i can validate they are the expected ones
 	searchedIDs []uuid.UUID
-	saved       []order.Order
+	created     []order.Order
 	updated     []order.Order
 	deleted     []uuid.UUID
 
@@ -62,9 +62,9 @@ func (f *fakeOrderRepo) expectGetByID(fn func(context.Context, uuid.UUID) (order
 	f.pending["GetByID"]++
 }
 
-func (f *fakeOrderRepo) expectSave(fn func(context.Context, order.Order) (order.Order, error)) {
-	f.save = fn
-	f.pending["Save"]++
+func (f *fakeOrderRepo) expectCreate(fn func(context.Context, order.Order) (order.Order, error)) {
+	f.create = fn
+	f.pending["Create"]++
 }
 
 func (f *fakeOrderRepo) expectUpdate(fn func(context.Context, order.Order) (order.Order, error)) {
@@ -106,9 +106,9 @@ func (f *fakeOrderRepo) GetByID(ctx context.Context, id uuid.UUID) (order.Order,
 }
 
 func (f *fakeOrderRepo) Create(ctx context.Context, o order.Order) (order.Order, error) {
-	f.take("Save")
-	f.saved = append(f.saved, o)
-	return f.save(ctx, o)
+	f.take("Create")
+	f.created = append(f.created, o)
+	return f.create(ctx, o)
 }
 
 func (f *fakeOrderRepo) Update(ctx context.Context, o order.Order) (order.Order, error) {

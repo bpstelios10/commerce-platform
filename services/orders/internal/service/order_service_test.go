@@ -114,7 +114,7 @@ func TestGetOrderByID_WhenDbError_ReturnsError(t *testing.T) {
 
 func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
 	svc, mock, _ := setup(t)
-	mock.expectSave(
+	mock.expectCreate(
 		func(_ context.Context, o order.Order) (order.Order, error) {
 			o.CreatedAt = time.Now() // the database fills this in
 			return o, nil
@@ -125,10 +125,10 @@ func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, o)
 	assert.WithinDuration(t, time.Now(), o.CreatedAt, time.Second)
-	assert.Equal(t, o.ID, mock.saved[0].ID)
-	assert.Equal(t, FirstProductID, mock.saved[0].ProductID)
-	assert.Equal(t, 10, mock.saved[0].Quantity)
-	assert.Equal(t, order.CREATED, mock.saved[0].Status)
+	assert.Equal(t, o.ID, mock.created[0].ID)
+	assert.Equal(t, FirstProductID, mock.created[0].ProductID)
+	assert.Equal(t, 10, mock.created[0].Quantity)
+	assert.Equal(t, order.CREATED, mock.created[0].Status)
 }
 
 func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
@@ -138,7 +138,7 @@ func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrProductNotFound)
 	assert.Empty(t, o)
-	assert.Empty(t, mock.saved)
+	assert.Empty(t, mock.created)
 }
 
 type failingReader struct {
@@ -161,7 +161,7 @@ func TestCreateOrder_WhenUUIDGenerationFails_ReturnsError(t *testing.T) {
 	assert.ErrorIs(t, err, entropyErr)
 	assert.ErrorIs(t, err, entropyErr)
 	assert.EqualError(t, err, "create order: entropy unavailable")
-	assert.Empty(t, mock.saved)
+	assert.Empty(t, mock.created)
 }
 
 func TestCreateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
@@ -172,12 +172,12 @@ func TestCreateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "create order: get product error from products service: rpc error: code = Internal desc = unexpected error")
 	assert.Empty(t, o)
-	assert.Empty(t, mock.saved)
+	assert.Empty(t, mock.created)
 }
 
 func TestCreateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
-	mock.expectSave(
+	mock.expectCreate(
 		func(_ context.Context, o order.Order) (order.Order, error) {
 			return o, errors.New("save order: database unavailable")
 		})
@@ -187,10 +187,10 @@ func TestCreateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "create order: save order: database unavailable")
 	assert.Empty(t, o)
-	assert.NotEqual(t, uuid.Nil, mock.saved[0].ID)
-	assert.Equal(t, FirstProductID, mock.saved[0].ProductID)
-	assert.Equal(t, 10, mock.saved[0].Quantity)
-	assert.Equal(t, order.CREATED, mock.saved[0].Status)
+	assert.NotEqual(t, uuid.Nil, mock.created[0].ID)
+	assert.Equal(t, FirstProductID, mock.created[0].ProductID)
+	assert.Equal(t, 10, mock.created[0].Quantity)
+	assert.Equal(t, order.CREATED, mock.created[0].Status)
 }
 
 func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
