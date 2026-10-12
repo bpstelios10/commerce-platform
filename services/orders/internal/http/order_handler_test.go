@@ -33,17 +33,6 @@ func setupOrderHandlerTest(t *testing.T) (*httptest.Server, *fakeOrderService) {
 	return srv, svc
 }
 
-func setupOrderMuxHandlerTest(t *testing.T) (*chi.Mux, *fakeOrderService) {
-	t.Helper()
-	svc := newFakeOrderService(t)
-	handler := NewOrderHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
-
-	return r, svc
-}
-
 func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectGetOrders(
@@ -97,31 +86,27 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 }
 
 func TestGetOrders_WhenDbErrorHappens_Returns500(t *testing.T) {
-	r, mock := setupOrderMuxHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 	mock.expectGetOrders(
 		func(_ context.Context) ([]order.Order, error) {
 			return nil, errors.New("database unavailable")
 		})
 
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/orders",
-		nil,
-	)
-	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "unexpected error"))
-	res := httptest.NewRecorder()
+	res, err := http.Get(srv.URL + "/orders")
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INTERNAL_SERVER_ERROR",
 			"message": "internal server error"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
@@ -783,25 +768,26 @@ func TestDeleteOrder_WhenBadUUID_Returns400(t *testing.T) {
 }
 
 func TestDeleteOrder_WhenDbErrorHappens_Returns500(t *testing.T) {
-	r, mock := setupOrderMuxHandlerTest(t)
+	srv, mock := setupOrderHandlerTest(t)
 	mock.expectDeleteOrder(
 		func(_ context.Context, id uuid.UUID) error {
 			return errors.New("database unavailable")
 		})
 
-	req := httptest.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodDelete,
-		"/orders/"+SecondOrderID.String(),
+		srv.URL+"/orders/"+SecondOrderID.String(),
 		nil,
 	)
-	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "unexpected error"))
-	res := httptest.NewRecorder()
+	assert.NoError(t, err)
+	res, err := http.DefaultClient.Do(req)
 
-	r.ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusInternalServerError, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.NoError(t, err)
+	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{

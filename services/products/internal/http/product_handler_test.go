@@ -31,17 +31,6 @@ func setupProductHandlerTest(t *testing.T) (*httptest.Server, *fakeProductServic
 	return srv, svc
 }
 
-func setupProductMuxHandlerTest(t *testing.T) (*chi.Mux, *fakeProductService) {
-	t.Helper()
-	svc := newFakeProductService(t)
-	handler := NewProductHandler(svc)
-
-	r := chi.NewRouter()
-	handler.RegisterRoutes(r)
-
-	return r, svc
-}
-
 func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 	srv, mock := setupProductHandlerTest(t)
 	mock.expectGetProducts(func(ctx context.Context) ([]product.Product, error) {
@@ -101,30 +90,26 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 }
 
 func TestGetProducts_WhenDbError_Returns500(t *testing.T) {
-	r, mock := setupProductMuxHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
 	mock.expectGetProducts(func(ctx context.Context) ([]product.Product, error) {
 		return []product.Product{}, errors.New("database unavailable")
 	})
 
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/products",
-		nil,
-	)
-	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "database unavailable"))
-	res := httptest.NewRecorder()
+	res, err := http.Get(srv.URL + "/products")
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INTERNAL_SERVER_ERROR",
 			"message": "internal server error"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
@@ -329,31 +314,27 @@ func TestSearchProducts_WhenMaxPriceInvalid_Returns400(t *testing.T) {
 }
 
 func TestSearchProducts_WhenServiceError_Returns500(t *testing.T) {
-	r, mock := setupProductMuxHandlerTest(t)
+	srv, mock := setupProductHandlerTest(t)
 	mock.expectSearchProducts(
 		func(ctx context.Context, query string, maxPrice *float64, category string) ([]product.Product, error) {
 			return allProducts, errors.New("some error")
 		})
 
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/products/search?query=hoodie",
-		nil,
-	)
-	req = req.WithContext(context.WithValue(req.Context(), "errorEnabler", "database unavailable"))
-	res := httptest.NewRecorder()
+	res, err := http.Get(srv.URL + "/products/search?query=hoodie")
 
-	r.ServeHTTP(res, req)
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, res.Code)
-	assert.Equal(t, "application/json", res.Header().Get("Content-Type"))
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
 			"code": "INTERNAL_SERVER_ERROR",
 			"message": "internal server error"
 		}`,
-		res.Body.String(),
+		string(body),
 	)
 }
 
