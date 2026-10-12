@@ -155,7 +155,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 			expectedErrorMessage: "product-id cannot be blank.",
 		},
 		{
-			name: "empty ProductId",
+			name: "empty ProductID",
 			request: UpdateOrderRequest{
 				ProductID: "",
 				Quantity:  5,
@@ -166,7 +166,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 			expectedErrorMessage: "product-id cannot be blank.",
 		},
 		{
-			name: "blank ProductId",
+			name: "blank ProductID",
 			request: UpdateOrderRequest{
 				ProductID: "   ",
 				Quantity:  5,
@@ -177,7 +177,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 			expectedErrorMessage: "product-id cannot be blank.",
 		},
 		{
-			name: "ProductId not valid UUID",
+			name: "ProductID not valid UUID",
 			request: UpdateOrderRequest{
 				ProductID: "1",
 				Quantity:  5,

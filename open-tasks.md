@@ -32,7 +32,7 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
 ## 2. Improve Go And API Quality
 
 - [ ] Use idiomatic GO repo methods (GetByID, List, Create, Update, Delete, Exists).
-- [ ] Use idiomatic GO capitalization everywhere (ID instead of Id).
+- [x] Use idiomatic GO capitalization everywhere (ID instead of Id).
 - [ ] Define exact money/currency/rounding contracts across Go, JSON, protobuf,
       and PostgreSQL. Validate discount ranges and test rounding boundaries.
 - [ ] Move product search filtering into SQL; add bounded pagination and stable
