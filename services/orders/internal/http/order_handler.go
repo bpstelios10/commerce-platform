@@ -93,7 +93,10 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Info().Interface("request", req).Msg("create order request received")
+	logger.Info().
+		Str("product_id", req.ProductID).
+		Int("quantity", req.Quantity).
+		Msg("create order request received")
 	o, err := h.orderService.CreateOrder(ctx, req.ProductID, req.Quantity)
 	if err != nil {
 		HandleError(ctx, w, fmt.Errorf("create_order: %w", err))
@@ -128,7 +131,11 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Info().Interface("request", req).Msg("update order")
+	logger.Info().
+		Str("product_id", req.ProductID).
+		Int("quantity", req.Quantity).
+		Interface("status", req.Status).
+		Msg("update order")
 	o, err := h.orderService.UpdateOrder(ctx, id, req.ProductID, req.Quantity, req.Status)
 	if err != nil {
 		HandleError(ctx, w, fmt.Errorf("update_order: %w", err))

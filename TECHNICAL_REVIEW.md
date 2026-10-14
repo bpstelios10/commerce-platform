@@ -111,6 +111,7 @@ and sometimes time formatting. Creating another logger can alter the first;
 the side-effect-free constructor comment is incorrect. Set levels per logger
 and make unavoidable process-wide setup explicit and one-time.
 
+<!-- this is really not important. maybe keep it here for reference, if i make changes later, like using flushing etc. -->
 [request_context_middleware.go](shared/logger/request_context_middleware.go)
 records every `WriteHeader`, even after a different status was committed, and
 does not track implicit writes. It also hides optional writer capabilities.

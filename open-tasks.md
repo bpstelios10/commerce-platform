@@ -42,10 +42,11 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       ownership without introducing a generic framework.
 - [ ] Make logger levels instance-local and global formatting setup explicit.
       Test that creating one logger does not change another's level.
+<!-- i ll leave this one for later, if ever needed -->
 - [ ] Use a proven HTTP response-writer wrapper; test implicit/repeated statuses
       and required capabilities. Define/test HTTP and gRPC panic recovery.
-- [/] Log response-write failures without a second response; 
-- [ ] replace whole DTO Info logs with selected fields. Preserve context without duplicate noise.
+- [x] Log response-write failures without a second response; 
+- [x] replace whole DTO Info logs with selected fields. Preserve context without duplicate noise.
 - [ ] Decide concurrent-update semantics; use optimistic concurrency where lost
       updates violate the intended contract.
 
