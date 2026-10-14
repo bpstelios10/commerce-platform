@@ -59,15 +59,15 @@ func TestGetProductByID_WhenProductExists_ReturnsProduct(t *testing.T) {
 	client, mock := setupProductHandlerTest(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
+			SELECT product_id, name, category, description, price, created_at, version
 			FROM products
 			WHERE product_id = $1`).
 		WithArgs(id).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(id, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()),
+				AddRow(id, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1),
 		)
 
 	res, err := client.GetProductByID(
@@ -92,7 +92,7 @@ func TestGetProductByID_WhenProductNotExists_ReturnsError(t *testing.T) {
 	client, mock := setupProductHandlerTest(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
+			SELECT product_id, name, category, description, price, created_at, version
 			FROM products
 			WHERE product_id = $1`).
 		WithArgs(id).

@@ -27,15 +27,15 @@ func setup(t *testing.T) (pgxmock.PgxPoolIface, *PostgreProductRepository) {
 
 func TestList_WhenProductsExist_ReturnsAllProducts(t *testing.T) {
 	mock, repo := setup(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
-				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
-				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now(), 1).
+				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now(), 1).
+				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now(), 1),
 		)
 
 	result, err := repo.List(context.Background())
@@ -47,7 +47,7 @@ func TestList_WhenProductsExist_ReturnsAllProducts(t *testing.T) {
 
 func TestListProducts_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
 		WillReturnError(errors.New("database unavailable"))
 
 	result, err := repo.List(context.Background())
@@ -60,12 +60,12 @@ func TestListProducts_WhenDbError_ReturnsError(t *testing.T) {
 
 func TestList_WhenScanError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow("invalid-uuid", "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()),
+				AddRow("invalid-uuid", "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1),
 		)
 
 	result, err := repo.List(context.Background())
@@ -78,12 +78,12 @@ func TestList_WhenScanError_ReturnsError(t *testing.T) {
 
 func TestList_WhenRowsError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now()).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now(), 1).
 				RowError(1, errors.New("read failed")),
 		)
 
@@ -98,15 +98,15 @@ func TestList_WhenRowsError_ReturnsError(t *testing.T) {
 func TestGetByID_WhenProductsExist_ReturnsProduct(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
+			SELECT product_id, name, category, description, price, created_at, version
 			FROM products
 			WHERE product_id = $1`).
 		WithArgs(FirstUUID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version),
 		)
 
 	result, err := repo.GetByID(context.Background(), FirstUUID)
@@ -119,15 +119,15 @@ func TestGetByID_WhenProductsExist_ReturnsProduct(t *testing.T) {
 func TestGetByID_WhenProductsNotExists_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
+			SELECT product_id, name, category, description, price, created_at, version
 			FROM products
 			WHERE product_id = $1`).
 		WithArgs(FirstUUID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now()).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now(), 1).
 				RowError(0, pgx.ErrNoRows),
 		)
 
@@ -142,7 +142,7 @@ func TestGetByID_WhenProductsNotExists_ReturnsError(t *testing.T) {
 func TestGetByID_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
+			SELECT product_id, name, category, description, price, created_at, version
 			FROM products
 			WHERE product_id = $1`).
 		WithArgs(FirstUUID).
@@ -159,15 +159,15 @@ func TestGetByID_WhenDbError_ReturnsError(t *testing.T) {
 func TestGetByID_WhenScanError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
+			SELECT product_id, name, category, description, price, created_at, version
 			FROM products
 			WHERE product_id = $1`).
 		WithArgs(FirstUUID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow("invalid-uuid", "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()),
+				AddRow("invalid-uuid", "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1),
 		)
 
 	result, err := repo.GetByID(context.Background(), FirstUUID)
@@ -183,13 +183,13 @@ func TestCreate_WhenNoDbIssues_ReturnsNewProduct(t *testing.T) {
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
 			VALUES ($1, $2, $3, $4, $5)
-			RETURNING product_id, name, category, description, price, created_at;`).
+			RETURNING product_id, name, category, description, price, created_at, version;`).
 		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version),
 		)
 
 	result, err := repo.Create(context.Background(), testP)
@@ -204,7 +204,7 @@ func TestCreate_WhenDbError_ReturnsError(t *testing.T) {
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
 			VALUES ($1, $2, $3, $4, $5)
-			RETURNING product_id, name, category, description, price, created_at;`).
+			RETURNING product_id, name, category, description, price, created_at, version;`).
 		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
 		WillReturnError(errors.New("database unavailable"))
 
@@ -221,13 +221,13 @@ func TestCreate_WhenScanError_ReturnsError(t *testing.T) {
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
 			VALUES ($1, $2, $3, $4, $5)
-			RETURNING product_id, name, category, description, price, created_at;`).
+			RETURNING product_id, name, category, description, price, created_at, version;`).
 		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow("invalid-uuid", testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
+				AddRow("invalid-uuid", testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version),
 		)
 
 	result, err := repo.Create(context.Background(), testP)
@@ -243,13 +243,13 @@ func TestCreate_WhenRowsError_ReturnsError(t *testing.T) {
 	mock.ExpectQuery(`
 			INSERT INTO products (product_id, name, category, description, price)
 			VALUES ($1, $2, $3, $4, $5)
-			RETURNING product_id, name, category, description, price, created_at;`).
+			RETURNING product_id, name, category, description, price, created_at, version;`).
 		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now()).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now(), 1).
 				RowError(0, errors.New("read failed")),
 		)
 
@@ -267,13 +267,13 @@ func TestUpdate_WhenProductExists_ReturnsUpdatedProduct(t *testing.T) {
 			UPDATE products 
 			SET name = $1, category = $2, description = $3, price = $4
 			WHERE product_id = $5
-			RETURNING product_id, name, category, description, price, created_at;`).
+			RETURNING product_id, name, category, description, price, created_at, version;`).
 		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version),
 		)
 
 	result, err := repo.Update(context.Background(), testP)
@@ -289,13 +289,13 @@ func TestUpdate_WhenProductNotExists_ReturnsError(t *testing.T) {
 			UPDATE products 
 			SET name = $1, category = $2, description = $3, price = $4
 			WHERE product_id = $5
-			RETURNING product_id, name, category, description, price, created_at;`).
+			RETURNING product_id, name, category, description, price, created_at, version;`).
 		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now()).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now(), 1).
 				RowError(0, pgx.ErrNoRows),
 		)
 
@@ -313,7 +313,7 @@ func TestUpdate_WhenDbError_ReturnsError(t *testing.T) {
 			UPDATE products 
 			SET name = $1, category = $2, description = $3, price = $4
 			WHERE product_id = $5
-			RETURNING product_id, name, category, description, price, created_at;`).
+			RETURNING product_id, name, category, description, price, created_at, version;`).
 		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
 		WillReturnError(errors.New("database unavailable"))
 
@@ -331,13 +331,13 @@ func TestUpdate_WhenScanError_ReturnsError(t *testing.T) {
 			UPDATE products 
 			SET name = $1, category = $2, description = $3, price = $4
 			WHERE product_id = $5
-			RETURNING product_id, name, category, description, price, created_at;`).
+			RETURNING product_id, name, category, description, price, created_at, version;`).
 		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow("invalid-uuid", testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt),
+				AddRow("invalid-uuid", testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version),
 		)
 
 	result, err := repo.Update(context.Background(), testP)
@@ -390,5 +390,6 @@ var (
 		Description: new("Updated description"),
 		Price:       1500.0,
 		CreatedAt:   time.Now(),
+		Version:     1,
 	}
 )

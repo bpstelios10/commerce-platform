@@ -6,5 +6,6 @@ CREATE TABLE products (
     category VARCHAR(50) NOT NULL,
     description TEXT,
     price NUMERIC(10,2) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    version INT NOT NULL DEFAULT 1
 );

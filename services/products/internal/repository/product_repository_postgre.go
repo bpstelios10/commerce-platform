@@ -30,7 +30,7 @@ func NewPostgreProductRepository(db ProductDB) *PostgreProductRepository {
 
 func (r *PostgreProductRepository) List(ctx context.Context) ([]product.Product, error) {
 	const query = `
-		SELECT product_id, name, category, description, price, created_at
+		SELECT product_id, name, category, description, price, created_at, version
 		FROM products
 	`
 
@@ -53,6 +53,7 @@ func (r *PostgreProductRepository) List(ctx context.Context) ([]product.Product,
 			&p.Description,
 			&p.Price,
 			&p.CreatedAt,
+			&p.Version,
 		); err != nil {
 			return products, fmt.Errorf("scan product: %w", err)
 		}
@@ -69,7 +70,7 @@ func (r *PostgreProductRepository) List(ctx context.Context) ([]product.Product,
 
 func (r *PostgreProductRepository) GetByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
 	const query = `
-		SELECT product_id, name, category, description, price, created_at
+		SELECT product_id, name, category, description, price, created_at, version
 		FROM products
 		WHERE product_id = $1
 	`
@@ -83,6 +84,7 @@ func (r *PostgreProductRepository) GetByID(ctx context.Context, id uuid.UUID) (p
 		&p.Description,
 		&p.Price,
 		&p.CreatedAt,
+		&p.Version,
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -100,7 +102,7 @@ func (r *PostgreProductRepository) Create(ctx context.Context, p product.Product
 	const query = `
 		INSERT INTO products (product_id, name, category, description, price)
 		VALUES ($1, $2, $3, $4, $5)
-		RETURNING product_id, name, category, description, price, created_at;
+		RETURNING product_id, name, category, description, price, created_at, version;
 	`
 
 	row := r.db.QueryRow(ctx, query, p.ID, p.Name, p.Category, p.Description, p.Price)
@@ -111,6 +113,7 @@ func (r *PostgreProductRepository) Create(ctx context.Context, p product.Product
 		&p.Description,
 		&p.Price,
 		&p.CreatedAt,
+		&p.Version,
 	); err != nil {
 		return product.Product{}, fmt.Errorf("save product: %w", err)
 	}
@@ -123,7 +126,7 @@ func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product
 		UPDATE products 
 		SET name = $1, category = $2, description = $3, price = $4
 		WHERE product_id = $5
-		RETURNING product_id, name, category, description, price, created_at;
+		RETURNING product_id, name, category, description, price, created_at, version;
 	`
 
 	row := r.db.QueryRow(ctx, query, p.Name, p.Category, p.Description, p.Price, p.ID)
@@ -134,6 +137,7 @@ func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product
 		&p.Description,
 		&p.Price,
 		&p.CreatedAt,
+		&p.Version,
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {

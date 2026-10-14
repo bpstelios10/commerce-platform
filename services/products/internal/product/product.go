@@ -13,6 +13,7 @@ type Product struct {
 	Description *string   `json:"description,omitempty"`
 	Price       float64   `json:"price"`
 	CreatedAt   time.Time `json:"created_at"`
+	Version     int       `json:"version"`
 }
 
 func (p *Product) ApplyDiscount(percentage float64) {

@@ -40,15 +40,15 @@ func setupProductHandlerCompositionTest(t *testing.T) (*httptest.Server, pgxmock
 
 func TestGetProductsComposition_WhenProductsExist_Returns200(t *testing.T) {
 	srv, mock := setupProductHandlerCompositionTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "versions",
 			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
-				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
-				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now(), 1).
+				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now(), 1).
+				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now(), 1),
 		)
 
 	res, err := http.Get(srv.URL + "/products")
@@ -71,6 +71,7 @@ func TestGetProductsComposition_WhenProductsExist_Returns200(t *testing.T) {
 			"category":    "ACCESSORY",
 			"description": "Apple laptop",
 			"price":       2500.0,
+			"version":     float64(1),
 		},
 		{
 			"id":          SecondUUID.String(),
@@ -78,6 +79,7 @@ func TestGetProductsComposition_WhenProductsExist_Returns200(t *testing.T) {
 			"category":    "ACCESSORY",
 			"description": "Apple smartphone",
 			"price":       1200.0,
+			"version":     float64(1),
 		},
 		{
 			"id":          ThirdUUID.String(),
@@ -85,6 +87,7 @@ func TestGetProductsComposition_WhenProductsExist_Returns200(t *testing.T) {
 			"category":    "CLOTHES",
 			"description": "Comfortable hoodie",
 			"price":       80.0,
+			"version":     float64(1),
 		},
 		{
 			"id":          FourthUUID.String(),
@@ -92,6 +95,7 @@ func TestGetProductsComposition_WhenProductsExist_Returns200(t *testing.T) {
 			"category":    "JEWELRY",
 			"description": "Stylish eye necklace",
 			"price":       150.0,
+			"version":     float64(1),
 		},
 	}
 
@@ -107,15 +111,15 @@ func TestGetProductsComposition_WhenProductsExist_Returns200(t *testing.T) {
 func TestGetProductComposition_WhenProductExists_Returns200(t *testing.T) {
 	srv, mock := setupProductHandlerCompositionTest(t)
 	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
+			SELECT product_id, name, category, description, price, created_at, version
 			FROM products
 			WHERE product_id = $1`).
 		WithArgs(FirstUUID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "versions",
 			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()),
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1),
 		)
 
 	res, err := http.Get(srv.URL + "/products/" + FirstUUID.String())
@@ -134,6 +138,7 @@ func TestGetProductComposition_WhenProductExists_Returns200(t *testing.T) {
 	assert.Equal(t, "ACCESSORY", updated.Category)
 	assert.Equal(t, new("Apple laptop"), updated.Description)
 	assert.Equal(t, 2500.0, updated.Price)
+	assert.Equal(t, 1, updated.Version)
 	assert.False(t, updated.CreatedAt.IsZero())
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -142,12 +147,12 @@ func TestGetProductComposition_WhenProductNotExists_Returns404(t *testing.T) {
 	srv, mock := setupProductHandlerCompositionTest(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectQuery(`
-			SELECT product_id, name, category, description, price, created_at
+			SELECT product_id, name, category, description, price, created_at, version
 			FROM products
 			WHERE product_id = $1`).
 		WithArgs(id).
 		WillReturnRows(pgxmock.NewRows([]string{
-			"product_id", "name", "category", "description", "price", "created_at",
+			"product_id", "name", "category", "description", "price", "created_at", "versions",
 		}))
 
 	res, err := http.Get(srv.URL + "/products/" + id.String())
@@ -171,15 +176,15 @@ func TestGetProductComposition_WhenProductNotExists_Returns404(t *testing.T) {
 
 func TestSearchProductsComposition_WhenOnlyQueryProvided_ReturnsMatches(t *testing.T) {
 	srv, mock := setupProductHandlerCompositionTest(t)
-	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at FROM products`).
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at",
+				"product_id", "name", "category", "description", "price", "created_at", "versions",
 			}).
-				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now()).
-				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now()).
-				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now()).
-				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now()),
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now(), 1).
+				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now(), 1).
+				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now(), 1),
 		)
 
 	res, err := http.Get(srv.URL + "/products/search?query=hoodie")
@@ -196,5 +201,6 @@ func TestSearchProductsComposition_WhenOnlyQueryProvided_ReturnsMatches(t *testi
 	assert.NoError(t, err)
 	assert.Len(t, products, 1)
 	assert.Equal(t, ThirdUUID.String(), products[0]["id"])
+	assert.Equal(t, float64(1), products[0]["version"])
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

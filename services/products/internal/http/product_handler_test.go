@@ -57,6 +57,7 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 			"category":    "ACCESSORY",
 			"description": "Apple laptop",
 			"price":       2500.0,
+			"version":     float64(1),
 		},
 		{
 			"id":          SecondUUID.String(),
@@ -64,6 +65,7 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 			"category":    "ACCESSORY",
 			"description": "Apple smartphone",
 			"price":       1200.0,
+			"version":     float64(1),
 		},
 		{
 			"id":          ThirdUUID.String(),
@@ -71,6 +73,7 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 			"category":    "CLOTHES",
 			"description": "Comfortable hoodie",
 			"price":       80.0,
+			"version":     float64(1),
 		},
 		{
 			"id":          FourthUUID.String(),
@@ -78,6 +81,7 @@ func TestGetProducts_WhenProductsExist_Returns200(t *testing.T) {
 			"category":    "JEWELRY",
 			"description": "Stylish eye necklace",
 			"price":       150.0,
+			"version":     float64(1),
 		},
 	}
 
@@ -352,6 +356,7 @@ var (
 			Description: new("Apple laptop"),
 			Price:       2500,
 			CreatedAt:   time.Now(),
+			Version:     1,
 		},
 		{
 			ID:          SecondUUID,
@@ -360,6 +365,7 @@ var (
 			Description: new("Apple smartphone"),
 			Price:       1200,
 			CreatedAt:   time.Now(),
+			Version:     1,
 		},
 		{
 			ID:          ThirdUUID,
@@ -368,6 +374,7 @@ var (
 			Description: new("Comfortable hoodie"),
 			Price:       80,
 			CreatedAt:   time.Now(),
+			Version:     1,
 		},
 		{
 			ID:          FourthUUID,
@@ -376,6 +383,7 @@ var (
 			Description: new("Stylish eye necklace"),
 			Price:       150,
 			CreatedAt:   time.Now(),
+			Version:     1,
 		},
 	}
 )
