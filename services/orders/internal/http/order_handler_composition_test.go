@@ -49,13 +49,13 @@ func setupOrderHandlerCompositionTest(t *testing.T) (*httptest.Server, pgxmock.P
 
 func TestGetOrdersComposition_WhenOrdersExist_Returns200(t *testing.T) {
 	srv, mock := setupOrderHandlerCompositionTest(t)
-	mock.ExpectQuery(`SELECT order_id, product_id, quantity, status, created_at FROM orders`).
+	mock.ExpectQuery(`SELECT order_id, product_id, quantity, status, created_at, version FROM orders`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
 			}).
-				AddRow(FirstOrderID, FirstProductID, 2, order.CREATED, time.Now()).
-				AddRow(SecondOrderID, SecondProductID, 1, order.PAID, time.Now()),
+				AddRow(FirstOrderID, FirstProductID, 2, order.CREATED, time.Now(), 1).
+				AddRow(SecondOrderID, SecondProductID, 1, order.PAID, time.Now(), 1),
 		)
 
 	res, err := http.Get(srv.URL + "/orders")
@@ -77,12 +77,14 @@ func TestGetOrdersComposition_WhenOrdersExist_Returns200(t *testing.T) {
 			"product_id": FirstProductID,
 			"quantity":   float64(2),
 			"status":     "CREATED",
+			"version":    float64(1),
 		},
 		{
 			"id":         SecondOrderID.String(),
 			"product_id": SecondProductID,
 			"quantity":   float64(1),
 			"status":     "PAID",
+			"version":    float64(1),
 		},
 	}
 
@@ -99,13 +101,13 @@ func TestGetOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
 	srv, mock := setupOrderHandlerCompositionTest(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectQuery(`
-			SELECT order_id, product_id, quantity, status, created_at
+			SELECT order_id, product_id, quantity, status, created_at, version
 			FROM orders
 			WHERE order_id = $1`).
 		WithArgs(id).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
 			}))
 
 	res, err := http.Get(srv.URL + "/orders/" + id.String())
@@ -132,13 +134,13 @@ func TestCreateOrderComposition_WhenRequestValid_CreatesOrder(t *testing.T) {
 	mock.ExpectQuery(`
 			INSERT INTO orders (order_id, product_id, quantity, status)
 			VALUES ($1, $2, $3, $4)
-			RETURNING order_id, product_id, quantity, status, created_at;`).
+			RETURNING order_id, product_id, quantity, status, created_at, version;`).
 		WithArgs(pgxmock.OfType[uuid.UUID](), FirstProductID, 10, order.CREATED).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
 			}).
-				AddRow(uuid.New(), FirstProductID, 10, order.CREATED, time.Now()),
+				AddRow(uuid.New(), FirstProductID, 10, order.CREATED, time.Now(), 1),
 		)
 
 	res, err := http.Post(
@@ -164,6 +166,7 @@ func TestCreateOrderComposition_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.Equal(t, 10, created.Quantity)
 	assert.Equal(t, order.CREATED, created.Status)
 	assert.WithinDuration(t, time.Now(), created.CreatedAt, time.Second)
+	assert.Equal(t, 1, created.Version)
 	assert.Equal(t, "/orders/"+created.ID.String(), res.Header.Get("Location"))
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -200,27 +203,28 @@ func TestCreateOrderComposition_WhenProductNotExists_Returns409(t *testing.T) {
 func TestUpdateOrderComposition_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerCompositionTest(t)
 	mock.ExpectQuery(`
-			SELECT order_id, product_id, quantity, status, created_at
+			SELECT order_id, product_id, quantity, status, created_at, version
 			FROM orders
 			WHERE order_id = $1`).
 		WithArgs(testO.ID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
 			}).
-				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt),
+				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt, testO.Version),
 		)
 	mock.ExpectQuery(`
 			UPDATE orders
-			SET product_id = $1, quantity = $2, status = $3
+			SET product_id = $1, quantity = $2, status = $3, version = version + 1
 			WHERE order_id = $4
-			RETURNING order_id, product_id, quantity, status, created_at;`).
-		WithArgs(FirstProductID, 11, order.PAID, testO.ID).
+			  AND version = $5
+			RETURNING order_id, product_id, quantity, status, created_at, version;`).
+		WithArgs(FirstProductID, 11, order.PAID, testO.ID, testO.Version).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
 			}).
-				AddRow(testO.ID, FirstProductID, 11, order.PAID, testO.CreatedAt),
+				AddRow(testO.ID, FirstProductID, 11, order.PAID, testO.CreatedAt, testO.Version+1),
 		)
 
 	req, err := http.NewRequest(
@@ -250,21 +254,22 @@ func TestUpdateOrderComposition_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	assert.Equal(t, 11, updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
+	assert.Equal(t, testO.Version+1, updated.Version)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestUpdateOrderComposition_WhenProductNotExists_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerCompositionTest(t)
 	mock.ExpectQuery(`
-			SELECT order_id, product_id, quantity, status, created_at
+			SELECT order_id, product_id, quantity, status, created_at, version
 			FROM orders
 			WHERE order_id = $1`).
 		WithArgs(testO.ID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
 			}).
-				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt),
+				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt, testO.Version),
 		)
 
 	req, err := http.NewRequest(
@@ -301,13 +306,13 @@ func TestUpdateOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
 	srv, mock := setupOrderHandlerCompositionTest(t)
 	id, _ := uuid.NewV7()
 	mock.ExpectQuery(`
-			SELECT order_id, product_id, quantity, status, created_at
+			SELECT order_id, product_id, quantity, status, created_at, version
 			FROM orders
 			WHERE order_id = $1`).
 		WithArgs(id).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"order_id", "product_id", "quantity", "status", "created_at",
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
 			}))
 
 	req, err := http.NewRequest(

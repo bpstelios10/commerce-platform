@@ -22,6 +22,7 @@ type Order struct {
 	Quantity  int         `json:"quantity"`
 	Status    OrderStatus `json:"status"`
 	CreatedAt time.Time   `json:"created_at"`
+	Version   int         `json:"version"`
 }
 
 func (s OrderStatus) IsValid() bool {

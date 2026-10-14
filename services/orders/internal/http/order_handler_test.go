@@ -45,6 +45,7 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 					Quantity:  1,
 					Status:    order.PAID,
 					CreatedAt: time.Now(),
+					Version:   1,
 				},
 			}, nil
 		})
@@ -68,12 +69,14 @@ func TestGetOrders_WhenOrdersExist_Returns200(t *testing.T) {
 			"product_id": FirstProductID,
 			"quantity":   float64(2),
 			"status":     "CREATED",
+			"version":    float64(1),
 		},
 		{
 			"id":         SecondOrderID.String(),
 			"product_id": SecondProductID,
 			"quantity":   float64(1),
 			"status":     "PAID",
+			"version":    float64(1),
 		},
 	}
 
@@ -813,5 +816,6 @@ var (
 		Quantity:  2,
 		Status:    order.CREATED,
 		CreatedAt: time.Now(),
+		Version:   1,
 	}
 )

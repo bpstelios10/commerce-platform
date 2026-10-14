@@ -5,5 +5,6 @@ CREATE TABLE orders (
     product_id VARCHAR(50) NOT NULL,
     quantity INT NOT NULL,
     status VARCHAR(50) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    version INT NOT NULL DEFAULT 1
 );

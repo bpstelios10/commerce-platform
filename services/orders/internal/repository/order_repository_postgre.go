@@ -12,7 +12,10 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var ErrNotFound = errors.New("not found")
+var (
+	ErrNotFound        = errors.New("not found")
+	ErrVersionConflict = errors.New("order was updated by another transaction")
+)
 
 type PostgreOrderRepository struct {
 	db DB
@@ -30,7 +33,7 @@ func NewPostgreOrderRepository(db DB) *PostgreOrderRepository {
 
 func (repo *PostgreOrderRepository) List(ctx context.Context) ([]order.Order, error) {
 	const query = `
-		SELECT order_id, product_id, quantity, status, created_at
+		SELECT order_id, product_id, quantity, status, created_at, version
 		FROM orders
 	`
 
@@ -51,6 +54,7 @@ func (repo *PostgreOrderRepository) List(ctx context.Context) ([]order.Order, er
 			&o.Quantity,
 			&o.Status,
 			&o.CreatedAt,
+			&o.Version,
 		); err != nil {
 			return nil, fmt.Errorf("scan order: %w", err)
 		}
@@ -67,7 +71,7 @@ func (repo *PostgreOrderRepository) List(ctx context.Context) ([]order.Order, er
 
 func (repo *PostgreOrderRepository) GetByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
 	const query = `
-		SELECT order_id, product_id, quantity, status, created_at
+		SELECT order_id, product_id, quantity, status, created_at, version
 		FROM orders
 		WHERE order_id = $1
 	`
@@ -79,6 +83,7 @@ func (repo *PostgreOrderRepository) GetByID(ctx context.Context, id uuid.UUID) (
 		&o.Quantity,
 		&o.Status,
 		&o.CreatedAt,
+		&o.Version,
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -96,7 +101,7 @@ func (repo *PostgreOrderRepository) Create(ctx context.Context, o order.Order) (
 	const query = `
 		INSERT INTO orders (order_id, product_id, quantity, status)
 		VALUES ($1, $2, $3, $4)
-		RETURNING order_id, product_id, quantity, status, created_at;
+		RETURNING order_id, product_id, quantity, status, created_at, version;
 	`
 
 	row := repo.db.QueryRow(ctx, query, o.ID, o.ProductID, o.Quantity, o.Status)
@@ -106,6 +111,7 @@ func (repo *PostgreOrderRepository) Create(ctx context.Context, o order.Order) (
 		&o.Quantity,
 		&o.Status,
 		&o.CreatedAt,
+		&o.Version,
 	); err != nil {
 		return order.Order{}, fmt.Errorf("save order: %w", err)
 	}
@@ -116,22 +122,24 @@ func (repo *PostgreOrderRepository) Create(ctx context.Context, o order.Order) (
 func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) (order.Order, error) {
 	const query = `
 		UPDATE orders
-		SET product_id = $1, quantity = $2, status = $3
+		SET product_id = $1, quantity = $2, status = $3, version = version + 1
 		WHERE order_id = $4
-		RETURNING order_id, product_id, quantity, status, created_at;
+		  AND version = $5
+		RETURNING order_id, product_id, quantity, status, created_at, version;
 	`
 
-	row := repo.db.QueryRow(ctx, query, o.ProductID, o.Quantity, o.Status, o.ID)
+	row := repo.db.QueryRow(ctx, query, o.ProductID, o.Quantity, o.Status, o.ID, o.Version)
 	err := row.Scan(
 		&o.ID,
 		&o.ProductID,
 		&o.Quantity,
 		&o.Status,
 		&o.CreatedAt,
+		&o.Version,
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return order.Order{}, fmt.Errorf("update order: %w", ErrNotFound)
+		return order.Order{}, fmt.Errorf("update order: %w", ErrVersionConflict)
 	}
 
 	if err != nil {
