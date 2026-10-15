@@ -264,33 +264,36 @@ func TestCreate_WhenRowsError_ReturnsError(t *testing.T) {
 func TestUpdate_WhenProductExists_ReturnsUpdatedProduct(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
-			UPDATE products 
-			SET name = $1, category = $2, description = $3, price = $4
+			UPDATE products
+			SET name = $1, category = $2, description = $3, price = $4, version = version + 1
 			WHERE product_id = $5
+		      AND version = $6
 			RETURNING product_id, name, category, description, price, created_at, version;`).
-		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID, testP.Version).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
 				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version),
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version+1),
 		)
 
 	result, err := repo.Update(context.Background(), testP)
 
 	assert.NoError(t, err)
+	testP.Version = testP.Version + 1
 	assert.Equal(t, testP, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestUpdate_WhenProductNotExists_ReturnsError(t *testing.T) {
+func TestUpdate_WhenUpdateConflict_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
-			UPDATE products 
-			SET name = $1, category = $2, description = $3, price = $4
+			UPDATE products
+			SET name = $1, category = $2, description = $3, price = $4, version = version + 1
 			WHERE product_id = $5
+		      AND version = $6
 			RETURNING product_id, name, category, description, price, created_at, version;`).
-		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID, testP.Version).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
 				"product_id", "name", "category", "description", "price", "created_at", "version",
@@ -302,7 +305,7 @@ func TestUpdate_WhenProductNotExists_ReturnsError(t *testing.T) {
 	result, err := repo.Update(context.Background(), testP)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "update product: not found")
+	assert.EqualError(t, err, "update product: product was updated by another transaction")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -311,10 +314,11 @@ func TestUpdate_WhenDbError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			UPDATE products 
-			SET name = $1, category = $2, description = $3, price = $4
+			SET name = $1, category = $2, description = $3, price = $4, version = version + 1
 			WHERE product_id = $5
+		      AND version = $6
 			RETURNING product_id, name, category, description, price, created_at, version;`).
-		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID, testP.Version).
 		WillReturnError(errors.New("database unavailable"))
 
 	result, err := repo.Update(context.Background(), testP)
@@ -328,16 +332,17 @@ func TestUpdate_WhenDbError_ReturnsError(t *testing.T) {
 func TestUpdate_WhenScanError_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
-			UPDATE products 
-			SET name = $1, category = $2, description = $3, price = $4
+			UPDATE products
+			SET name = $1, category = $2, description = $3, price = $4, version = version + 1
 			WHERE product_id = $5
+		      AND version = $6
 			RETURNING product_id, name, category, description, price, created_at, version;`).
-		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID, testP.Version).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
 				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
-				AddRow("invalid-uuid", testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version),
+				AddRow("invalid-uuid", testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version+1),
 		)
 
 	result, err := repo.Update(context.Background(), testP)

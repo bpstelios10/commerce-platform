@@ -36,12 +36,6 @@ non-root images, and the vet/race/formatting checks in `make check`.
 
 Ordered by remediation priority; these describe current code, not roadmap omissions.
 
-### 3. Update races become internal errors
-
-[Orders](services/orders/internal/repository/order_repository_postgre.go) and
-[products](services/products/internal/repository/product_repository_postgre.go)
-Separately, decide whether concurrent edits are last-write-wins or require optimistic concurrency. A transaction alone does not define that policy.
-
 ### 5. Request work is insufficiently bounded
 
 [Products main](services/products/cmd/main.go) and

@@ -12,7 +12,10 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var ErrNotFound = errors.New("not found")
+var (
+	ErrNotFound        = errors.New("not found")
+	ErrVersionConflict = errors.New("product was updated by another transaction")
+)
 
 type PostgreProductRepository struct {
 	db ProductDB
@@ -124,12 +127,13 @@ func (r *PostgreProductRepository) Create(ctx context.Context, p product.Product
 func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product) (product.Product, error) {
 	const query = `
 		UPDATE products 
-		SET name = $1, category = $2, description = $3, price = $4
+		SET name = $1, category = $2, description = $3, price = $4, version = version + 1
 		WHERE product_id = $5
+		  AND version = $6
 		RETURNING product_id, name, category, description, price, created_at, version;
 	`
 
-	row := r.db.QueryRow(ctx, query, p.Name, p.Category, p.Description, p.Price, p.ID)
+	row := r.db.QueryRow(ctx, query, p.Name, p.Category, p.Description, p.Price, p.ID, p.Version)
 	err := row.Scan(
 		&p.ID,
 		&p.Name,
@@ -141,7 +145,7 @@ func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product
 	)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return product.Product{}, fmt.Errorf("update product: %w", ErrNotFound)
+		return product.Product{}, fmt.Errorf("update product: %w", ErrVersionConflict)
 	}
 
 	if err != nil {

@@ -47,7 +47,7 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       and required capabilities. Define/test HTTP and gRPC panic recovery.
 - [x] Log response-write failures without a second response; 
 - [x] replace whole DTO Info logs with selected fields. Preserve context without duplicate noise.
-- [ ] Decide concurrent-update semantics; use optimistic concurrency where lost
+- [x] Decide concurrent-update semantics; use optimistic concurrency where lost
       updates violate the intended contract.
 
 ## 3. Strengthen Verification

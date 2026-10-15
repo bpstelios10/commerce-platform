@@ -284,7 +284,7 @@ func TestUpdate_WhenOrderExists_ReturnsUpdatedOrder(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestUpdate_WhenOrderNotExists_ReturnsError(t *testing.T) {
+func TestUpdate_WhenUpdateConflict_ReturnsError(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
 			UPDATE orders

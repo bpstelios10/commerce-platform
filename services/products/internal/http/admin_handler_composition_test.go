@@ -185,15 +185,16 @@ func TestUpdateProductComposition_WhenRequestValid_UpdatesProduct(t *testing.T) 
 				AddRow(p.Category),
 		)
 	mock.ExpectQuery(`
-			UPDATE products 
-			SET name = $1, category = $2, description = $3, price = $4
+			UPDATE products
+			SET name = $1, category = $2, description = $3, price = $4, version = version + 1
 			WHERE product_id = $5
+		      AND version = $6
 			RETURNING product_id, name, category, description, price, created_at, version;`).
-		WithArgs(p.Name, p.Category, p.Description, p.Price, p.ID).
+		WithArgs(p.Name, p.Category, p.Description, p.Price, p.ID, p.Version).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
 				"product_id", "name", "category", "description", "price", "created_at", "version",
-			}).AddRow(p.ID, p.Name, p.Category, p.Description, p.Price, createdAt, p.Version),
+			}).AddRow(p.ID, p.Name, p.Category, p.Description, p.Price, createdAt, p.Version+1),
 		)
 
 	req, err := http.NewRequest(
@@ -225,7 +226,7 @@ func TestUpdateProductComposition_WhenRequestValid_UpdatesProduct(t *testing.T) 
 	assert.Equal(t, p.Description, updated.Description)
 	assert.Equal(t, p.Price, updated.Price)
 	assert.True(t, updated.CreatedAt.Equal(createdAt))
-	assert.Equal(t, p.Version, updated.Version)
+	assert.Equal(t, p.Version+1, updated.Version)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
