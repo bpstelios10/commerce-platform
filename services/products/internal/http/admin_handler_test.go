@@ -558,6 +558,48 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 	assert.Equal(t, 1500.0, mock.updated[0].Price)
 }
 
+func TestUpdateProduct_WhenUpdateConflict_Returns409(t *testing.T) {
+	srv, mock := setupAdminHandlerTest(t)
+	id, _ := uuid.NewV7()
+	mock.expectUpdateProduct(
+		func(ctx context.Context, id uuid.UUID, name, category string, description *string, price float64) (product.Product, error) {
+			return product.Product{}, service.ErrProductUpdateConflict
+		})
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+id.String(),
+		bytes.NewBufferString(`{
+			"name": "non-existing-product",
+			"category": "ACCESSORY",
+			"price": 1000.1
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "PRODUCT_UPDATE_CONFLICT",
+			"message": "product was updated by another process"
+		}`,
+		string(body),
+	)
+	assert.Equal(t, id, mock.updated[0].ID)
+	assert.Equal(t, "non-existing-product", mock.updated[0].Name)
+	assert.Equal(t, "ACCESSORY", mock.updated[0].Category)
+	assert.Nil(t, mock.updated[0].Description)
+	assert.Equal(t, 1000.1, mock.updated[0].Price)
+}
+
 func TestDeleteProduct_WhenProductExists_DeletesProduct(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
 	mock.expectDeleteProduct(

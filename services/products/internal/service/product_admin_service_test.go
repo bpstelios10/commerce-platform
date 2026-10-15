@@ -243,6 +243,38 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Equal(t, "iPhone 7", productRepo.updated[0].Name)
 }
 
+func TestUpdateProduct_WhenUpdateConflict_ReturnsError(t *testing.T) {
+	svc, productRepo, categRepo := setup(t)
+	productRepo.expectGetByID(
+		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
+			return product.Product{
+				ID:          SecondUUID,
+				Name:        "iPhone",
+				Category:    "ACCESSORY",
+				Description: new("Apple smartphone"),
+				Price:       1200,
+				CreatedAt:   time.Now()}, nil
+		})
+	categRepo.expectExists(
+		func(ctx context.Context, s string) (bool, error) {
+			return true, nil
+		})
+	productRepo.expectUpdate(
+		func(ctx context.Context, p product.Product) (product.Product, error) {
+			return p, repository.ErrVersionConflict
+		})
+
+	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "CLOTHES", new(""), 1201.0)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrProductUpdateConflict)
+	assert.EqualError(t, err, "updating product: product was updated by another process")
+	assert.Empty(t, updated)
+	assert.Equal(t, "CLOTHES", categRepo.searchedCategories[0])
+	assert.Equal(t, SecondUUID, productRepo.searchedIDs[0])
+	assert.Equal(t, "iPhone 7", productRepo.updated[0].Name)
+}
+
 func TestDeleteProduct_WhenProductNotExists_DoesNotFail(t *testing.T) {
 	svc, productRepo, _ := setup(t)
 	id, _ := uuid.NewV7()

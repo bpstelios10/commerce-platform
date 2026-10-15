@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	ErrInvalidProduct  = errors.New("invalid product")
-	ErrInvalidCategory = errors.New("invalid category")
+	ErrInvalidProduct        = errors.New("invalid product")
+	ErrInvalidCategory       = errors.New("invalid category")
+	ErrProductUpdateConflict = errors.New("product was updated by another process")
 )
 
 type ErrProductNotFound struct {

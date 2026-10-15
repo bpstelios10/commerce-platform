@@ -2,6 +2,7 @@ package service
 
 import (
 	"commerce-platform/services/products/internal/product"
+	"commerce-platform/services/products/internal/repository"
 	"context"
 	"fmt"
 
@@ -79,6 +80,10 @@ func (s *AdminServiceImpl) UpdateProduct(ctx context.Context, id uuid.UUID, name
 
 	p, err = s.repo.Update(ctx, p)
 	if err != nil {
+		if err == repository.ErrVersionConflict {
+			return product.Product{}, fmt.Errorf("updating product: %w", ErrProductUpdateConflict)
+		}
+
 		return product.Product{}, fmt.Errorf("updating product: %w", err)
 	}
 

@@ -50,6 +50,10 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 		logger.Warn().Err(err).Msg("Request body too long")
 		writeError(ctx, w, http.StatusBadRequest, "REQUEST_BODY_TOO_LONG", tooLongBodyErr.Error())
 
+	case errors.Is(err, service.ErrProductUpdateConflict):
+		logger.Warn().Err(err).Msg("product update conflict")
+		writeError(ctx, w, http.StatusConflict, "PRODUCT_UPDATE_CONFLICT", service.ErrProductUpdateConflict.Error())
+
 	default:
 		logger.Error().Err(err).Msg("unexpected error handled, with")
 		writeError(ctx, w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "internal server error")
