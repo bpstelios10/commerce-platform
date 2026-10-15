@@ -681,12 +681,12 @@ func TestUpdateOrder_WhenBadUUID_Returns400(t *testing.T) {
 	assert.Empty(t, mock.updated)
 }
 
-func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
+func TestUpdateOrder_WhenUpdateConflict_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	id, _ := uuid.NewV7()
 	mock.expectUpdateOrder(
 		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
-			return order.Order{}, &service.ErrOrderNotFound{OrderID: id}
+			return order.Order{}, service.ErrOrderUpdateConflict
 		})
 
 	req, err := http.NewRequest(
@@ -706,13 +706,13 @@ func TestUpdateOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
 		`{
-			"code": "ORDER_NOT_FOUND",
-			"message": "Order with id [`+id.String()+`] was not found"
+			"code": "ORDER_UPDATE_CONFLICT",
+			"message": "order was updated by another process"
 		}`,
 		string(body),
 	)

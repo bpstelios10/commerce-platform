@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	ErrInvalidOrder    = errors.New("invalid order")
-	ErrProductNotFound = errors.New("product not found for the given id")
+	ErrInvalidOrder        = errors.New("invalid order")
+	ErrProductNotFound     = errors.New("product not found for the given id")
+	ErrOrderUpdateConflict = errors.New("order was updated by another process")
 )
 
 type ErrOrderNotFound struct {

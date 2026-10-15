@@ -106,6 +106,10 @@ func (s *OrderServiceImpl) UpdateOrder(ctx context.Context, id uuid.UUID, produc
 
 	updated, err := s.orderRepository.Update(ctx, existing)
 	if err != nil {
+		if errors.Is(err, repository.ErrVersionConflict) {
+			return order.Order{}, fmt.Errorf("updating order: %w", ErrOrderUpdateConflict)
+		}
+
 		return order.Order{}, fmt.Errorf("updating order: %w", err)
 	}
 

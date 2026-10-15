@@ -277,6 +277,29 @@ func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Equal(t, order.CANCELED, mock.updated[0].Status)
 }
 
+func TestUpdateOrder_WhenUpdateConflict_ReturnsError(t *testing.T) {
+	svc, mock, _ := setup(t)
+	mock.expectGetByID(
+		func(_ context.Context, id uuid.UUID) (order.Order, error) {
+			return testO, nil
+		})
+	mock.expectUpdate(
+		func(_ context.Context, o order.Order) (order.Order, error) {
+			return o, repository.ErrVersionConflict
+		})
+
+	updated, err := svc.UpdateOrder(context.Background(), testO.ID, FirstProductID, 10, order.CANCELED)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "updating order: order was updated by another process")
+	assert.Empty(t, updated)
+	assert.Equal(t, testO.ID, mock.searchedIDs[0])
+	assert.Equal(t, testO.ID, mock.updated[0].ID)
+	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
+	assert.Equal(t, 10, mock.updated[0].Quantity)
+	assert.Equal(t, order.CANCELED, mock.updated[0].Status)
+}
+
 func TestDeleteOrder_WhenOrderNotExists_DoesNotFail(t *testing.T) {
 	svc, mock, _ := setup(t)
 	toDelete, _ := uuid.NewV7()
