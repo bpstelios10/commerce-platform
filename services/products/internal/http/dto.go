@@ -12,4 +12,5 @@ type UpdateProductRequest struct {
 	Category    string  `json:"category"`
 	Description *string `json:"description"`
 	Price       float64 `json:"price"`
+	Version     int     `json:"version"`
 }

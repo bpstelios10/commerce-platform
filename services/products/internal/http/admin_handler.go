@@ -18,7 +18,7 @@ import (
 
 type AdminService interface {
 	CreateProduct(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error)
-	UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error)
+	UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64, version int) (product.Product, error)
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 }
 
@@ -98,7 +98,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		Float64("price", req.Price).
 		Msg("update product")
 
-	p, err := h.adminService.UpdateProduct(ctx, validUUID, req.Name, req.Category, req.Description, req.Price)
+	p, err := h.adminService.UpdateProduct(ctx, validUUID, req.Name, req.Category, req.Description, req.Price, req.Version)
 	if err != nil {
 		HandleError(ctx, w, fmt.Errorf("update_product: %w", err))
 		return

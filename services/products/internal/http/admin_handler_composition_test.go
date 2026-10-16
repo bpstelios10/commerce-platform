@@ -204,7 +204,8 @@ func TestUpdateProductComposition_WhenRequestValid_UpdatesProduct(t *testing.T) 
 			"name": "iPhone 15",
 			"category": "CLOTHES",
 			"description": "Updated description",
-			"price": 1500
+			"price": 1500,
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -255,7 +256,8 @@ func TestUpdateProductComposition_WhenCategoryInvalid_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "UNKNOWN",
-			"price": 1500
+			"price": 1500,
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)

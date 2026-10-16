@@ -273,9 +273,10 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 		Description: new("Updated description"),
 		Price:       1500.0,
 		CreatedAt:   time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+		Version:     1,
 	}
 	mock.expectUpdateProduct(
-		func(ctx context.Context, id uuid.UUID, name, category string, description *string, price float64) (product.Product, error) {
+		func(context.Context, uuid.UUID, string, string, *string, float64, int) (product.Product, error) {
 			return p, nil
 		})
 
@@ -286,7 +287,8 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 			"name": "iPhone 15",
 			"category": "CLOTHES",
 			"description": "Updated description",
-			"price": 1500
+			"price": 1500,
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -319,7 +321,8 @@ func TestUpdateProduct_WhenBadUUID_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "CLOTHES",
-			"price": 1500
+			"price": 1500,
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -353,7 +356,8 @@ func TestUpdateProduct_WhenRequestBodyTooBig_Returns400(t *testing.T) {
 			"name": "`+strings.Repeat("a", 1<<10)+`",
 			"category": "CLOTHES",
 			"description": "Updated description",
-			"price": 1500
+			"price": 1500,
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -387,7 +391,8 @@ func TestUpdateProduct_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) 
 			"name": "iPhone 15",
 			"category": "CLOTHES",
 			"description": "Updated description",
-			"price": 1500
+			"price": 1500,
+			"version": 1
 		}{"trailing": "json"}`),
 	)
 	assert.NoError(t, err)
@@ -451,7 +456,8 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "",
 			"category": "",
-			"price": 0
+			"price": 0,
+			"version": -2
 		}`),
 	)
 	assert.NoError(t, err)
@@ -468,7 +474,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "name cannot be blank.; category cannot be blank.; price must be > 0."
+			"message": "name cannot be blank.; category cannot be blank.; price must be > 0.; version must be > 0."
 		}`,
 		string(body),
 	)
@@ -479,7 +485,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
 	id, _ := uuid.NewV7()
 	mock.expectUpdateProduct(
-		func(ctx context.Context, id uuid.UUID, name, category string, description *string, price float64) (product.Product, error) {
+		func(context.Context, uuid.UUID, string, string, *string, float64, int) (product.Product, error) {
 			return product.Product{}, &service.ErrProductNotFound{ProductID: id}
 		})
 
@@ -489,7 +495,8 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "non-existing-product",
 			"category": "ACCESSORY",
-			"price": 1000.1
+			"price": 1000.1,
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -520,7 +527,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
 	mock.expectUpdateProduct(
-		func(ctx context.Context, id uuid.UUID, name, category string, description *string, price float64) (product.Product, error) {
+		func(context.Context, uuid.UUID, string, string, *string, float64, int) (product.Product, error) {
 			return product.Product{}, service.ErrInvalidCategory
 		})
 
@@ -530,7 +537,8 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "iPhone 15",
 			"category": "UNKNOWN",
-			"price": 1500
+			"price": 1500,
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -562,7 +570,7 @@ func TestUpdateProduct_WhenUpdateConflict_Returns409(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
 	id, _ := uuid.NewV7()
 	mock.expectUpdateProduct(
-		func(ctx context.Context, id uuid.UUID, name, category string, description *string, price float64) (product.Product, error) {
+		func(context.Context, uuid.UUID, string, string, *string, float64, int) (product.Product, error) {
 			return product.Product{}, service.ErrProductUpdateConflict
 		})
 
@@ -572,7 +580,8 @@ func TestUpdateProduct_WhenUpdateConflict_Returns409(t *testing.T) {
 		bytes.NewBufferString(`{
 			"name": "non-existing-product",
 			"category": "ACCESSORY",
-			"price": 1000.1
+			"price": 1000.1,
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)

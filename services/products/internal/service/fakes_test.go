@@ -152,6 +152,7 @@ func (f *fakeProductRepo) Create(ctx context.Context, o product.Product) (produc
 func (f *fakeProductRepo) Update(ctx context.Context, o product.Product) (product.Product, error) {
 	f.take("Update")
 	f.updated = append(f.updated, o)
+	o.Version++
 	return f.update(ctx, o)
 }
 

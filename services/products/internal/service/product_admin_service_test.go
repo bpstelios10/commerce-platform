@@ -129,7 +129,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 			return product.Product{}, repository.ErrNotFound
 		})
 
-	updated, err := svc.UpdateProduct(context.Background(), id, "whatever", "ACCESSORY", new(""), 1201.0)
+	updated, err := svc.UpdateProduct(context.Background(), id, "whatever", "ACCESSORY", new(""), 1201.0, 1)
 
 	var notFoundErr *ErrProductNotFound
 	assert.Error(t, err)
@@ -150,6 +150,7 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 		Description: new("Updated description"),
 		Price:       1500.0,
 		CreatedAt:   createdAt,
+		Version:     1,
 	}
 	productRepo.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
@@ -160,7 +161,8 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 				Category:    "ACCESSORY",
 				Description: new("Apple smartphone"),
 				Price:       1200,
-				CreatedAt:   createdAt}, nil
+				CreatedAt:   createdAt,
+				Version:     1}, nil
 		})
 	categRepo.expectExists(
 		func(ctx context.Context, s string) (bool, error) {
@@ -171,7 +173,7 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 			return p, nil
 		})
 
-	updated, err := svc.UpdateProduct(context.Background(), p.ID, p.Name, p.Category, p.Description, p.Price)
+	updated, err := svc.UpdateProduct(context.Background(), p.ID, p.Name, p.Category, p.Description, p.Price, p.Version)
 
 	assert.NoError(t, err)
 	assert.Equal(t, p.ID, updated.ID)
@@ -179,10 +181,12 @@ func TestUpdateProduct_WhenProductExists_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, p.Category, updated.Category)
 	assert.Equal(t, p.Description, updated.Description)
 	assert.Equal(t, p.Price, updated.Price)
+	assert.Equal(t, p.Version+1, updated.Version)
 	assert.True(t, updated.CreatedAt.Equal(createdAt))
 	assert.Equal(t, p.Category, categRepo.searchedCategories[0])
 	assert.Equal(t, p.ID, productRepo.searchedIDs[0])
 	assert.Equal(t, p.Name, productRepo.updated[0].Name)
+	assert.Equal(t, p.Version, productRepo.updated[0].Version)
 }
 
 func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) {
@@ -195,14 +199,15 @@ func TestUpdateProduct_WhenCategoryInvalid_ReturnsInvalidCategory(t *testing.T) 
 				Category:    "ACCESSORY",
 				Description: new("Apple smartphone"),
 				Price:       1200,
-				CreatedAt:   time.Now()}, nil
+				CreatedAt:   time.Now(),
+				Version:     1}, nil
 		})
 	categRepo.expectExists(
 		func(ctx context.Context, s string) (bool, error) {
 			return false, nil
 		})
 
-	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "UNKNOWN", new(""), 1201.0)
+	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "UNKNOWN", new(""), 1201.0, 1)
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrInvalidCategory)
@@ -222,7 +227,8 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 				Category:    "ACCESSORY",
 				Description: new("Apple smartphone"),
 				Price:       1200,
-				CreatedAt:   time.Now()}, nil
+				CreatedAt:   time.Now(),
+				Version:     1}, nil
 		})
 	categRepo.expectExists(
 		func(ctx context.Context, s string) (bool, error) {
@@ -233,7 +239,7 @@ func TestUpdateProduct_WhenDbError_ReturnsError(t *testing.T) {
 			return p, errors.New("update product: database unavailable")
 		})
 
-	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "CLOTHES", new(""), 1201.0)
+	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "CLOTHES", new(""), 1201.0, 1)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating product: update product: database unavailable")
@@ -253,7 +259,8 @@ func TestUpdateProduct_WhenUpdateConflict_ReturnsError(t *testing.T) {
 				Category:    "ACCESSORY",
 				Description: new("Apple smartphone"),
 				Price:       1200,
-				CreatedAt:   time.Now()}, nil
+				CreatedAt:   time.Now(),
+				Version:     1}, nil
 		})
 	categRepo.expectExists(
 		func(ctx context.Context, s string) (bool, error) {
@@ -264,7 +271,7 @@ func TestUpdateProduct_WhenUpdateConflict_ReturnsError(t *testing.T) {
 			return p, repository.ErrVersionConflict
 		})
 
-	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "CLOTHES", new(""), 1201.0)
+	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "CLOTHES", new(""), 1201.0, 1)
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrProductUpdateConflict)

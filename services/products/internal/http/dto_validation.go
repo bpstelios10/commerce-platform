@@ -49,6 +49,9 @@ func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error 
 	if req.Price <= 0 {
 		validationError.Errors = append(validationError.Errors, "price must be > 0.")
 	}
+	if req.Version <= 0 {
+		validationError.Errors = append(validationError.Errors, "version must be > 0.")
+	}
 
 	if len(validationError.Errors) > 0 {
 		logger.Debug().Strs("errors", validationError.Errors).Msg("invalid update product request")

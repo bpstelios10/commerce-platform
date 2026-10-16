@@ -59,7 +59,15 @@ func (s *AdminServiceImpl) CreateProduct(ctx context.Context, name string, categ
 	return p, nil
 }
 
-func (s *AdminServiceImpl) UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error) {
+func (s *AdminServiceImpl) UpdateProduct(
+	ctx context.Context,
+	id uuid.UUID,
+	name string,
+	category string,
+	description *string,
+	price float64,
+	version int,
+) (product.Product, error) {
 	p, err := s.productService.GetProductByID(ctx, id)
 	if err != nil {
 		return product.Product{}, fmt.Errorf("updating product: %w", err)
@@ -77,6 +85,7 @@ func (s *AdminServiceImpl) UpdateProduct(ctx context.Context, id uuid.UUID, name
 	p.Category = validatedCategory
 	p.Description = description
 	p.Price = price
+	p.Version = version
 
 	p, err = s.repo.Update(ctx, p)
 	if err != nil {

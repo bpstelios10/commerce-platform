@@ -14,7 +14,7 @@ type fakeProductService struct {
 	getProductByID func(context.Context, uuid.UUID) (product.Product, error)
 	searchProducts func(ctx context.Context, query string, maxPrice *float64, category string) ([]product.Product, error)
 	createProduct  func(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error)
-	updateProduct  func(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error)
+	updateProduct  func(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64, version int) (product.Product, error)
 	deleteProduct  func(context.Context, uuid.UUID) error
 
 	// capture the input params, so that i can validate they are the expected ones
@@ -55,7 +55,7 @@ func (f *fakeProductService) expectCreateProduct(
 }
 
 func (f *fakeProductService) expectUpdateProduct(
-	fn func(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64) (product.Product, error)) {
+	fn func(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64, version int) (product.Product, error)) {
 	f.updateProduct = fn
 	f.pending["UpdateProduct"]++
 }
@@ -120,6 +120,7 @@ func (f *fakeProductService) UpdateProduct(
 	name, category string,
 	description *string,
 	price float64,
+	version int,
 ) (product.Product, error) {
 	f.take("UpdateProduct")
 	f.updated = append(f.updated, product.Product{
@@ -127,9 +128,10 @@ func (f *fakeProductService) UpdateProduct(
 		Name:        name,
 		Category:    category,
 		Description: description,
-		Price:       price})
+		Price:       price,
+		Version:     version})
 
-	return f.updateProduct(ctx, id, name, category, description, price)
+	return f.updateProduct(ctx, id, name, category, description, price, version+1)
 }
 
 func (f *fakeProductService) DeleteProduct(ctx context.Context, id uuid.UUID) error {
