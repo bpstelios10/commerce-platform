@@ -5,6 +5,7 @@ import (
 	"commerce-platform/services/products/internal/repository"
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -268,7 +269,7 @@ func TestUpdateProduct_WhenUpdateConflict_ReturnsError(t *testing.T) {
 		})
 	productRepo.expectUpdate(
 		func(ctx context.Context, p product.Product) (product.Product, error) {
-			return p, repository.ErrVersionConflict
+			return p, fmt.Errorf("updating product: %w", repository.ErrVersionConflict)
 		})
 
 	updated, err := svc.UpdateProduct(context.Background(), SecondUUID, "iPhone 7", "CLOTHES", new(""), 1201.0, 1)

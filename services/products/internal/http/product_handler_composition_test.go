@@ -43,7 +43,7 @@ func TestGetProductsComposition_WhenProductsExist_Returns200(t *testing.T) {
 	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at", "versions",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
 				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now(), 1).
@@ -117,7 +117,7 @@ func TestGetProductComposition_WhenProductExists_Returns200(t *testing.T) {
 		WithArgs(FirstUUID).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at", "versions",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
 				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1),
 		)
@@ -152,7 +152,7 @@ func TestGetProductComposition_WhenProductNotExists_Returns404(t *testing.T) {
 			WHERE product_id = $1`).
 		WithArgs(id).
 		WillReturnRows(pgxmock.NewRows([]string{
-			"product_id", "name", "category", "description", "price", "created_at", "versions",
+			"product_id", "name", "category", "description", "price", "created_at", "version",
 		}))
 
 	res, err := http.Get(srv.URL + "/products/" + id.String())
@@ -179,7 +179,7 @@ func TestSearchProductsComposition_WhenOnlyQueryProvided_ReturnsMatches(t *testi
 	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
-				"product_id", "name", "category", "description", "price", "created_at", "versions",
+				"product_id", "name", "category", "description", "price", "created_at", "version",
 			}).
 				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1).
 				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now(), 1).

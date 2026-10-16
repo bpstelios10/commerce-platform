@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 )
@@ -275,6 +276,81 @@ func TestUpdateProductComposition_WhenCategoryInvalid_Returns400(t *testing.T) {
 		`{
 			"code": "INVALID_CATEGORY",
 			"message": "invalid category"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateProductComposition_WhenUpdateConflict_Returns409(t *testing.T) {
+	srv, mock := setupAdminHandlerCompositionTest(t)
+	p := &product.Product{
+		ID:          SecondUUID,
+		Name:        "iPhone 15",
+		Category:    "CLOTHES",
+		Description: new("Updated description"),
+		Price:       1500.0,
+		Version:     1,
+	}
+	createdAt := time.Now()
+	mock.ExpectQuery(`
+			SELECT product_id, name, category, description, price, created_at, version
+			FROM products
+			WHERE product_id = $1`).
+		WithArgs(SecondUUID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at", "version",
+			}).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, createdAt, 1),
+		)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
+		WithArgs(p.Category).
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow(p.Category),
+		)
+	mock.ExpectQuery(`
+			UPDATE products
+			SET name = $1, category = $2, description = $3, price = $4, version = version + 1
+			WHERE product_id = $5
+		      AND version = $6
+			RETURNING product_id, name, category, description, price, created_at, version;`).
+		WithArgs(p.Name, p.Category, p.Description, p.Price, p.ID, p.Version).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at", "version",
+			}).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500.0, time.Now(), 1).
+				RowError(0, pgx.ErrNoRows),
+		)
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/admin/products/"+SecondUUID.String(),
+		bytes.NewBufferString(`{
+			"name": "iPhone 15",
+			"category": "CLOTHES",
+			"description": "Updated description",
+			"price": 1500,
+			"version": 1
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "PRODUCT_UPDATE_CONFLICT",
+			"message": "product was updated by another process"
 		}`,
 		string(body),
 	)

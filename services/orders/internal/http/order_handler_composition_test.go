@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 )
@@ -342,6 +343,65 @@ func TestUpdateOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
 		`{
 			"code": "ORDER_NOT_FOUND",
 			"message": "Order with id [`+id.String()+`] was not found"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateOrderComposition_WhenUpdateConflict_Returns409(t *testing.T) {
+	srv, mock := setupOrderHandlerCompositionTest(t)
+	mock.ExpectQuery(`
+			SELECT order_id, product_id, quantity, status, created_at, version
+			FROM orders
+			WHERE order_id = $1`).
+		WithArgs(testO.ID).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
+			}).
+				AddRow(testO.ID, testO.ProductID, testO.Quantity, testO.Status, testO.CreatedAt, testO.Version),
+		)
+	mock.ExpectQuery(`
+			UPDATE orders
+			SET product_id = $1, quantity = $2, status = $3, version = version + 1
+			WHERE order_id = $4
+			  AND version = $5
+			RETURNING order_id, product_id, quantity, status, created_at, version;`).
+		WithArgs(FirstProductID, 11, order.PAID, testO.ID, testO.Version).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
+			}).
+				AddRow(testO.ID, FirstProductID, 11, order.PAID, testO.CreatedAt, testO.Version+1).
+				RowError(0, pgx.ErrNoRows),
+		)
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		srv.URL+"/orders/"+FirstOrderID.String(),
+		bytes.NewBufferString(`{
+			"product_id": " `+FirstProductID+`",
+			"quantity": 11,
+			"status": "paid",
+			"version": 1
+		}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusConflict, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "ORDER_UPDATE_CONFLICT",
+			"message": "order was updated by another process"
 		}`,
 		string(body),
 	)

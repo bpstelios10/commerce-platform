@@ -4,6 +4,7 @@ import (
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/repository"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -89,7 +90,7 @@ func (s *AdminServiceImpl) UpdateProduct(
 
 	p, err = s.repo.Update(ctx, p)
 	if err != nil {
-		if err == repository.ErrVersionConflict {
+		if errors.Is(err, repository.ErrVersionConflict) {
 			return product.Product{}, fmt.Errorf("updating product: %w", ErrProductUpdateConflict)
 		}
 
