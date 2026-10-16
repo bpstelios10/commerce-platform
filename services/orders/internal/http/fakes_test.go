@@ -32,7 +32,7 @@ type fakeOrderService struct {
 	getOrders    func(context.Context) ([]order.Order, error)
 	getOrderByID func(context.Context, uuid.UUID) (order.Order, error)
 	createOrder  func(context.Context, string, int) (order.Order, error)
-	updateOrder  func(context.Context, uuid.UUID, string, int, order.OrderStatus) (order.Order, error)
+	updateOrder  func(context.Context, uuid.UUID, string, int, order.OrderStatus, int) (order.Order, error)
 	deleteOrder  func(context.Context, uuid.UUID) error
 
 	// capture the input params, so that i can validate they are the expected ones
@@ -73,6 +73,7 @@ func (f *fakeOrderService) expectUpdateOrder(
 		productID string,
 		quantity int,
 		status order.OrderStatus,
+		version int,
 	) (order.Order, error)) {
 	f.updateOrder = fn
 	f.pending["UpdateOrder"]++
@@ -127,6 +128,7 @@ func (f *fakeOrderService) UpdateOrder(
 	productID string,
 	quantity int,
 	status order.OrderStatus,
+	version int,
 ) (order.Order, error) {
 	f.take("UpdateOrder")
 	f.updated = append(f.updated, order.Order{
@@ -134,9 +136,10 @@ func (f *fakeOrderService) UpdateOrder(
 		ProductID: productID,
 		Quantity:  quantity,
 		Status:    status,
+		Version:   version,
 	})
 
-	return f.updateOrder(ctx, id, productID, quantity, status)
+	return f.updateOrder(ctx, id, productID, quantity, status, version+1)
 }
 
 func (f *fakeOrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {

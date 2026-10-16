@@ -87,7 +87,14 @@ func (s *OrderServiceImpl) CreateOrder(ctx context.Context, productID string, qu
 	return o, nil
 }
 
-func (s *OrderServiceImpl) UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+func (s *OrderServiceImpl) UpdateOrder(
+	ctx context.Context,
+	id uuid.UUID,
+	productID string,
+	quantity int,
+	status order.OrderStatus,
+	version int,
+) (order.Order, error) {
 	existing, err := s.GetOrderByID(ctx, id)
 	if err != nil {
 		return order.Order{}, fmt.Errorf("updating order: %w", err)
@@ -100,6 +107,7 @@ func (s *OrderServiceImpl) UpdateOrder(ctx context.Context, id uuid.UUID, produc
 	existing.ProductID = productID
 	existing.Quantity = quantity
 	existing.Status = status
+	existing.Version = version
 
 	logger := log(ctx)
 	logger.Info().Str("order_id", existing.ID.String()).Str("product_id", existing.ProductID).Msg("updating order")

@@ -11,4 +11,5 @@ type UpdateOrderRequest struct {
 	ProductID string            `json:"product_id"`
 	Quantity  int               `json:"quantity"`
 	Status    order.OrderStatus `json:"status"`
+	Version   int               `json:"version"`
 }

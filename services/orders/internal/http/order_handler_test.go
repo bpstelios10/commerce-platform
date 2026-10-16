@@ -389,13 +389,14 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectUpdateOrder(
-		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
 			return order.Order{
 				ID:        id,
 				ProductID: productID,
 				Quantity:  quantity,
 				Status:    status,
 				CreatedAt: testO.CreatedAt,
+				Version:   testO.Version + 1,
 			}, nil
 		})
 
@@ -405,7 +406,8 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": " `+FirstProductID+`",
 			"quantity": 11,
-			"status": "paid"
+			"status": "paid",
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -426,22 +428,25 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	assert.Equal(t, 11, updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
+	assert.Equal(t, 2, updated.Version)
 	assert.Equal(t, FirstOrderID, mock.updated[0].ID)
 	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
 	assert.Equal(t, 11, mock.updated[0].Quantity)
 	assert.Equal(t, order.PAID, mock.updated[0].Status)
+	assert.Equal(t, 1, mock.updated[0].Version)
 }
 
 func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectUpdateOrder(
-		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
 			return order.Order{
 				ID:        id,
 				ProductID: productID,
 				Quantity:  quantity,
 				Status:    status,
 				CreatedAt: testO.CreatedAt,
+				Version:   1,
 			}, nil
 		})
 
@@ -451,7 +456,8 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 		bytes.NewBufferString(`{
 			"product_id": "`+FirstProductID+`",
 			"quantity": 11,
-			"status": "paid"
+			"status": "paid",
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -487,7 +493,8 @@ func TestUpdateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": "`+FirstProductID+`",
 			"quantity": 11,
-			"status": "`+strings.Repeat("a", 1<<10)+`"
+			"status": "`+strings.Repeat("a", 1<<10)+`",
+			"version": 1
 		}{"trailing": "json"}`),
 	)
 	assert.NoError(t, err)
@@ -520,7 +527,8 @@ func TestUpdateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": "`+FirstProductID+`",
 			"quantity": 11,
-			"status": "paid"
+			"status": "paid",
+			"version": 1
 		}{"trailing": "json"}`),
 	)
 	assert.NoError(t, err)
@@ -547,7 +555,7 @@ func TestUpdateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
 func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectUpdateOrder(
-		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
 			return order.Order{}, service.ErrProductNotFound
 		})
 
@@ -557,7 +565,8 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": "`+validUUID+`",
 			"quantity": 2,
-			"status": "PAID"
+			"status": "PAID",
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -624,7 +633,8 @@ func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": "",
 			"quantity": 0,
-			"status": "PIAD"
+			"status": "PIAD",
+			"version": -1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -641,7 +651,7 @@ func TestUpdateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "product-id cannot be blank.; quantity must be > 0.; status is not valid."
+			"message": "product-id cannot be blank.; quantity must be > 0.; status is not valid.; version must be > 0."
 		}`,
 		string(body),
 	)
@@ -657,7 +667,8 @@ func TestUpdateOrder_WhenBadUUID_Returns400(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": "`+FirstProductID+`",
 			"quantity": 1,
-			"status": "PAID"
+			"status": "PAID",
+			"version": -1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -685,7 +696,7 @@ func TestUpdateOrder_WhenUpdateConflict_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	id, _ := uuid.NewV7()
 	mock.expectUpdateOrder(
-		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error) {
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
 			return order.Order{}, service.ErrOrderUpdateConflict
 		})
 
@@ -695,7 +706,8 @@ func TestUpdateOrder_WhenUpdateConflict_Returns409(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": "`+FirstProductID+`",
 			"quantity": 1,
-			"status": "PAiD"
+			"status": "PAiD",
+			"version": 2
 		}`),
 	)
 	assert.NoError(t, err)

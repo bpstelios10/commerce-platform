@@ -20,7 +20,7 @@ type OrderService interface {
 	GetOrders(ctx context.Context) ([]order.Order, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error)
 	CreateOrder(ctx context.Context, productID string, quantity int) (order.Order, error)
-	UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus) (order.Order, error)
+	UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error)
 	DeleteOrder(ctx context.Context, id uuid.UUID) error
 }
 
@@ -136,7 +136,7 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 		Int("quantity", req.Quantity).
 		Interface("status", req.Status).
 		Msg("update order")
-	o, err := h.orderService.UpdateOrder(ctx, id, req.ProductID, req.Quantity, req.Status)
+	o, err := h.orderService.UpdateOrder(ctx, id, req.ProductID, req.Quantity, req.Status, req.Version)
 	if err != nil {
 		HandleError(ctx, w, fmt.Errorf("update_order: %w", err))
 		return

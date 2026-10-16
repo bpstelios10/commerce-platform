@@ -114,6 +114,7 @@ func (f *fakeOrderRepo) Create(ctx context.Context, o order.Order) (order.Order,
 func (f *fakeOrderRepo) Update(ctx context.Context, o order.Order) (order.Order, error) {
 	f.take("Update")
 	f.updated = append(f.updated, o)
+	o.Version++
 	return f.update(ctx, o)
 }
 

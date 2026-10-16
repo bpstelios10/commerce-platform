@@ -53,6 +53,9 @@ func validateUpdateOrder(ctx context.Context, req UpdateOrderRequest) error {
 	if !req.Status.IsValid() {
 		validationError.Errors = append(validationError.Errors, "status is not valid.")
 	}
+	if req.Version <= 0 {
+		validationError.Errors = append(validationError.Errors, "version must be > 0.")
+	}
 
 	if len(validationError.Errors) > 0 {
 		logger.Debug().Strs("errors", validationError.Errors).Msg("invalid update order request")

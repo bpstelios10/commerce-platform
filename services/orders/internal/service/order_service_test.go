@@ -204,7 +204,7 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 			return o, nil
 		})
 
-	updated, err := svc.UpdateOrder(context.Background(), testO.ID, FirstProductID, 11, order.PAID)
+	updated, err := svc.UpdateOrder(context.Background(), testO.ID, FirstProductID, 11, order.PAID, 1)
 
 	assert.NoError(t, err)
 	assert.Equal(t, testO.ID, updated.ID)
@@ -212,11 +212,13 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	assert.Equal(t, 11, updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, testO.CreatedAt.Equal(updated.CreatedAt))
+	assert.Equal(t, 2, updated.Version)
 
 	assert.Equal(t, testO.ID, mock.updated[0].ID)
 	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
 	assert.Equal(t, 11, mock.updated[0].Quantity)
 	assert.Equal(t, order.PAID, mock.updated[0].Status)
+	assert.Equal(t, 1, mock.updated[0].Version)
 }
 
 func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
@@ -227,7 +229,7 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 			return order.Order{}, repository.ErrNotFound
 		})
 
-	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELED)
+	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELED, 1)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: Order with id ["+id.String()+"] was not found")
@@ -245,7 +247,7 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 			return o, nil
 		})
 
-	updated, err := svc.UpdateOrder(context.Background(), FirstOrderID, "999", 11, order.PAID)
+	updated, err := svc.UpdateOrder(context.Background(), FirstOrderID, "999", 11, order.PAID, 1)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: get product 999 from products service: rpc error: code = NotFound desc = product not found\nproduct not found for the given id")
@@ -265,7 +267,7 @@ func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
 			return o, errors.New("update order: database unavailable")
 		})
 
-	updated, err := svc.UpdateOrder(context.Background(), testO.ID, FirstProductID, 10, order.CANCELED)
+	updated, err := svc.UpdateOrder(context.Background(), testO.ID, FirstProductID, 10, order.CANCELED, 1)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: update order: database unavailable")
@@ -288,7 +290,7 @@ func TestUpdateOrder_WhenUpdateConflict_ReturnsError(t *testing.T) {
 			return o, repository.ErrVersionConflict
 		})
 
-	updated, err := svc.UpdateOrder(context.Background(), testO.ID, FirstProductID, 10, order.CANCELED)
+	updated, err := svc.UpdateOrder(context.Background(), testO.ID, FirstProductID, 10, order.CANCELED, 1)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "updating order: order was updated by another process")
@@ -342,5 +344,6 @@ var (
 		Quantity:  2,
 		Status:    order.CREATED,
 		CreatedAt: time.Now(),
+		Version:   1,
 	}
 )

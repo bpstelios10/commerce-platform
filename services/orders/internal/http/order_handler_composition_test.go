@@ -233,7 +233,8 @@ func TestUpdateOrderComposition_WhenRequestValid_UpdatesOrder(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": " `+FirstProductID+`",
 			"quantity": 11,
-			"status": "paid"
+			"status": "paid",
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -278,7 +279,8 @@ func TestUpdateOrderComposition_WhenProductNotExists_Returns409(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": "`+validUUID+`",
 			"quantity": 2,
-			"status": "PAID"
+			"status": "PAID",
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
@@ -321,7 +323,8 @@ func TestUpdateOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
 		bytes.NewBufferString(`{
 			"product_id": "`+FirstProductID+`",
 			"quantity": 1,
-			"status": "PAiD"
+			"status": "PAiD",
+			"version": 1
 		}`),
 	)
 	assert.NoError(t, err)
