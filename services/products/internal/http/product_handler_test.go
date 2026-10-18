@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -149,7 +150,7 @@ func TestGetProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	id, _ := uuid.NewV7()
 	mock.expectGetProductByID(
 		func(ctx context.Context, u uuid.UUID) (product.Product, error) {
-			return product.Product{}, &service.ErrProductNotFound{ProductID: id}
+			return product.Product{}, fmt.Errorf("blah: %w", &service.ErrProductNotFound{ProductID: id})
 		})
 
 	res, err := http.Get(srv.URL + "/products/" + id.String())

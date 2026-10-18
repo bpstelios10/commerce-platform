@@ -231,7 +231,7 @@ func TestCreateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
 	mock.expectCreateProduct(
 		func(ctx context.Context, name, category string, description *string, price float64) (product.Product, error) {
-			return product.Product{}, service.ErrInvalidCategory
+			return product.Product{}, fmt.Errorf("blah: %w", service.ErrInvalidCategory)
 		})
 
 	res, err := http.Post(
@@ -486,7 +486,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	id, _ := uuid.NewV7()
 	mock.expectUpdateProduct(
 		func(context.Context, uuid.UUID, string, string, *string, float64, int) (product.Product, error) {
-			return product.Product{}, &service.ErrProductNotFound{ProductID: id}
+			return product.Product{}, fmt.Errorf("blah: %w", &service.ErrProductNotFound{ProductID: id})
 		})
 
 	req, err := http.NewRequest(
@@ -528,7 +528,7 @@ func TestUpdateProduct_WhenCategoryInvalid_Returns400(t *testing.T) {
 	srv, mock := setupAdminHandlerTest(t)
 	mock.expectUpdateProduct(
 		func(context.Context, uuid.UUID, string, string, *string, float64, int) (product.Product, error) {
-			return product.Product{}, service.ErrInvalidCategory
+			return product.Product{}, fmt.Errorf("blah: %w", service.ErrInvalidCategory)
 		})
 
 	req, err := http.NewRequest(
@@ -571,7 +571,7 @@ func TestUpdateProduct_WhenUpdateConflict_Returns409(t *testing.T) {
 	id, _ := uuid.NewV7()
 	mock.expectUpdateProduct(
 		func(context.Context, uuid.UUID, string, string, *string, float64, int) (product.Product, error) {
-			return product.Product{}, service.ErrProductUpdateConflict
+			return product.Product{}, fmt.Errorf("blah: %w", service.ErrProductUpdateConflict)
 		})
 
 	req, err := http.NewRequest(

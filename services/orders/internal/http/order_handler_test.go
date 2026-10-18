@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -144,7 +145,7 @@ func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 	id, _ := uuid.NewV7()
 	mock.expectGetOrderByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
-			return order.Order{}, &service.ErrOrderNotFound{OrderID: id}
+			return order.Order{}, fmt.Errorf("blah: %w", &service.ErrOrderNotFound{OrderID: id})
 		})
 
 	res, err := http.Get(srv.URL + "/orders/" + id.String())
@@ -299,7 +300,7 @@ func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectCreateOrder(
 		func(_ context.Context, productID string, quantity int) (order.Order, error) {
-			return order.Order{}, service.ErrProductNotFound
+			return order.Order{}, fmt.Errorf("blah: %w", service.ErrProductNotFound)
 		})
 
 	res, err := http.Post(
@@ -556,7 +557,7 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectUpdateOrder(
 		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
-			return order.Order{}, service.ErrProductNotFound
+			return order.Order{}, fmt.Errorf("blah: %w", service.ErrProductNotFound)
 		})
 
 	req, err := http.NewRequest(
@@ -697,7 +698,7 @@ func TestUpdateOrder_WhenUpdateConflict_Returns409(t *testing.T) {
 	id, _ := uuid.NewV7()
 	mock.expectUpdateOrder(
 		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
-			return order.Order{}, service.ErrOrderUpdateConflict
+			return order.Order{}, fmt.Errorf("blah: %w", service.ErrOrderUpdateConflict)
 		})
 
 	req, err := http.NewRequest(

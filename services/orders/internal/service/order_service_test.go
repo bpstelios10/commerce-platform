@@ -5,6 +5,7 @@ import (
 	"commerce-platform/services/orders/internal/repository"
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -82,13 +83,13 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	id, _ := uuid.NewV7()
 	mock.expectGetByID(
 		func(_ context.Context, _ uuid.UUID) (order.Order, error) {
-			return order.Order{}, repository.ErrNotFound
+			return order.Order{}, fmt.Errorf("blah: %w", repository.ErrNotFound)
 		})
 
 	o, err := svc.GetOrderByID(context.Background(), id)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "Order with id ["+id.String()+"] was not found")
+	assert.EqualError(t, err, "get order by id: Order with id ["+id.String()+"] was not found")
 	var notFoundErr *ErrOrderNotFound
 	assert.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.OrderID)
@@ -226,13 +227,13 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	id := uuid.New()
 	mock.expectGetByID(
 		func(_ context.Context, _ uuid.UUID) (order.Order, error) {
-			return order.Order{}, repository.ErrNotFound
+			return order.Order{}, fmt.Errorf("blah: %w", repository.ErrNotFound)
 		})
 
 	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELED, 1)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "updating order: Order with id ["+id.String()+"] was not found")
+	assert.EqualError(t, err, "updating order: get order by id: Order with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)
 	assert.Equal(t, id, mock.searchedIDs[0])
 	assert.Empty(t, mock.updated)
@@ -287,7 +288,7 @@ func TestUpdateOrder_WhenUpdateConflict_ReturnsError(t *testing.T) {
 		})
 	mock.expectUpdate(
 		func(_ context.Context, o order.Order) (order.Order, error) {
-			return o, repository.ErrVersionConflict
+			return o, fmt.Errorf("blah: %w", repository.ErrVersionConflict)
 		})
 
 	updated, err := svc.UpdateOrder(context.Background(), testO.ID, FirstProductID, 10, order.CANCELED, 1)

@@ -5,6 +5,7 @@ import (
 	"commerce-platform/services/products/internal/repository"
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -81,7 +82,7 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	id, _ := uuid.NewV7()
 	mock.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
-			return product.Product{}, repository.ErrNotFound
+			return product.Product{}, fmt.Errorf("blah: %w", repository.ErrNotFound)
 		})
 
 	p, err := svc.GetProductByID(context.Background(), id)
@@ -89,7 +90,7 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	var notFoundErr *ErrProductNotFound
 	assert.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.ProductID)
-	assert.EqualError(t, err, "Product with id ["+id.String()+"] was not found")
+	assert.EqualError(t, err, fmt.Sprintf("get product by id: Product with id [%s] was not found", id))
 	assert.Empty(t, p)
 	assert.Equal(t, mock.searchedIDs[0], id)
 }

@@ -75,7 +75,7 @@ func (s *ProductServiceImpl) GetProductByID(ctx context.Context, id uuid.UUID) (
 	p, err := s.repository.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return product.Product{}, &ErrProductNotFound{ProductID: id}
+			return product.Product{}, fmt.Errorf("get product by id: %w", &ErrProductNotFound{ProductID: id})
 		}
 
 		return product.Product{}, fmt.Errorf("get product by id: %w", err)

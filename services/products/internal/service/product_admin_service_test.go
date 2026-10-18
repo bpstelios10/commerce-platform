@@ -127,7 +127,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	id, _ := uuid.NewV7()
 	productRepo.expectGetByID(
 		func(ctx context.Context, id uuid.UUID) (product.Product, error) {
-			return product.Product{}, repository.ErrNotFound
+			return product.Product{}, fmt.Errorf("updating product: %w", repository.ErrNotFound)
 		})
 
 	updated, err := svc.UpdateProduct(context.Background(), id, "whatever", "ACCESSORY", new(""), 1201.0, 1)
