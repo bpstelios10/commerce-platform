@@ -85,7 +85,14 @@ func main() {
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 
-	httpServer := &http.Server{Addr: httpPort, Handler: r}
+	httpServer := &http.Server{
+		Addr:              httpPort,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 
 	// ---- Setup gRPC Server ----
 	logger.Info().Msg("--- and gRPC ---")

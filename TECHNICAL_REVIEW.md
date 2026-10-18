@@ -40,7 +40,9 @@ Ordered by remediation priority; these describe current code, not roadmap omissi
 
 [Products main](services/products/cmd/main.go) and
 [orders main](services/orders/cmd/main.go) construct HTTP servers without timeout
-settings. The [products client](services/orders/internal/grpc/products_client.go)
+settings. 
+
+The [products client](services/orders/internal/grpc/products_client.go)
 has no call budget; startup database Ping has no application deadline. Configure
 header/idle timeouts, deliberate read/write limits, and request/dependency/startup
 budgets preserving earlier caller deadlines. A server write timeout does not

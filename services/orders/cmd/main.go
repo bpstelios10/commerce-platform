@@ -70,7 +70,14 @@ func main() {
 	orderHandler := httpx.NewOrderHandler(svc)
 	orderHandler.RegisterRoutes(r)
 
-	srv := &http.Server{Addr: httpPort, Handler: r}
+	srv := &http.Server{
+		Addr:              httpPort,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 
 	go func() {
 		logger.Info().Msgf("HTTP server running on %s", httpPort)
