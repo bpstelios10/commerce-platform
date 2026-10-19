@@ -134,6 +134,39 @@ func TestGetOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestGetOrderComposition_WhenQueryExceedsTimeout_Returns503(t *testing.T) {
+	srv, mock := setupOrderHandlerCompositionTest(t)
+	id, _ := uuid.NewV7()
+	mock.ExpectQuery(`
+			SELECT order_id, product_id, quantity, status, created_at, version
+			FROM orders
+			WHERE order_id = $1`).
+		WithArgs(id).
+		WillDelayFor(120 * time.Millisecond).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"order_id", "product_id", "quantity", "status", "created_at", "version",
+			}))
+
+	res, err := http.Get(srv.URL + "/orders/" + id.String())
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_TIMED_OUT",
+			"message": "request timed out"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestCreateOrderComposition_WhenRequestValid_CreatesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerCompositionTest(t)
 	mock.ExpectQuery(`

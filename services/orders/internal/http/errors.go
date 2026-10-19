@@ -53,6 +53,15 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 		logger.Warn().Err(err).Msg("order update conflict")
 		writeError(ctx, w, http.StatusConflict, "ORDER_UPDATE_CONFLICT", service.ErrOrderUpdateConflict.Error())
 
+	case errors.Is(err, context.DeadlineExceeded):
+		logger.Warn().Err(err).Msg("request timed out")
+		writeError(ctx, w, http.StatusServiceUnavailable, "REQUEST_TIMED_OUT", "request timed out")
+
+	case errors.Is(err, context.Canceled):
+		// debug cause this is normal client behavior, not a server fault
+		logger.Debug().Err(err).Msg("request canceled by client")
+		writeError(ctx, w, 499, "REQUEST_CANCELLED", "request canceled by client")
+
 	default:
 		logger.Error().Err(err).Msg("unexpected error handled, with")
 		writeError(ctx, w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "internal server error")

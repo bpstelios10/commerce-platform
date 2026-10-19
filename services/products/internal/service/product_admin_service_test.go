@@ -136,7 +136,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.ProductID)
-	assert.EqualError(t, err, "updating product: Product with id ["+id.String()+"] was not found")
+	assert.EqualError(t, err, "updating product: get product by id: Product with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)
 	assert.Equal(t, id, productRepo.searchedIDs[0])
 }

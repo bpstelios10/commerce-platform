@@ -188,6 +188,31 @@ func TestGetOrder_WhenBadUUID_Returns400(t *testing.T) {
 	assert.Empty(t, mock.searchedIDs)
 }
 
+func TestGetOrders_WhenRequestCancelled_Returns499(t *testing.T) {
+	srv, mock := setupOrderHandlerTest(t)
+	mock.expectGetOrders(
+		func(_ context.Context) ([]order.Order, error) {
+			return nil, context.Canceled
+		})
+
+	res, err := http.Get(srv.URL + "/orders")
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, 499, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_CANCELLED",
+			"message": "request canceled by client"
+		}`,
+		string(body),
+	)
+}
+
 func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectCreateOrder(
