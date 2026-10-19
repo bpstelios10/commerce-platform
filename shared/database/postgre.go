@@ -21,6 +21,10 @@ func NewPostgreClient(ctx context.Context, cfg commonconfig.DatabaseConfig) (*pg
 	poolCfg.ConnConfig.User = cfg.User
 	poolCfg.ConnConfig.Password = cfg.Password
 	poolCfg.ConnConfig.ConnectTimeout = cfg.Timeouts.Connect
+	poolCfg.MaxConns = int32(cfg.Pool.MaxConns)
+	poolCfg.MinConns = int32(cfg.Pool.MinConns)
+	poolCfg.MaxConnLifetime = cfg.Pool.MaxConnLifetime
+	poolCfg.MaxConnIdleTime = cfg.Pool.MaxConnIdleTime
 
 	return pgxpool.NewWithConfig(ctx, poolCfg)
 }

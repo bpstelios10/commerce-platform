@@ -21,3 +21,8 @@ database:
     read: 400ms  # GetByID, Delete
     list: 2s
     write: 600ms # Create, Update
+  pool:
+    max-conns: 10
+    min-conns: 2
+    max-conn-lifetime: 30m
+    max-conn-idle-time: 5m

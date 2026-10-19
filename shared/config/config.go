@@ -36,6 +36,12 @@ type DatabaseConfig struct {
 		List    time.Duration `yaml:"list"`
 		Write   time.Duration `yaml:"write"`
 	} `yaml:"timeouts"`
+	Pool struct {
+		MaxConns        int           `yaml:"max-conns"`
+		MinConns        int           `yaml:"min-conns"`
+		MaxConnLifetime time.Duration `yaml:"max-conn-lifetime"`
+		MaxConnIdleTime time.Duration `yaml:"max-conn-idle-time"`
+	} `yaml:"pool"`
 }
 
 type Config struct {

@@ -81,11 +81,6 @@ percentage range and rounding behavior before business use.
 
 ### 8. Database configuration is fragile
 
-[postgre.go](shared/database/postgre.go) and [migration.go](shared/database/migration.go)
-interpolate credentials into URLs without escaping. URI-special characters can
-change parsing. Construct pgx configuration structurally and use an escaped URL
-for migrations. Migrations force `sslmode=disable`; configure consistent TLS policy.
-
 [config.go](shared/config/config.go) lacks strict YAML field checking and post-load
 validation. Validate ports, positive timeouts, required addresses, and database
 settings. Add runtime secret overrides: changing Compose's `POSTGRES_PASSWORD`

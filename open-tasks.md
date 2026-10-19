@@ -22,7 +22,7 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       unknown-field policy. Cover oversized and trailing-content requests.
 - [/] Configure HTTP timeouts and request, RPC, database
       Verify cancellation reaches dependencies and earlier deadlines are preserved.
-- [ ] Bound startup database connection/Ping separately, Startup has no incoming request 
+- [x] Bound startup database connection/Ping separately, Startup has no incoming request 
       context. Database queries during requests can initially use the overall request deadline; separate query budgets are optional.
 - [ ] After adding timeouts, i need to handle the cancelled requests in some way. 
       We dont know if a create was committed just before cancellation! so i should
@@ -30,9 +30,10 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
 - [ ] Attempt all shutdown cleanup even after an error; force-close after the
       drain budget. Centralize serve failures instead of `Fatal` in goroutines;
       retain and close the products gRPC connection.
-- [ ] Use escaped/structured DB configuration, consistent TLS, runtime secret
+- [x] Use escaped/structured DB configuration, consistent TLS, runtime secret
       overrides, and startup validation. Test URI-special credentials, invalid
       ports/timeouts, and unknown YAML fields.
+- [ ] Add validations on config.go, rather than later in main.
 
 ## 2. Improve Go And API Quality
 
