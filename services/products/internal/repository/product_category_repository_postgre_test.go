@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ func setupCategoriesRepo(t *testing.T) (pgxmock.PgxPoolIface, *PostgreProductCat
 		mock.Close()
 	})
 
-	return mock, NewPostgreProductCategoryRepository(mock)
+	return mock, NewPostgreProductCategoryRepository(mock, Timeouts{Read: 100 * time.Millisecond})
 }
 
 func TestExists_WhenCategoryExists_ReturnsTrue(t *testing.T) {
@@ -60,6 +61,24 @@ func TestExists_WhenDbError_ReturnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.False(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestExists_WhenQueryExceedsTimeout_ReturnsDeadlineExceeded(t *testing.T) {
+	mock, repo := setupCategoriesRepo(t)
+	mock.ExpectQuery(`SELECT name FROM product_categories WHERE name = $1`).
+		WithArgs("CATEG").
+		WillDelayFor(120 * time.Millisecond).
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow("CATEG"),
+		)
+
+	result, err := repo.Exists(context.Background(), "CATEG")
+
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.EqualError(t, err, "product category exists: context deadline exceeded")
+	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -113,5 +132,26 @@ func TestList_WhenRowWithError_StopsScanning(t *testing.T) {
 	assert.EqualError(t, err, "scan product categories: row error")
 	assert.Len(t, result, 1)
 	assert.Contains(t, result, "MAGNET")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestListCategories_WhenQueryExceedsTimeout_ReturnsDeadlineExceeded(t *testing.T) {
+	mock, repo := setupCategoriesRepo(t)
+	mock.ExpectQuery(`SELECT name FROM product_categories`).
+		WillDelayFor(200 * time.Millisecond).
+		WillReturnRows(
+			pgxmock.NewRows([]string{"name"}).
+				AddRow("MAGNET").
+				AddRow("POSTCARD").
+				AddRow("ACCESSORY").
+				AddRow("JEWELRY").
+				AddRow("CLOTHES"),
+		)
+
+	result, err := repo.List(context.Background())
+
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.EqualError(t, err, "query product categories: context deadline exceeded")
+	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

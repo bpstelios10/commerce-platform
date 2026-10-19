@@ -9,7 +9,8 @@ import (
 )
 
 type PostgreProductCategoryRepository struct {
-	db ProductCategoryDB
+	db       ProductCategoryDB
+	timeouts Timeouts
 }
 
 type ProductCategoryDB interface {
@@ -17,11 +18,14 @@ type ProductCategoryDB interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func NewPostgreProductCategoryRepository(db ProductCategoryDB) *PostgreProductCategoryRepository {
-	return &PostgreProductCategoryRepository{db: db}
+func NewPostgreProductCategoryRepository(db ProductCategoryDB, t Timeouts) *PostgreProductCategoryRepository {
+	return &PostgreProductCategoryRepository{db: db, timeouts: t}
 }
 
 func (r *PostgreProductCategoryRepository) Exists(ctx context.Context, category string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeouts.Read)
+	defer cancel()
+
 	const query = `
 		SELECT name
 		FROM product_categories
@@ -42,6 +46,10 @@ func (r *PostgreProductCategoryRepository) Exists(ctx context.Context, category 
 }
 
 func (r *PostgreProductCategoryRepository) List(ctx context.Context) ([]string, error) {
+	// categories are very short so we can go with the lower timeout
+	ctx, cancel := context.WithTimeout(ctx, r.timeouts.Read)
+	defer cancel()
+
 	const query = `
 		SELECT name
 		FROM product_categories

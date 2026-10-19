@@ -79,7 +79,8 @@ func main() {
 	healthHandler.RegisterRoutes(r)
 
 	// product category handler
-	categoryRepo := repository.NewPostgreProductCategoryRepository(db)
+	categoryRepo := repository.NewPostgreProductCategoryRepository(
+		db, repository.Timeouts{Read: cfg.Database.Timeouts.Read})
 	categoryService := service.NewProductCategoryServiceImpl(categoryRepo)
 	categoryHandler := httpx.NewProductCategoryHandler(categoryService)
 	categoryHandler.RegisterRoutes(r)

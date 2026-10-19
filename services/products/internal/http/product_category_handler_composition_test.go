@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pashagolub/pgxmock/v5"
@@ -21,7 +22,8 @@ func productCategoryHandlerCompositionTest(t *testing.T) (*chi.Mux, pgxmock.PgxP
 	t.Cleanup(func() {
 		mock.Close()
 	})
-	repo := repository.NewPostgreProductCategoryRepository(mock)
+	repo := repository.NewPostgreProductCategoryRepository(
+		mock, repository.Timeouts{Read: 100 * time.Millisecond})
 	svc := service.NewProductCategoryServiceImpl(repo)
 	handler := NewProductCategoryHandler(svc)
 
