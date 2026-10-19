@@ -29,7 +29,11 @@ func setupOrderHandlerCompositionTest(t *testing.T) (*httptest.Server, pgxmock.P
 	t.Cleanup(func() {
 		mock.Close()
 	})
-	repo := repository.NewPostgreOrderRepository(mock)
+	repo := repository.NewPostgreOrderRepository(mock, repository.Timeouts{
+		Read:  100 * time.Millisecond,
+		List:  100 * time.Second,
+		Write: 100 * time.Millisecond,
+	})
 	client := &mockProductsClient{
 		productIDs: map[string]bool{
 			FirstProductID:  true,

@@ -30,6 +30,11 @@ type DatabaseConfig struct {
 	Name     string `yaml:"name"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
+	Timeouts struct {
+		Read  time.Duration `yaml:"read"`
+		List  time.Duration `yaml:"list"`
+		Write time.Duration `yaml:"write"`
+	} `yaml:"timeouts"`
 }
 
 type Config struct {

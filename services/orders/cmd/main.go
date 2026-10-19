@@ -64,7 +64,11 @@ func main() {
 	healthHandler := httpx.NewHealthHandler()
 	healthHandler.RegisterRoutes(r)
 
-	repo := repository.NewPostgreOrderRepository(db)
+	repo := repository.NewPostgreOrderRepository(db, repository.Timeouts{
+		Read:  cfg.Database.Timeouts.Read,
+		List:  cfg.Database.Timeouts.List,
+		Write: cfg.Database.Timeouts.Write,
+	})
 	productsClient := grpcx.MustNewProductsGrpcClient(productsGrpcClient)
 	svc := service.NewOrderService(repo, productsClient)
 	orderHandler := httpx.NewOrderHandler(svc)

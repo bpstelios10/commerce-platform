@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"commerce-platform/services/orders/internal/order"
 
@@ -17,8 +18,13 @@ var (
 	ErrVersionConflict = errors.New("order was updated by another transaction")
 )
 
+type Timeouts struct {
+	Read, List, Write time.Duration
+}
+
 type PostgreOrderRepository struct {
-	db DB
+	db       DB
+	timeouts Timeouts
 }
 
 type DB interface {
@@ -27,11 +33,14 @@ type DB interface {
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
-func NewPostgreOrderRepository(db DB) *PostgreOrderRepository {
-	return &PostgreOrderRepository{db: db}
+func NewPostgreOrderRepository(db DB, t Timeouts) *PostgreOrderRepository {
+	return &PostgreOrderRepository{db: db, timeouts: t}
 }
 
 func (repo *PostgreOrderRepository) List(ctx context.Context) ([]order.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, repo.timeouts.List)
+	defer cancel()
+
 	const query = `
 		SELECT order_id, product_id, quantity, status, created_at, version
 		FROM orders
@@ -70,6 +79,9 @@ func (repo *PostgreOrderRepository) List(ctx context.Context) ([]order.Order, er
 }
 
 func (repo *PostgreOrderRepository) GetByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, repo.timeouts.Read)
+	defer cancel()
+
 	const query = `
 		SELECT order_id, product_id, quantity, status, created_at, version
 		FROM orders
@@ -98,6 +110,9 @@ func (repo *PostgreOrderRepository) GetByID(ctx context.Context, id uuid.UUID) (
 }
 
 func (repo *PostgreOrderRepository) Create(ctx context.Context, o order.Order) (order.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, repo.timeouts.Write)
+	defer cancel()
+
 	const query = `
 		INSERT INTO orders (order_id, product_id, quantity, status)
 		VALUES ($1, $2, $3, $4)
@@ -120,6 +135,9 @@ func (repo *PostgreOrderRepository) Create(ctx context.Context, o order.Order) (
 }
 
 func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) (order.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, repo.timeouts.Write)
+	defer cancel()
+
 	const query = `
 		UPDATE orders
 		SET product_id = $1, quantity = $2, status = $3, version = version + 1
@@ -150,6 +168,8 @@ func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) (
 }
 
 func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(ctx, repo.timeouts.Read)
+	defer cancel()
 	const query = `
 		DELETE FROM orders
 		WHERE order_id = $1
