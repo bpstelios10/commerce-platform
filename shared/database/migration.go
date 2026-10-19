@@ -3,6 +3,9 @@ package database
 import (
 	"fmt"
 	"io/fs"
+	"net"
+	"net/url"
+	"strconv"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -17,15 +20,17 @@ func RunMigrations(cfg commonconfig.DatabaseConfig, files fs.FS) error {
 		return fmt.Errorf("create migration source: %w", err)
 	}
 
-	databaseURL := fmt.Sprintf(
-		"postgres://%s:%s@%s:%d/%s?sslmode=disable&connect_timeout=%d",
-		cfg.User,
-		cfg.Password,
-		cfg.Host,
-		cfg.Port,
-		cfg.Name,
-		int(cfg.Timeouts.Connect.Seconds()),
-	)
+	query := url.Values{}
+	query.Set("sslmode", "disable")
+	query.Set("connect_timeout", strconv.Itoa(int(cfg.Timeouts.Connect.Seconds())))
+
+	databaseURL := (&url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(cfg.User, cfg.Password),
+		Host:     net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port)),
+		Path:     "/" + cfg.Name,
+		RawQuery: query.Encode(),
+	}).String()
 
 	m, err := migrate.NewWithSourceInstance(
 		"iofs",
@@ -37,6 +42,9 @@ func RunMigrations(cfg commonconfig.DatabaseConfig, files fs.FS) error {
 	}
 	defer m.Close()
 
+	// TODO i can test this if i create an interface but is it worth it?
+	// type upper interface{ Up() error }
+	//func applyMigrations(m upper) error {
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("run migrations: %w", err)
 	}

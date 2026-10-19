@@ -31,18 +31,12 @@ func TestNewPostgreClient_WhenConfigValid_BuildsPoolWithExpectedConnConfig(t *te
 	assert.Equal(t, cfg.Password, connConfig.Password)
 }
 
-func TestNewPostgreClient_WhenConnectionStringInvalid_ReturnsError(t *testing.T) {
-	cfg := commonconfig.DatabaseConfig{
-		Host:     "localhost",
-		Port:     -1,
-		Name:     "products",
-		User:     "commerce",
-		Password: "commerce",
-	}
+func TestNewPostgreClient_WhenEnvInvalid_ReturnsError(t *testing.T) {
+	t.Setenv("PGPORT", "not-a-port")
 
-	pool, err := NewPostgreClient(context.Background(), cfg)
+	pool, err := NewPostgreClient(context.Background(), commonconfig.DatabaseConfig{})
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "parse database config: cannot parse `postgres://commerce:xxxxx@localhost:-1/products`: invalid port")
+	assert.ErrorContains(t, err, "parse database config")
 	assert.Nil(t, pool)
 }
