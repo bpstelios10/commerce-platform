@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"commerce-platform/services/products/internal/product"
 
@@ -17,8 +18,13 @@ var (
 	ErrVersionConflict = errors.New("product was updated by another transaction")
 )
 
+type Timeouts struct {
+	Read, List, Write time.Duration
+}
+
 type PostgreProductRepository struct {
-	db ProductDB
+	db       ProductDB
+	timeouts Timeouts
 }
 
 type ProductDB interface {
@@ -27,11 +33,14 @@ type ProductDB interface {
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
-func NewPostgreProductRepository(db ProductDB) *PostgreProductRepository {
-	return &PostgreProductRepository{db: db}
+func NewPostgreProductRepository(db ProductDB, t Timeouts) *PostgreProductRepository {
+	return &PostgreProductRepository{db: db, timeouts: t}
 }
 
 func (r *PostgreProductRepository) List(ctx context.Context) ([]product.Product, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeouts.List)
+	defer cancel()
+
 	const query = `
 		SELECT product_id, name, category, description, price, created_at, version
 		FROM products
@@ -72,6 +81,9 @@ func (r *PostgreProductRepository) List(ctx context.Context) ([]product.Product,
 }
 
 func (r *PostgreProductRepository) GetByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeouts.Read)
+	defer cancel()
+
 	const query = `
 		SELECT product_id, name, category, description, price, created_at, version
 		FROM products
@@ -102,6 +114,9 @@ func (r *PostgreProductRepository) GetByID(ctx context.Context, id uuid.UUID) (p
 }
 
 func (r *PostgreProductRepository) Create(ctx context.Context, p product.Product) (product.Product, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeouts.Write)
+	defer cancel()
+
 	const query = `
 		INSERT INTO products (product_id, name, category, description, price)
 		VALUES ($1, $2, $3, $4, $5)
@@ -125,6 +140,9 @@ func (r *PostgreProductRepository) Create(ctx context.Context, p product.Product
 }
 
 func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product) (product.Product, error) {
+	ctx, cancel := context.WithTimeout(ctx, r.timeouts.Write)
+	defer cancel()
+
 	const query = `
 		UPDATE products 
 		SET name = $1, category = $2, description = $3, price = $4, version = version + 1
@@ -156,6 +174,9 @@ func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product
 }
 
 func (r *PostgreProductRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(ctx, r.timeouts.Read)
+	defer cancel()
+
 	const query = `
 		DELETE FROM products
 		WHERE product_id = $1

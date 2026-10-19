@@ -26,7 +26,11 @@ func setupProductHandlerTest(t *testing.T) (ProductServiceClient, pgxmock.PgxPoo
 	t.Cleanup(func() {
 		mock.Close()
 	})
-	repo := repository.NewPostgreProductRepository(mock)
+	repo := repository.NewPostgreProductRepository(mock, repository.Timeouts{
+		Read:  100 * time.Millisecond,
+		List:  100 * time.Millisecond,
+		Write: 100 * time.Millisecond,
+	})
 	svc := service.NewProductServiceImpl(repo)
 	handler := NewProductGrpcHandler(svc)
 

@@ -28,7 +28,11 @@ func setupAdminHandlerCompositionTest(t *testing.T) (*httptest.Server, pgxmock.P
 	t.Cleanup(func() {
 		mock.Close()
 	})
-	repo := repository.NewPostgreProductRepository(mock)
+	repo := repository.NewPostgreProductRepository(mock, repository.Timeouts{
+		Read:  100 * time.Millisecond,
+		List:  100 * time.Millisecond,
+		Write: 100 * time.Millisecond,
+	})
 	productService := service.NewProductServiceImpl(repo)
 	categoryRepo := repository.NewPostgreProductCategoryRepository(mock)
 	categoryService := service.NewProductCategoryServiceImpl(categoryRepo)

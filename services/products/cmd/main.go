@@ -65,7 +65,11 @@ func main() {
 	r.Use(loggerx.RequestContextMiddleware(logger))
 
 	// product handler
-	productRepo := repository.NewPostgreProductRepository(db)
+	productRepo := repository.NewPostgreProductRepository(db, repository.Timeouts{
+		Read:  cfg.Database.Timeouts.Read,
+		List:  cfg.Database.Timeouts.List,
+		Write: cfg.Database.Timeouts.Write,
+	})
 	productService := service.NewProductServiceImpl(productRepo)
 	productHandler := httpx.NewProductHandler(productService)
 	productHandler.RegisterRoutes(r)

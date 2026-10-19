@@ -5,7 +5,7 @@ server:
     timeout: 10
   read-header-timeout: 500ms
   read-timeout: 1s
-  write-timeout: 2s
+  write-timeout: 3s
   idle-timeout: 30s
 
 environment: local
@@ -16,3 +16,7 @@ database:
   name: products
   user: commerce
   password: commerce
+  timeouts:
+    read: 400ms  # GetByID, Delete
+    list: 2s
+    write: 600ms # Create, Update

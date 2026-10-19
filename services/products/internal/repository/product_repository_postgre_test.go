@@ -22,7 +22,11 @@ func setup(t *testing.T) (pgxmock.PgxPoolIface, *PostgreProductRepository) {
 		mock.Close()
 	})
 
-	return mock, NewPostgreProductRepository(mock)
+	return mock, NewPostgreProductRepository(mock, Timeouts{
+		Read:  100 * time.Millisecond,
+		List:  100 * time.Millisecond,
+		Write: 100 * time.Millisecond,
+	})
 }
 
 func TestList_WhenProductsExist_ReturnsAllProducts(t *testing.T) {
@@ -92,6 +96,28 @@ func TestList_WhenRowsError_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err, "iterate products: read failed")
 	assert.Nil(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestList_WhenQueryExceedsTimeout_ReturnsDeadlineExceeded(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
+		WillDelayFor(120 * time.Millisecond).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at", "version",
+			}).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1).
+				AddRow(SecondUUID, "iPhone", "ACCESSORY", new("Apple smartphone"), 1200, time.Now(), 1).
+				AddRow(ThirdUUID, "hoodie Mykonos", "CLOTHES", new("Comfortable hoodie"), 80, time.Now(), 1).
+				AddRow(FourthUUID, "Eye necklace", "JEWELRY", new("Stylish eye necklace"), 150, time.Now(), 1),
+		)
+
+	result, err := repo.List(context.Background())
+
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.EqualError(t, err, "query products: context deadline exceeded")
+	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -178,6 +204,29 @@ func TestGetByID_WhenScanError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestGetByID_WhenQueryExceedsTimeout_ReturnsDeadlineExceeded(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			SELECT product_id, name, category, description, price, created_at, version
+			FROM products
+			WHERE product_id = $1`).
+		WithArgs(FirstUUID).
+		WillDelayFor(120 * time.Millisecond).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at", "version",
+			}).
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version),
+		)
+
+	result, err := repo.GetByID(context.Background(), FirstUUID)
+
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.EqualError(t, err, "find product by id: context deadline exceeded")
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestCreate_WhenNoDbIssues_ReturnsNewProduct(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectQuery(`
@@ -257,6 +306,29 @@ func TestCreate_WhenRowsError_ReturnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "save product: read failed\nread failed")
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreate_WhenQueryExceedsTimeout_ReturnsDeadlineExceeded(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			INSERT INTO products (product_id, name, category, description, price)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING product_id, name, category, description, price, created_at, version;`).
+		WithArgs(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price).
+		WillDelayFor(120 * time.Millisecond).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at", "version",
+			}).
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version),
+		)
+
+	result, err := repo.Create(context.Background(), testP)
+
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.EqualError(t, err, "save product: context deadline exceeded")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -353,6 +425,31 @@ func TestUpdate_WhenScanError_ReturnsError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestUpdate_WhenQueryExceedsTimeout_ReturnsDeadlineExceeded(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectQuery(`
+			UPDATE products
+			SET name = $1, category = $2, description = $3, price = $4, version = version + 1
+			WHERE product_id = $5
+		      AND version = $6
+			RETURNING product_id, name, category, description, price, created_at, version;`).
+		WithArgs(testP.Name, testP.Category, testP.Description, testP.Price, testP.ID, testP.Version).
+		WillDelayFor(120 * time.Millisecond).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at", "version",
+			}).
+				AddRow(testP.ID, testP.Name, testP.Category, testP.Description, testP.Price, testP.CreatedAt, testP.Version+1),
+		)
+
+	result, err := repo.Update(context.Background(), testP)
+
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.EqualError(t, err, "update product: context deadline exceeded")
+	assert.Empty(t, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestDelete_WhenNoDbIssues_Returns(t *testing.T) {
 	mock, repo := setup(t)
 	mock.ExpectExec(`
@@ -379,6 +476,22 @@ func TestDelete_WhenDbError_ReturnsError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "delete product: database unavailable")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDelete_WhenQueryExceedsTimeout_ReturnsDeadlineExceeded(t *testing.T) {
+	mock, repo := setup(t)
+	mock.ExpectExec(`
+			DELETE FROM products
+			WHERE product_id = $1`).
+		WithArgs(SecondUUID).
+		WillDelayFor(120 * time.Millisecond).
+		WillReturnResult(pgxmock.NewResult("DELETE", 1))
+
+	err := repo.Delete(context.Background(), SecondUUID)
+
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.EqualError(t, err, "delete product: context deadline exceeded")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
