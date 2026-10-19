@@ -18,12 +18,13 @@ func RunMigrations(cfg commonconfig.DatabaseConfig, files fs.FS) error {
 	}
 
 	databaseURL := fmt.Sprintf(
-		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		"postgres://%s:%s@%s:%d/%s?sslmode=disable&connect_timeout=%d",
 		cfg.User,
 		cfg.Password,
 		cfg.Host,
 		cfg.Port,
 		cfg.Name,
+		int(cfg.Timeouts.Connect.Seconds()),
 	)
 
 	m, err := migrate.NewWithSourceInstance(
