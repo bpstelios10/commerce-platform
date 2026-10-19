@@ -20,8 +20,10 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       database CHECK constraints through new migrations.
 - [x] Limit HTTP request bodies, require one JSON value, and choose/test the
       unknown-field policy. Cover oversized and trailing-content requests.
-- [/] Configure HTTP timeouts and request, RPC, database, and startup budgets.
+- [/] Configure HTTP timeouts and request, RPC, database
       Verify cancellation reaches dependencies and earlier deadlines are preserved.
+- [ ] Bound startup database connection/Ping separately, Startup has no incoming request 
+      context. Database queries during requests can initially use the overall request deadline; separate query budgets are optional.
 - [ ] After adding timeouts, i need to handle the cancelled requests in some way. 
       We dont know if a create was committed just before cancellation! so i should
       probably add idempontency keys, etc.

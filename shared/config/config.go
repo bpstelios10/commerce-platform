@@ -3,12 +3,26 @@ package config
 import (
 	"fmt"
 	"io/fs"
+	"time"
 
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
 
 	loggerx "commerce-platform/shared/logger"
 )
+
+type ServerConfig struct {
+	HTTPPort         int `yaml:"http-port"`
+	GRPCPort         int `yaml:"grpc-port"`
+	GracefulShutdown struct {
+		Timeout int `yaml:"timeout"`
+	} `yaml:"graceful-shutdown"`
+
+	ReadHeaderTimeout time.Duration `yaml:"read-header-timeout"`
+	ReadTimeout       time.Duration `yaml:"read-timeout"`
+	WriteTimeout      time.Duration `yaml:"write-timeout"`
+	IdleTimeout       time.Duration `yaml:"idle-timeout"`
+}
 
 type DatabaseConfig struct {
 	Host     string `yaml:"host"`
@@ -21,13 +35,7 @@ type DatabaseConfig struct {
 type Config struct {
 	Profile string
 
-	Server struct {
-		HTTPPort         int `yaml:"http-port"`
-		GRPCPort         int `yaml:"grpc-port"`
-		GracefulShutdown struct {
-			Timeout int `yaml:"timeout"`
-		} `yaml:"graceful-shutdown"`
-	} `yaml:"server"`
+	Server ServerConfig `yaml:"server"`
 
 	Environment string `yaml:"environment"`
 

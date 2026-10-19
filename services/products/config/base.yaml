@@ -3,6 +3,10 @@ server:
   grpc-port: 8092
   graceful-shutdown:
     timeout: 10
+  read-header-timeout: 500ms
+  read-timeout: 1s
+  write-timeout: 2s
+  idle-timeout: 30s
 
 environment: local
 
