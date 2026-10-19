@@ -118,6 +118,30 @@ func TestGetProducts_WhenDbError_Returns500(t *testing.T) {
 	)
 }
 
+func TestGetProducts_WhenRequestCancelled_Returns499(t *testing.T) {
+	srv, mock := setupProductHandlerTest(t)
+	mock.expectGetProducts(func(ctx context.Context) ([]product.Product, error) {
+		return []product.Product{}, context.Canceled
+	})
+
+	res, err := http.Get(srv.URL + "/products")
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, 499, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_CANCELLED",
+			"message": "request canceled by client"
+		}`,
+		string(body),
+	)
+}
+
 func TestGetProduct_WhenProductExists_Returns200(t *testing.T) {
 	srv, mock := setupProductHandlerTest(t)
 	mock.expectGetProductByID(

@@ -178,6 +178,40 @@ func TestGetProductComposition_WhenProductNotExists_Returns404(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestGetProductComposition_WhenQueryExceedsTimeout_Returns503(t *testing.T) {
+	srv, mock := setupProductHandlerCompositionTest(t)
+	mock.ExpectQuery(`
+			SELECT product_id, name, category, description, price, created_at, version
+			FROM products
+			WHERE product_id = $1`).
+		WithArgs(FirstUUID).
+		WillDelayFor(120 * time.Millisecond).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"product_id", "name", "category", "description", "price", "created_at", "version",
+			}).
+				AddRow(FirstUUID, "MacBook Pro", "ACCESSORY", new("Apple laptop"), 2500, time.Now(), 1),
+		)
+
+	res, err := http.Get(srv.URL + "/products/" + FirstUUID.String())
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "REQUEST_TIMED_OUT",
+			"message": "request timed out"
+		}`,
+		string(body),
+	)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestSearchProductsComposition_WhenOnlyQueryProvided_ReturnsMatches(t *testing.T) {
 	srv, mock := setupProductHandlerCompositionTest(t)
 	mock.ExpectQuery(`SELECT product_id, name, category, description, price, created_at, version FROM products`).
