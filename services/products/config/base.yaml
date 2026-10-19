@@ -17,6 +17,7 @@ database:
   user: commerce
   password: commerce
   timeouts:
+    connect: 2s
     read: 400ms  # GetByID, Delete
     list: 2s
     write: 600ms # Create, Update

@@ -19,5 +19,11 @@ func NewPostgreClient(ctx context.Context, cfg commonconfig.DatabaseConfig) (*pg
 		cfg.Name,
 	)
 
-	return pgxpool.New(ctx, connString)
+	poolCfg, err := pgxpool.ParseConfig(connString)
+	if err != nil {
+		return nil, fmt.Errorf("parse database config: %w", err)
+	}
+	poolCfg.ConnConfig.ConnectTimeout = cfg.Timeouts.Connect
+
+	return pgxpool.NewWithConfig(ctx, poolCfg)
 }
