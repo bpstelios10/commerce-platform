@@ -102,7 +102,7 @@ func TestValidateCreateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "price must be > 0.",
+			expectedErrorMessage: "price must be > 0 and have at most two decimal places.",
 		},
 		{
 			name: "negative price",
@@ -113,7 +113,7 @@ func TestValidateCreateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "price must be > 0.",
+			expectedErrorMessage: "price must be > 0 and have at most two decimal places.",
 		},
 		{
 			name: "zero price",
@@ -124,7 +124,18 @@ func TestValidateCreateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "price must be > 0.",
+			expectedErrorMessage: "price must be > 0 and have at most two decimal places.",
+		},
+		{
+			name: "wrong format price",
+			request: CreateProductRequest{
+				Name:     "MacBook Pro",
+				Category: "ACCESSORY",
+				Price:    10.123,
+			},
+			expectError:          true,
+			numberOfErrors:       1,
+			expectedErrorMessage: "price must be > 0 and have at most two decimal places.",
 		},
 		{
 			name: "missing name, missing category, zero price",
@@ -134,7 +145,7 @@ func TestValidateCreateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       3,
-			expectedErrorMessage: "name cannot be blank.; category cannot be blank.; price must be > 0.",
+			expectedErrorMessage: "name cannot be blank.; category cannot be blank.; price must be > 0 and have at most two decimal places.",
 		},
 	}
 
@@ -254,7 +265,7 @@ func TestValidateUpdateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "price must be > 0.",
+			expectedErrorMessage: "price must be > 0 and have at most two decimal places.",
 		},
 		{
 			name: "negative price",
@@ -266,7 +277,7 @@ func TestValidateUpdateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "price must be > 0.",
+			expectedErrorMessage: "price must be > 0 and have at most two decimal places.",
 		},
 		{
 			name: "zero price",
@@ -278,7 +289,19 @@ func TestValidateUpdateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "price must be > 0.",
+			expectedErrorMessage: "price must be > 0 and have at most two decimal places.",
+		},
+		{
+			name: "wrong format price",
+			request: UpdateProductRequest{
+				Name:     "MacBook Pro",
+				Category: "ACCESSORY",
+				Price:    10.123,
+				Version:  1,
+			},
+			expectError:          true,
+			numberOfErrors:       1,
+			expectedErrorMessage: "price must be > 0 and have at most two decimal places.",
 		},
 		{
 			name: "missing version",
@@ -324,7 +347,7 @@ func TestValidateUpdateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       4,
-			expectedErrorMessage: "name cannot be blank.; category cannot be blank.; price must be > 0.; version must be > 0.",
+			expectedErrorMessage: "name cannot be blank.; category cannot be blank.; price must be > 0 and have at most two decimal places.; version must be > 0.",
 		},
 	}
 

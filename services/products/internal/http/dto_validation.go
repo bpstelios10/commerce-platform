@@ -24,8 +24,8 @@ func validateCreateProduct(ctx context.Context, req CreateProductRequest) error 
 	if len(strings.TrimSpace(req.Category)) == 0 {
 		validationError.Errors = append(validationError.Errors, "category cannot be blank.")
 	}
-	if req.Price <= 0 {
-		validationError.Errors = append(validationError.Errors, "price must be > 0.")
+	if req.Price <= 0 || !isPriceValid(req.Price) {
+		validationError.Errors = append(validationError.Errors, "price must be > 0 and have at most two decimal places.")
 	}
 
 	if len(validationError.Errors) > 0 {
@@ -47,8 +47,8 @@ func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error 
 	if len(strings.TrimSpace(req.Category)) == 0 {
 		validationError.Errors = append(validationError.Errors, "category cannot be blank.")
 	}
-	if req.Price <= 0 {
-		validationError.Errors = append(validationError.Errors, "price must be > 0.")
+	if req.Price <= 0 || !isPriceValid(req.Price) {
+		validationError.Errors = append(validationError.Errors, "price must be > 0 and have at most two decimal places.")
 	}
 	if req.Version <= 0 {
 		validationError.Errors = append(validationError.Errors, "version must be > 0.")
