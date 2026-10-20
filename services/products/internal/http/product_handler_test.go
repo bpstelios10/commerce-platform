@@ -321,7 +321,7 @@ func TestSearchProducts_WhenAllCriteriaProvided_ReturnsCombinedMatches(t *testin
 	assert.Equal(t, ThirdUUID.String(), products[0]["id"])
 }
 
-func TestSearchProducts_WhenMaxPriceInvalid_Returns400(t *testing.T) {
+func TestSearchProducts_WhenMaxPriceInvalidType_Returns400(t *testing.T) {
 	srv, _ := setupProductHandlerTest(t)
 
 	res, err := http.Get(srv.URL + "/products/search?maxPrice=abc")
@@ -336,7 +336,28 @@ func TestSearchProducts_WhenMaxPriceInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "maxPrice must be a valid number, of format {xxxxxx.xx}."
+			"message": "maxPrice must be a valid number and have at most two decimal places."
+		}`,
+		string(body),
+	)
+}
+
+func TestSearchProducts_WhenMaxPriceInvalidFormat_Returns400(t *testing.T) {
+	srv, _ := setupProductHandlerTest(t)
+
+	res, err := http.Get(srv.URL + "/products/search?maxPrice=100.123")
+
+	assert.NoError(t, err)
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.JSONEq(
+		t,
+		`{
+			"code": "VALIDATION_ERROR",
+			"message": "maxPrice must be a valid number and have at most two decimal places."
 		}`,
 		string(body),
 	)

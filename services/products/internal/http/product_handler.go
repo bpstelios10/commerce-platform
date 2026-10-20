@@ -89,7 +89,7 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 				Str("parameter", "maxPrice").
 				Err(err).
 				Msg("validation error")
-			HandleError(ctx, w, ValidationError{Errors: []string{"maxPrice must be a valid number, of format {xxxxxx.xx}."}})
+			HandleError(ctx, w, ValidationError{Errors: []string{"maxPrice must be a valid number and have at most two decimal places."}})
 			return
 		}
 		maxPrice = &parsed
