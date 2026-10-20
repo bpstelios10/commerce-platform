@@ -83,13 +83,13 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 	var maxPrice *float64
 	if maxPriceParam := r.URL.Query().Get("maxPrice"); maxPriceParam != "" {
 		parsed, err := strconv.ParseFloat(maxPriceParam, 64)
-		if err != nil {
+		if err != nil || !isPriceValid(parsed) {
 			logger.Debug().
 				Str("operation", "search_products").
 				Str("parameter", "maxPrice").
 				Err(err).
 				Msg("validation error")
-			HandleError(ctx, w, ValidationError{Errors: []string{"maxPrice must be a valid number."}})
+			HandleError(ctx, w, ValidationError{Errors: []string{"maxPrice must be a valid number, of format {xxxxxx.xx}."}})
 			return
 		}
 		maxPrice = &parsed

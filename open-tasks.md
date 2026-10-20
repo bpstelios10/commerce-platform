@@ -30,10 +30,10 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
 - [ ] Attempt all shutdown cleanup even after an error; force-close after the
       drain budget. Centralize serve failures instead of `Fatal` in goroutines;
       retain and close the products gRPC connection.
-- [x] Use escaped/structured DB configuration, consistent TLS, runtime secret
-      overrides, and startup validation. Test URI-special credentials, invalid
-      ports/timeouts, and unknown YAML fields.
+- [x] Use escaped/structured DB configuration, consistent TLS, and startup validation. 
+      Test URI-special credentials, invalid ports/timeouts, and unknown YAML fields.
 - [ ] Add validations on config.go, rather than later in main.
+- [ ] Add runtime secret overrides (ENV)
 
 ## 2. Improve Go And API Quality
 

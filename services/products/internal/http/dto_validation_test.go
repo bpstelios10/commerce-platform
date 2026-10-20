@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -342,6 +343,31 @@ func TestValidateUpdateProduct(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestIsPriceValid(t *testing.T) {
+	tests := []struct {
+		name  string
+		price float64
+		valid bool
+	}{
+		{"zero", 0, true},
+		{"two decimals", 19.99, true},
+		{"maximum", 99_999_999.99, true},
+		{"above maximum", 100_000_000, false},
+		{"three decimals", 10.999, false},
+		{"rounds up at third decimal", 1.005, false},
+		{"negative", -1, false},
+		{"NaN", math.NaN(), false},
+		{"positive infinity", math.Inf(1), false},
+		{"negative infinity", math.Inf(-1), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.valid, isPriceValid(tt.price))
 		})
 	}
 }

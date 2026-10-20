@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"math"
 	"strings"
 )
 
@@ -60,4 +61,12 @@ func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error 
 	}
 
 	return nil
+}
+
+func isPriceValid(p float64) bool {
+	const maxPrice = 99_999_999.99
+	if math.IsNaN(p) || math.IsInf(p, 0) || p < 0 || p > maxPrice {
+		return false
+	}
+	return math.Round(p*100)/100 == p
 }

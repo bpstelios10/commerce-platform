@@ -336,7 +336,7 @@ func TestSearchProducts_WhenMaxPriceInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "maxPrice must be a valid number."
+			"message": "maxPrice must be a valid number, of format {xxxxxx.xx}."
 		}`,
 		string(body),
 	)
