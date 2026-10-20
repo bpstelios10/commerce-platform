@@ -17,6 +17,8 @@ func TestNewPostgreClient_WhenConfigValid_BuildsPoolWithExpectedConnConfig(t *te
 		User:     "commerce",
 		Password: "commerce",
 	}
+	cfg.Pool.MaxConns = 10
+	cfg.Pool.MinConns = 1
 
 	pool, err := NewPostgreClient(context.Background(), cfg)
 	assert.NoError(t, err)
