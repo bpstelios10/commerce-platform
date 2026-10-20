@@ -14,6 +14,16 @@ the gRPC boundary) and a couple of untested/duplicated areas — expected at thi
 stage (see [TECH.md](TECH.md) phases 3, 4, 7 which cover Postgres, config, and
 Docker and are not yet implemented).
 
+## Strengths
+
+- **Consistent layering** — both services follow handler → service →
+  repository with constructor injection (`NewXxx`) and interfaces owned by the
+  consumer (e.g. `OrderRepository` defined in [order_service.go](services/orders/internal/service/order_service.go), not in the repository package). This is idiomatic Go and keeps the domain decoupled from storage.
+- **Correct concurrency handling** — the in-memory repositories
+  ([order_repository.go](services/orders/internal/repository/order_repository.go), [product_repository.go](services/products/internal/repository/product_repository.go))
+  use `sync.RWMutex` with locks on every map access (not just writes), with
+  comments explaining why. This is a common beginner bug that's been avoided.
+
 # Technical Review
 
 Reviewed: 2026-09-28. Fresh static review of orders, products, shared packages,
@@ -36,6 +46,54 @@ non-root images, and the vet/race/formatting checks in `make check`.
 
 Ordered by remediation priority; these describe current code, not roadmap omissions.
 
+### 1. Product deletion reports success after failure
+
+~~[admin_handler.go](services/products/internal/http/admin_handler.go#L108)
+discards `DeleteProduct`'s error and always sends 204. Handle the error before
+writing the response. Add a handler test injecting a delete failure and expecting
+500; [existing tests](services/products/internal/http/admin_handler_test.go#L475)
+cover successful deletion and malformed IDs, not this failure.~~
+
+### 2. Category reads have two correctness bugs
+
+~~[product_category_repository_postgre.go](services/products/internal/repository/product_category_repository_postgre.go)
+uses `ILIKE` for identity lookup: `%` and `_` are patterns, not literal names.
+Validation can accept `%`, return it as the category, and then fail the product
+foreign key with a 500. Compare exact canonical database names; keep categories
+database-driven, not a Go enum.~~
+
+~~`GetAll` also omits `rows.Err()`, turning iteration failures into successful
+partial responses. Its [iteration-error test](services/products/internal/repository/product_category_repository_postgre_test.go#L99)
+expects an error the implementation does not return. Check the terminal error
+and explicitly choose whether repository errors return nil or partial results.~~
+
+### 3. Update races become internal errors
+
+~~[Orders](services/orders/internal/repository/order_repository_postgre.go) and
+[products](services/products/internal/repository/product_repository_postgre.go)
+translate `pgx.ErrNoRows` in `FindByID`, but not in `Update`. Both services read
+before updating; deletion between those operations becomes 500 instead of
+not-found. Translate missing rows consistently at repository and service
+boundaries; test a successful read followed by an update miss. Separately, decide
+whether concurrent edits are last-write-wins or require optimistic concurrency.
+A transaction alone does not define that policy.~~
+
+### 4. Invalid input and dependency failures are misclassified
+
+~~[Order validation](services/orders/internal/http/dto_validation.go) checks only
+that `product_id` is nonblank. A malformed UUID reaches products, becomes gRPC
+`InvalidArgument`, and returns HTTP 500 through
+[order_service.go](services/orders/internal/service/order_service.go) and
+[HTTP error mapping](services/orders/internal/http/errors.go). Validate before
+the RPC and return 400.~~
+
+~~Not-found is preserved correctly; unavailable and deadline errors still lack
+an explicit public policy. Map dependency failures deliberately, for example
+503/504, preserving causes internally. Products'
+[gRPC mapper](services/products/internal/grpc/errors.go) should recognize wrapped
+context cancellation/deadline errors rather than defaulting to Internal.
+Test each classification, not just that an error exists.~~
+
 ### 5. Request work is insufficiently bounded
 
 [Products main](services/products/cmd/main.go) and
@@ -47,6 +105,10 @@ has no call budget; startup database Ping has no application deadline. Configure
 header/idle timeouts, deliberate read/write limits, and request/dependency/startup
 budgets preserving earlier caller deadlines. A server write timeout does not
 replace cancellation of database/RPC work.
+
+~~POST/PUT handlers decode once without a body limit or EOF check: oversized bodies
+consume resources, and trailing JSON is silently accepted. Enforce body limits
+and one JSON value; explicitly choose an unknown-field policy.~~
 
 ### 6. Shutdown can skip resources
 
@@ -74,12 +136,17 @@ quantity, price, name, or status. Enforce business invariants below HTTP, retain
 transport parsing in handlers, and add database CHECK constraints for invariants
 that must survive every writer.
 
-Money is `float64` in Go and `double` in [protobuf](protos/product/v1/product.proto),
+~~Money is `float64` in Go and `double` in [protobuf](protos/product/v1/product.proto),
 but fixed-scale decimal in SQL. Define currency, precision, and rounding, then
 use an exact representation across boundaries. `ApplyDiscount` needs an accepted
-percentage range and rounding behavior before business use.
+percentage range and rounding behavior before business use.~~
 
 ### 8. Database configuration is fragile
+
+~~[postgre.go](shared/database/postgre.go) and [migration.go](shared/database/migration.go)
+interpolate credentials into URLs without escaping. URI-special characters can
+change parsing. Construct pgx configuration structurally and use an escaped URL
+for migrations. Migrations force `sslmode=disable`; configure consistent TLS policy.~~
 
 [config.go](shared/config/config.go) lacks strict YAML field checking and post-load
 validation. Validate ports, positive timeouts, required addresses, and database
@@ -102,7 +169,6 @@ and sometimes time formatting. Creating another logger can alter the first;
 the side-effect-free constructor comment is incorrect. Set levels per logger
 and make unavoidable process-wide setup explicit and one-time.
 
-<!-- this is really not important. maybe keep it here for reference, if i make changes later, like using flushing etc. -->
 [request_context_middleware.go](shared/logger/request_context_middleware.go)
 records every `WriteHeader`, even after a different status was committed, and
 does not track implicit writes. It also hides optional writer capabilities.
@@ -110,6 +176,8 @@ Use chi's established response-writer wrapper; test implicit 200, repeated
 headers, and required streaming/controller behavior. Define panic recovery and
 completion logging at HTTP and gRPC boundaries.
 
+~~Response helpers still discard `w.Write` errors after marshaling; log these
+without sending a second response. ~~
 Replace whole request DTO Info logs with
 selected fields to control volume and future sensitive-data exposure.
 
@@ -123,6 +191,13 @@ selected fields to control volume and future sensitive-data exposure.
    lookup/result/error contract needed; translate in the adapter. Repository
    sentinels also tie services to storage packages; clarify error ownership without
    introducing a generic error framework.
+- ~~**Handle ID generation errors.** Both create services ignore `uuid.NewV7()`
+   errors. Return the error before persistence; do not save a zero ID.~~
+- ~~**Separate test responsibilities.** Service and HTTP tests repeatedly wire
+   repositories to pgxmock and duplicate exact SQL. Keep selected composition tests,
+   but test service decisions through repository stubs and HTTP contracts through
+   narrow dependencies where useful. SQL expectations belong primarily in repository
+   tests. Removing in-memory storage does not require SQL mocks in every layer.~~
 - **Repair misleading assertions.** Use `require` before dereferencing responses
    or inspecting typed errors; prefer `ErrorIs`/`ErrorAs` over asserting every wrapped
    error string. `assert.NotNil` on a value UUID does not check it is nonzero. Audit
