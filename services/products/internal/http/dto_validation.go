@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"strings"
+	"unicode/utf8"
 )
 
 type ValidationError struct {
@@ -18,10 +19,10 @@ func validateCreateProduct(ctx context.Context, req CreateProductRequest) error 
 	logger := log(ctx)
 	validationError := ValidationError{}
 
-	if name := len(strings.TrimSpace(req.Name)); name == 0 || name > 100 {
+	if name := utf8.RuneCountInString(strings.TrimSpace(req.Name)); name == 0 || name > 100 {
 		validationError.Errors = append(validationError.Errors, "name cannot be blank or exceed 100 characters.")
 	}
-	if category := len(strings.TrimSpace(req.Category)); category == 0 || category > 50 {
+	if category := utf8.RuneCountInString(strings.TrimSpace(req.Category)); category == 0 || category > 50 {
 		validationError.Errors = append(validationError.Errors, "category cannot be blank or exceed 50 characters.")
 	}
 	if !isPriceValid(req.Price) {
@@ -41,10 +42,10 @@ func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error 
 	logger := log(ctx)
 	validationError := ValidationError{}
 
-	if name := len(strings.TrimSpace(req.Name)); name == 0 || name > 100 {
+	if name := utf8.RuneCountInString(strings.TrimSpace(req.Name)); name == 0 || name > 100 {
 		validationError.Errors = append(validationError.Errors, "name cannot be blank or exceed 100 characters.")
 	}
-	if category := len(strings.TrimSpace(req.Category)); category == 0 || category > 50 {
+	if category := utf8.RuneCountInString(strings.TrimSpace(req.Category)); category == 0 || category > 50 {
 		validationError.Errors = append(validationError.Errors, "category cannot be blank or exceed 50 characters.")
 	}
 	if !isPriceValid(req.Price) {

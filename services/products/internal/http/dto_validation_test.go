@@ -75,6 +75,15 @@ func TestValidateCreateProduct(t *testing.T) {
 			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
 		},
 		{
+			name: "long name, special chars",
+			request: CreateProductRequest{
+				Name:     strings.Repeat("έ", 99),
+				Category: "ACCESSORY",
+				Price:    2500,
+			},
+			expectError: false,
+		},
+		{
 			name: "missing category",
 			request: CreateProductRequest{
 				Name:  "MacBook Pro",
