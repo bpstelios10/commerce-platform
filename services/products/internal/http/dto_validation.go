@@ -18,12 +18,11 @@ func validateCreateProduct(ctx context.Context, req CreateProductRequest) error 
 	logger := log(ctx)
 	validationError := ValidationError{}
 
-	name := len(strings.TrimSpace(req.Name))
-	if name == 0 || name > 100 {
+	if name := len(strings.TrimSpace(req.Name)); name == 0 || name > 100 {
 		validationError.Errors = append(validationError.Errors, "name cannot be blank or exceed 100 characters.")
 	}
-	if len(strings.TrimSpace(req.Category)) == 0 {
-		validationError.Errors = append(validationError.Errors, "category cannot be blank.")
+	if category := len(strings.TrimSpace(req.Category)); category == 0 || category > 50 {
+		validationError.Errors = append(validationError.Errors, "category cannot be blank or exceed 50 characters.")
 	}
 	if req.Price <= 0 || !isPriceValid(req.Price) {
 		validationError.Errors = append(validationError.Errors, "price must be > 0 and have at most two decimal places.")
@@ -47,7 +46,7 @@ func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error 
 		validationError.Errors = append(validationError.Errors, "name cannot be blank or exceed 100 characters.")
 	}
 	if len(strings.TrimSpace(req.Category)) == 0 {
-		validationError.Errors = append(validationError.Errors, "category cannot be blank.")
+		validationError.Errors = append(validationError.Errors, "category cannot be blank or exceed 50 characters.")
 	}
 	if req.Price <= 0 || !isPriceValid(req.Price) {
 		validationError.Errors = append(validationError.Errors, "price must be > 0 and have at most two decimal places.")
