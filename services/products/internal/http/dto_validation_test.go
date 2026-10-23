@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -63,6 +64,17 @@ func TestValidateCreateProduct(t *testing.T) {
 			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
 		},
 		{
+			name: "long name",
+			request: CreateProductRequest{
+				Name:     strings.Repeat("a", 101),
+				Category: "ACCESSORY",
+				Price:    2500,
+			},
+			expectError:          true,
+			numberOfErrors:       1,
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
+		},
+		{
 			name: "missing category",
 			request: CreateProductRequest{
 				Name:  "MacBook Pro",
@@ -88,6 +100,17 @@ func TestValidateCreateProduct(t *testing.T) {
 			request: CreateProductRequest{
 				Name:     "MacBook Pro",
 				Category: "   ",
+				Price:    2500,
+			},
+			expectError:          true,
+			numberOfErrors:       1,
+			expectedErrorMessage: "category cannot be blank or exceed 50 characters.",
+		},
+		{
+			name: "long category",
+			request: CreateProductRequest{
+				Name:     "MacBook Pro",
+				Category: strings.Repeat("a", 51),
 				Price:    2500,
 			},
 			expectError:          true,
@@ -222,6 +245,18 @@ func TestValidateUpdateProduct(t *testing.T) {
 			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
 		},
 		{
+			name: "long name",
+			request: UpdateProductRequest{
+				Name:     strings.Repeat("a", 101),
+				Category: "ACCESSORY",
+				Price:    2500,
+				Version:  1,
+			},
+			expectError:          true,
+			numberOfErrors:       1,
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
+		},
+		{
 			name: "missing category",
 			request: UpdateProductRequest{
 				Name:    "MacBook Pro",
@@ -249,6 +284,18 @@ func TestValidateUpdateProduct(t *testing.T) {
 			request: UpdateProductRequest{
 				Name:     "MacBook Pro",
 				Category: "   ",
+				Price:    2500,
+				Version:  1,
+			},
+			expectError:          true,
+			numberOfErrors:       1,
+			expectedErrorMessage: "category cannot be blank or exceed 50 characters.",
+		},
+		{
+			name: "long category",
+			request: UpdateProductRequest{
+				Name:     "MacBook Pro",
+				Category: strings.Repeat("a", 51),
 				Price:    2500,
 				Version:  1,
 			},
