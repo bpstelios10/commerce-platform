@@ -128,8 +128,10 @@ drain success, deadline expiry, and cleanup after one component fails.
 [Product validation](services/products/internal/http/dto_validation.go) accepts
 names/prices beyond SQL `VARCHAR(100)` / `NUMERIC(10,2)` bounds; order quantity can
 exceed PostgreSQL `INT`. Such input can become a database-driven 500. Align API
-and storage ranges. [Search maxPrice](services/products/internal/http/product_handler.go#L67)
-also accepts `NaN`, infinities, and negative values; require a finite valid bound.
+and storage ranges. 
+
+~~[Search maxPrice](services/products/internal/http/product_handler.go#L67)
+also accepts `NaN`, infinities, and negative values; require a finite valid bound.~~
 
 Core invariants are mostly HTTP-only: direct service calls can persist invalid
 quantity, price, name, or status. Enforce business invariants below HTTP, retain

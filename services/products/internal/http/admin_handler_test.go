@@ -220,7 +220,7 @@ func TestCreateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "name cannot be blank.; category cannot be blank.; price must be > 0 and have at most two decimal places."
+			"message": "name cannot be blank or exceed 100 characters.; category cannot be blank.; price must be > 0 and have at most two decimal places."
 		}`,
 		string(body),
 	)
@@ -474,7 +474,7 @@ func TestUpdateProduct_WhenRequestInvalid_Returns400(t *testing.T) {
 		t,
 		`{
 			"code": "VALIDATION_ERROR",
-			"message": "name cannot be blank.; category cannot be blank.; price must be > 0 and have at most two decimal places.; version must be > 0."
+			"message": "name cannot be blank or exceed 100 characters.; category cannot be blank.; price must be > 0 and have at most two decimal places.; version must be > 0."
 		}`,
 		string(body),
 	)

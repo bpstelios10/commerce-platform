@@ -18,8 +18,9 @@ func validateCreateProduct(ctx context.Context, req CreateProductRequest) error 
 	logger := log(ctx)
 	validationError := ValidationError{}
 
-	if len(strings.TrimSpace(req.Name)) == 0 {
-		validationError.Errors = append(validationError.Errors, "name cannot be blank.")
+	name := len(strings.TrimSpace(req.Name))
+	if name == 0 || name > 100 {
+		validationError.Errors = append(validationError.Errors, "name cannot be blank or exceed 100 characters.")
 	}
 	if len(strings.TrimSpace(req.Category)) == 0 {
 		validationError.Errors = append(validationError.Errors, "category cannot be blank.")
@@ -41,8 +42,9 @@ func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error 
 	logger := log(ctx)
 	validationError := ValidationError{}
 
-	if len(strings.TrimSpace(req.Name)) == 0 {
-		validationError.Errors = append(validationError.Errors, "name cannot be blank.")
+	name := len(strings.TrimSpace(req.Name))
+	if name == 0 || name > 100 {
+		validationError.Errors = append(validationError.Errors, "name cannot be blank or exceed 100 characters.")
 	}
 	if len(strings.TrimSpace(req.Category)) == 0 {
 		validationError.Errors = append(validationError.Errors, "category cannot be blank.")

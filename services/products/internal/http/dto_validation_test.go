@@ -38,7 +38,7 @@ func TestValidateCreateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "name cannot be blank.",
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
 		},
 		{
 			name: "empty name",
@@ -49,7 +49,7 @@ func TestValidateCreateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "name cannot be blank.",
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
 		},
 		{
 			name: "blank name",
@@ -60,7 +60,7 @@ func TestValidateCreateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "name cannot be blank.",
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
 		},
 		{
 			name: "missing category",
@@ -145,7 +145,7 @@ func TestValidateCreateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       3,
-			expectedErrorMessage: "name cannot be blank.; category cannot be blank.; price must be > 0 and have at most two decimal places.",
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.; category cannot be blank.; price must be > 0 and have at most two decimal places.",
 		},
 	}
 
@@ -195,7 +195,7 @@ func TestValidateUpdateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "name cannot be blank.",
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
 		},
 		{
 			name: "empty name",
@@ -207,7 +207,7 @@ func TestValidateUpdateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "name cannot be blank.",
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
 		},
 		{
 			name: "blank name",
@@ -219,7 +219,7 @@ func TestValidateUpdateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       1,
-			expectedErrorMessage: "name cannot be blank.",
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.",
 		},
 		{
 			name: "missing category",
@@ -347,7 +347,7 @@ func TestValidateUpdateProduct(t *testing.T) {
 			},
 			expectError:          true,
 			numberOfErrors:       4,
-			expectedErrorMessage: "name cannot be blank.; category cannot be blank.; price must be > 0 and have at most two decimal places.; version must be > 0.",
+			expectedErrorMessage: "name cannot be blank or exceed 100 characters.; category cannot be blank.; price must be > 0 and have at most two decimal places.; version must be > 0.",
 		},
 	}
 
