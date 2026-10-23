@@ -216,7 +216,7 @@ func TestGetOrders_WhenRequestCancelled_Returns499(t *testing.T) {
 func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectCreateOrder(
-		func(_ context.Context, productID string, quantity int) (order.Order, error) {
+		func(_ context.Context, productID string, quantity int32) (order.Order, error) {
 			o := order.Order{
 				ID:        uuid.New(),
 				ProductID: productID,
@@ -247,12 +247,12 @@ func TestCreateOrder_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, created.ID) // a UUID was assigned
 	assert.Equal(t, FirstProductID, created.ProductID)
-	assert.Equal(t, 10, created.Quantity)
+	assert.Equal(t, int32(10), created.Quantity)
 	assert.Equal(t, order.CREATED, created.Status)
 	assert.WithinDuration(t, time.Now(), created.CreatedAt, time.Second)
 	assert.Equal(t, "/orders/"+created.ID.String(), res.Header.Get("Location"))
 	assert.Equal(t, FirstProductID, mock.created[0].ProductID)
-	assert.Equal(t, 10, mock.created[0].Quantity)
+	assert.Equal(t, int32(10), mock.created[0].Quantity)
 }
 
 func TestCreateOrder_WhenRequestBodyTooBig_Returns400(t *testing.T) {
@@ -324,7 +324,7 @@ func TestCreateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
 func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectCreateOrder(
-		func(_ context.Context, productID string, quantity int) (order.Order, error) {
+		func(_ context.Context, productID string, quantity int32) (order.Order, error) {
 			return order.Order{}, fmt.Errorf("blah: %w", service.ErrProductNotFound)
 		})
 
@@ -333,7 +333,7 @@ func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		"application/json",
 		bytes.NewBufferString(`{
 			"product_id": "`+validUUID+`",
-			"quantity": 1
+			"quantity": 2147483647
 		}`),
 	)
 
@@ -352,7 +352,7 @@ func TestCreateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 		string(body),
 	)
 	assert.Equal(t, validUUID, mock.created[0].ProductID)
-	assert.Equal(t, 1, mock.created[0].Quantity)
+	assert.Equal(t, int32(2147483647), mock.created[0].Quantity)
 }
 
 func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
@@ -362,7 +362,7 @@ func TestCreateOrder_WhenBadRequestBody_Returns400(t *testing.T) {
 		srv.URL+"/orders",
 		"application/json",
 		bytes.NewBufferString(`{
-			"error-to-cause": "extra comma, so invalid json",
+			"quantity": 2147483648
 		}`),
 	)
 
@@ -415,7 +415,7 @@ func TestCreateOrder_WhenRequestInvalid_Returns400(t *testing.T) {
 func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectUpdateOrder(
-		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int32, status order.OrderStatus, version int) (order.Order, error) {
 			return order.Order{
 				ID:        id,
 				ProductID: productID,
@@ -451,13 +451,13 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, testO.ID, updated.ID)
 	assert.Equal(t, FirstProductID, updated.ProductID)
-	assert.Equal(t, 11, updated.Quantity)
+	assert.Equal(t, int32(11), updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
 	assert.Equal(t, 2, updated.Version)
 	assert.Equal(t, FirstOrderID, mock.updated[0].ID)
 	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
-	assert.Equal(t, 11, mock.updated[0].Quantity)
+	assert.Equal(t, int32(11), mock.updated[0].Quantity)
 	assert.Equal(t, order.PAID, mock.updated[0].Status)
 	assert.Equal(t, 1, mock.updated[0].Version)
 }
@@ -465,7 +465,7 @@ func TestUpdateOrder_WhenRequestValid_UpdatesOrder(t *testing.T) {
 func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectUpdateOrder(
-		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int32, status order.OrderStatus, version int) (order.Order, error) {
 			return order.Order{
 				ID:        id,
 				ProductID: productID,
@@ -501,12 +501,12 @@ func TestUpdateOrder_WhenRequestValidWithLowercaseStatus_UpdatesOrder(t *testing
 	assert.NoError(t, err)
 	assert.Equal(t, testO.ID, updated.ID)
 	assert.Equal(t, FirstProductID, updated.ProductID)
-	assert.Equal(t, 11, updated.Quantity)
+	assert.Equal(t, int32(11), updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
 	assert.Equal(t, FirstOrderID, mock.updated[0].ID)
 	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
-	assert.Equal(t, 11, mock.updated[0].Quantity)
+	assert.Equal(t, int32(11), mock.updated[0].Quantity)
 	assert.Equal(t, order.PAID, mock.updated[0].Status)
 }
 
@@ -581,7 +581,7 @@ func TestUpdateOrder_WhenRequestBodyWithTrailingJson_Returns400(t *testing.T) {
 func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	mock.expectUpdateOrder(
-		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int32, status order.OrderStatus, version int) (order.Order, error) {
 			return order.Order{}, fmt.Errorf("blah: %w", service.ErrProductNotFound)
 		})
 
@@ -615,7 +615,7 @@ func TestUpdateOrder_WhenProductNotExists_Returns409(t *testing.T) {
 	)
 	assert.Equal(t, testO.ID, mock.updated[0].ID)
 	assert.Equal(t, validUUID, mock.updated[0].ProductID)
-	assert.Equal(t, 2, mock.updated[0].Quantity)
+	assert.Equal(t, int32(2), mock.updated[0].Quantity)
 	assert.Equal(t, order.PAID, mock.updated[0].Status)
 }
 
@@ -722,7 +722,7 @@ func TestUpdateOrder_WhenUpdateConflict_Returns409(t *testing.T) {
 	srv, mock := setupOrderHandlerTest(t)
 	id, _ := uuid.NewV7()
 	mock.expectUpdateOrder(
-		func(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error) {
+		func(ctx context.Context, id uuid.UUID, productID string, quantity int32, status order.OrderStatus, version int) (order.Order, error) {
 			return order.Order{}, fmt.Errorf("blah: %w", service.ErrOrderUpdateConflict)
 		})
 
@@ -756,7 +756,7 @@ func TestUpdateOrder_WhenUpdateConflict_Returns409(t *testing.T) {
 	)
 	assert.Equal(t, id, mock.updated[0].ID)
 	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
-	assert.Equal(t, 1, mock.updated[0].Quantity)
+	assert.Equal(t, int32(1), mock.updated[0].Quantity)
 	assert.Equal(t, order.PAID, mock.updated[0].Status)
 }
 

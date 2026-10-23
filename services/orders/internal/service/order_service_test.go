@@ -128,7 +128,7 @@ func TestCreateOrder_WhenProductExists_CreatesOrder(t *testing.T) {
 	assert.WithinDuration(t, time.Now(), o.CreatedAt, time.Second)
 	assert.Equal(t, o.ID, mock.created[0].ID)
 	assert.Equal(t, FirstProductID, mock.created[0].ProductID)
-	assert.Equal(t, 10, mock.created[0].Quantity)
+	assert.Equal(t, int32(10), mock.created[0].Quantity)
 	assert.Equal(t, order.CREATED, mock.created[0].Status)
 }
 
@@ -190,7 +190,7 @@ func TestCreateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Empty(t, o)
 	assert.NotEqual(t, uuid.Nil, mock.created[0].ID)
 	assert.Equal(t, FirstProductID, mock.created[0].ProductID)
-	assert.Equal(t, 10, mock.created[0].Quantity)
+	assert.Equal(t, int32(10), mock.created[0].Quantity)
 	assert.Equal(t, order.CREATED, mock.created[0].Status)
 }
 
@@ -210,14 +210,14 @@ func TestUpdateOrder_WhenOrderExists_UpdatesOrder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, testO.ID, updated.ID)
 	assert.Equal(t, FirstProductID, updated.ProductID)
-	assert.Equal(t, 11, updated.Quantity)
+	assert.Equal(t, int32(11), updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, testO.CreatedAt.Equal(updated.CreatedAt))
 	assert.Equal(t, 2, updated.Version)
 
 	assert.Equal(t, testO.ID, mock.updated[0].ID)
 	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
-	assert.Equal(t, 11, mock.updated[0].Quantity)
+	assert.Equal(t, int32(11), mock.updated[0].Quantity)
 	assert.Equal(t, order.PAID, mock.updated[0].Status)
 	assert.Equal(t, 1, mock.updated[0].Version)
 }
@@ -276,7 +276,7 @@ func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	assert.Equal(t, testO.ID, mock.searchedIDs[0])
 	assert.Equal(t, testO.ID, mock.updated[0].ID)
 	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
-	assert.Equal(t, 10, mock.updated[0].Quantity)
+	assert.Equal(t, int32(10), mock.updated[0].Quantity)
 	assert.Equal(t, order.CANCELED, mock.updated[0].Status)
 }
 
@@ -299,7 +299,7 @@ func TestUpdateOrder_WhenUpdateConflict_ReturnsError(t *testing.T) {
 	assert.Equal(t, testO.ID, mock.searchedIDs[0])
 	assert.Equal(t, testO.ID, mock.updated[0].ID)
 	assert.Equal(t, FirstProductID, mock.updated[0].ProductID)
-	assert.Equal(t, 10, mock.updated[0].Quantity)
+	assert.Equal(t, int32(10), mock.updated[0].Quantity)
 	assert.Equal(t, order.CANCELED, mock.updated[0].Status)
 }
 
@@ -342,7 +342,7 @@ var (
 	testO = order.Order{
 		ID:        FirstOrderID,
 		ProductID: FirstProductID,
-		Quantity:  2,
+		Quantity:  int32(2),
 		Status:    order.CREATED,
 		CreatedAt: time.Now(),
 		Version:   1,

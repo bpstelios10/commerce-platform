@@ -19,7 +19,7 @@ const (
 type Order struct {
 	ID        uuid.UUID   `json:"id"`
 	ProductID string      `json:"product_id"`
-	Quantity  int         `json:"quantity"`
+	Quantity  int32       `json:"quantity"`
 	Status    OrderStatus `json:"status"`
 	CreatedAt time.Time   `json:"created_at"`
 	Version   int         `json:"version"`

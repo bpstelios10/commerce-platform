@@ -31,8 +31,8 @@ type fakeOrderService struct {
 	t            *testing.T
 	getOrders    func(context.Context) ([]order.Order, error)
 	getOrderByID func(context.Context, uuid.UUID) (order.Order, error)
-	createOrder  func(context.Context, string, int) (order.Order, error)
-	updateOrder  func(context.Context, uuid.UUID, string, int, order.OrderStatus, int) (order.Order, error)
+	createOrder  func(context.Context, string, int32) (order.Order, error)
+	updateOrder  func(context.Context, uuid.UUID, string, int32, order.OrderStatus, int) (order.Order, error)
 	deleteOrder  func(context.Context, uuid.UUID) error
 
 	// capture the input params, so that i can validate they are the expected ones
@@ -61,7 +61,7 @@ func (f *fakeOrderService) expectGetOrderByID(fn func(context.Context, uuid.UUID
 }
 
 func (f *fakeOrderService) expectCreateOrder(
-	fn func(ctx context.Context, productId string, quantity int) (order.Order, error)) {
+	fn func(ctx context.Context, productId string, quantity int32) (order.Order, error)) {
 	f.createOrder = fn
 	f.pending["CreateOrder"]++
 }
@@ -71,7 +71,7 @@ func (f *fakeOrderService) expectUpdateOrder(
 		ctx context.Context,
 		id uuid.UUID,
 		productID string,
-		quantity int,
+		quantity int32,
 		status order.OrderStatus,
 		version int,
 	) (order.Order, error)) {
@@ -112,7 +112,7 @@ func (f *fakeOrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (orde
 	return f.getOrderByID(ctx, id)
 }
 
-func (f *fakeOrderService) CreateOrder(ctx context.Context, productID string, quantity int) (order.Order, error) {
+func (f *fakeOrderService) CreateOrder(ctx context.Context, productID string, quantity int32) (order.Order, error) {
 	f.take("CreateOrder")
 	f.created = append(f.created, order.Order{
 		ProductID: productID,
@@ -126,7 +126,7 @@ func (f *fakeOrderService) UpdateOrder(
 	ctx context.Context,
 	id uuid.UUID,
 	productID string,
-	quantity int,
+	quantity int32,
 	status order.OrderStatus,
 	version int,
 ) (order.Order, error) {

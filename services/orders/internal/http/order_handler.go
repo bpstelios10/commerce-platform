@@ -19,8 +19,8 @@ import (
 type OrderService interface {
 	GetOrders(ctx context.Context) ([]order.Order, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error)
-	CreateOrder(ctx context.Context, productID string, quantity int) (order.Order, error)
-	UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int, status order.OrderStatus, version int) (order.Order, error)
+	CreateOrder(ctx context.Context, productID string, quantity int32) (order.Order, error)
+	UpdateOrder(ctx context.Context, id uuid.UUID, productID string, quantity int32, status order.OrderStatus, version int) (order.Order, error)
 	DeleteOrder(ctx context.Context, id uuid.UUID) error
 }
 
@@ -95,7 +95,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().
 		Str("product_id", req.ProductID).
-		Int("quantity", req.Quantity).
+		Int32("quantity", req.Quantity).
 		Msg("create order request received")
 	o, err := h.orderService.CreateOrder(ctx, req.ProductID, req.Quantity)
 	if err != nil {
@@ -133,7 +133,7 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info().
 		Str("product_id", req.ProductID).
-		Int("quantity", req.Quantity).
+		Int32("quantity", req.Quantity).
 		Interface("status", req.Status).
 		Msg("update order")
 	o, err := h.orderService.UpdateOrder(ctx, id, req.ProductID, req.Quantity, req.Status, req.Version)

@@ -173,12 +173,12 @@ func TestCreateOrderComposition_WhenRequestValid_CreatesOrder(t *testing.T) {
 			INSERT INTO orders (order_id, product_id, quantity, status)
 			VALUES ($1, $2, $3, $4)
 			RETURNING order_id, product_id, quantity, status, created_at, version;`).
-		WithArgs(pgxmock.OfType[uuid.UUID](), FirstProductID, 10, order.CREATED).
+		WithArgs(pgxmock.OfType[uuid.UUID](), FirstProductID, int32(10), order.CREATED).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
 				"order_id", "product_id", "quantity", "status", "created_at", "version",
 			}).
-				AddRow(uuid.New(), FirstProductID, 10, order.CREATED, time.Now(), 1),
+				AddRow(uuid.New(), FirstProductID, int32(10), order.CREATED, time.Now(), 1),
 		)
 
 	res, err := http.Post(
@@ -201,7 +201,7 @@ func TestCreateOrderComposition_WhenRequestValid_CreatesOrder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, created.ID) // a UUID was assigned
 	assert.Equal(t, FirstProductID, created.ProductID)
-	assert.Equal(t, 10, created.Quantity)
+	assert.Equal(t, int32(10), created.Quantity)
 	assert.Equal(t, order.CREATED, created.Status)
 	assert.WithinDuration(t, time.Now(), created.CreatedAt, time.Second)
 	assert.Equal(t, 1, created.Version)
@@ -257,7 +257,7 @@ func TestUpdateOrderComposition_WhenRequestValid_UpdatesOrder(t *testing.T) {
 			WHERE order_id = $4
 			  AND version = $5
 			RETURNING order_id, product_id, quantity, status, created_at, version;`).
-		WithArgs(FirstProductID, 11, order.PAID, testO.ID, testO.Version).
+		WithArgs(FirstProductID, int32(11), order.PAID, testO.ID, testO.Version).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
 				"order_id", "product_id", "quantity", "status", "created_at", "version",
@@ -290,7 +290,7 @@ func TestUpdateOrderComposition_WhenRequestValid_UpdatesOrder(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, testO.ID, updated.ID)
 	assert.Equal(t, FirstProductID, updated.ProductID)
-	assert.Equal(t, 11, updated.Quantity)
+	assert.Equal(t, int32(11), updated.Quantity)
 	assert.Equal(t, order.PAID, updated.Status)
 	assert.True(t, updated.CreatedAt.Equal(testO.CreatedAt))
 	assert.Equal(t, testO.Version+1, updated.Version)
@@ -405,7 +405,7 @@ func TestUpdateOrderComposition_WhenUpdateConflict_Returns409(t *testing.T) {
 			WHERE order_id = $4
 			  AND version = $5
 			RETURNING order_id, product_id, quantity, status, created_at, version;`).
-		WithArgs(FirstProductID, 11, order.PAID, testO.ID, testO.Version).
+		WithArgs(FirstProductID, int32(11), order.PAID, testO.ID, testO.Version).
 		WillReturnRows(
 			pgxmock.NewRows([]string{
 				"order_id", "product_id", "quantity", "status", "created_at", "version",

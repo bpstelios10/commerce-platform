@@ -58,7 +58,7 @@ func (s *OrderServiceImpl) GetOrderByID(ctx context.Context, id uuid.UUID) (orde
 	return o, nil
 }
 
-func (s *OrderServiceImpl) CreateOrder(ctx context.Context, productID string, quantity int) (order.Order, error) {
+func (s *OrderServiceImpl) CreateOrder(ctx context.Context, productID string, quantity int32) (order.Order, error) {
 	if err := s.validateProductExists(ctx, productID); err != nil {
 		return order.Order{}, fmt.Errorf("create order: %w", err)
 	}
@@ -91,7 +91,7 @@ func (s *OrderServiceImpl) UpdateOrder(
 	ctx context.Context,
 	id uuid.UUID,
 	productID string,
-	quantity int,
+	quantity int32,
 	status order.OrderStatus,
 	version int,
 ) (order.Order, error) {
