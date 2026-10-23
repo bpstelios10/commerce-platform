@@ -24,7 +24,7 @@ func validateCreateProduct(ctx context.Context, req CreateProductRequest) error 
 	if category := len(strings.TrimSpace(req.Category)); category == 0 || category > 50 {
 		validationError.Errors = append(validationError.Errors, "category cannot be blank or exceed 50 characters.")
 	}
-	if req.Price <= 0 || !isPriceValid(req.Price) {
+	if !isPriceValid(req.Price) {
 		validationError.Errors = append(validationError.Errors, "price must be > 0 and have at most two decimal places.")
 	}
 
@@ -47,7 +47,7 @@ func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error 
 	if category := len(strings.TrimSpace(req.Category)); category == 0 || category > 50 {
 		validationError.Errors = append(validationError.Errors, "category cannot be blank or exceed 50 characters.")
 	}
-	if req.Price <= 0 || !isPriceValid(req.Price) {
+	if !isPriceValid(req.Price) {
 		validationError.Errors = append(validationError.Errors, "price must be > 0 and have at most two decimal places.")
 	}
 	if req.Version <= 0 {
@@ -65,7 +65,7 @@ func validateUpdateProduct(ctx context.Context, req UpdateProductRequest) error 
 
 func isPriceValid(p float64) bool {
 	const maxPrice = 99_999_999.99
-	if math.IsNaN(p) || math.IsInf(p, 0) || p < 0 || p > maxPrice {
+	if p <= 0 || p > maxPrice {
 		return false
 	}
 	return math.Round(p*100)/100 == p

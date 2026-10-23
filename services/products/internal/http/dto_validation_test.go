@@ -423,7 +423,8 @@ func TestIsPriceValid(t *testing.T) {
 		price float64
 		valid bool
 	}{
-		{"zero", 0, true},
+		{"zero", 0, false},
+		{"minus", -1, false},
 		{"two decimals", 19.99, true},
 		{"maximum", 99_999_999.99, true},
 		{"above maximum", 100_000_000, false},
