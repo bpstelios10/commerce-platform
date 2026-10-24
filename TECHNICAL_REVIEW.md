@@ -125,18 +125,18 @@ drain success, deadline expiry, and cleanup after one component fails.
 
 ### 7. Validation and storage contracts disagree
 
-[Product validation](services/products/internal/http/dto_validation.go) accepts
+~~[Product validation](services/products/internal/http/dto_validation.go) accepts
 names/prices beyond SQL `VARCHAR(100)` / `NUMERIC(10,2)` bounds; order quantity can
 exceed PostgreSQL `INT`. Such input can become a database-driven 500. Align API
-and storage ranges. 
+and storage ranges. ~~
 
 ~~[Search maxPrice](services/products/internal/http/product_handler.go#L67)
 also accepts `NaN`, infinities, and negative values; require a finite valid bound.~~
 
-Core invariants are mostly HTTP-only: direct service calls can persist invalid
+~~Core invariants are mostly HTTP-only: direct service calls can persist invalid
 quantity, price, name, or status. Enforce business invariants below HTTP, retain
 transport parsing in handlers, and add database CHECK constraints for invariants
-that must survive every writer.
+that must survive every writer.~~
 
 ~~Money is `float64` in Go and `double` in [protobuf](protos/product/v1/product.proto),
 but fixed-scale decimal in SQL. Define currency, precision, and rounding, then
@@ -202,11 +202,11 @@ selected fields to control volume and future sensitive-data exposure.
    tests. Removing in-memory storage does not require SQL mocks in every layer.~~
 - **Repair misleading assertions.** Use `require` before dereferencing responses
    or inspecting typed errors; prefer `ErrorIs`/`ErrorAs` over asserting every wrapped
-   error string. `assert.NotNil` on a value UUID does not check it is nonzero. Audit
+   error string. ~~`assert.NotNil` on a value UUID does not check it is nonzero. Audit
    `RowError(1, ...)` cases without a second row: explicitly distinguish scan,
    iteration, and no-row errors. Remove the pgx v4 import in
    [category tests](services/products/internal/service/product_category_service_test.go)
-   and tidy the resulting unused dependency.
+   and tidy the resulting unused dependency.~~
 - **Add real PostgreSQL coverage.** pgxmock cannot validate SQL execution, codecs,
    rounding, constraints, or migrations. Use isolated disposable databases and
    actual migrations for CRUD, wildcard cases, constraints, and cancellation.

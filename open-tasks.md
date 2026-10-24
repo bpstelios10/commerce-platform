@@ -15,7 +15,7 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       both services; test deletion between the preliminary read and write.
 - [x] Validate order product UUIDs before RPC.
 - [x] Handle UUIDv7 generation errors in both create services before persistence.
-- [ ] Align input bounds with SQL name/price/quantity limits; reject nonfinite or
+- [x] Align input bounds with SQL name/price/quantity limits; reject nonfinite or
       invalid search price bounds. Enforce core invariants below HTTP and add
       database CHECK constraints through new migrations.
 - [x] Limit HTTP request bodies, require one JSON value, and choose/test the
@@ -93,6 +93,9 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       runbooks. Introduce tracing when cross-service diagnosis needs it.
 - [ ] Define order transitions, price/currency snapshots, product deletion
       behavior, idempotent creation, and inventory consistency before payments.
+
+## My Tasks
+- [ ] Consider later moving validations to a GO popular library, like https://github.com/go-playground/validator?utm_source=chatgpt.com
 
 ## Defer
 
