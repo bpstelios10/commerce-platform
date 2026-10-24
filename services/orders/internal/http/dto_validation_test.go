@@ -116,6 +116,7 @@ func TestValidateCreateOrder(t *testing.T) {
 				assert.IsType(t, ValidationError{}, err)
 				assert.Len(t, err.(ValidationError).Errors, tt.numberOfErrors)
 				if tt.numberOfErrors > 0 {
+					assert.ErrorAs(t, err, &ValidationError{})
 					assert.EqualError(t, err, tt.expectedErrorMessage)
 				}
 			} else {
@@ -332,6 +333,7 @@ func TestValidateUpdateOrder(t *testing.T) {
 				assert.IsType(t, ValidationError{}, err)
 				assert.Len(t, err.(ValidationError).Errors, tt.numberOfErrors)
 				if tt.numberOfErrors > 0 {
+					assert.ErrorAs(t, err, &ValidationError{})
 					assert.EqualError(t, err, tt.expectedErrorMessage)
 				}
 			} else {

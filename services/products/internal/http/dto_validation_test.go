@@ -191,6 +191,7 @@ func TestValidateCreateProduct(t *testing.T) {
 				assert.IsType(t, ValidationError{}, err)
 				assert.Len(t, err.(ValidationError).Errors, tt.numberOfErrors)
 				if tt.numberOfErrors > 0 {
+					assert.ErrorAs(t, err, &ValidationError{})
 					assert.EqualError(t, err, tt.expectedErrorMessage)
 				}
 			} else {
@@ -417,6 +418,7 @@ func TestValidateUpdateProduct(t *testing.T) {
 				assert.IsType(t, ValidationError{}, err)
 				assert.Len(t, err.(ValidationError).Errors, tt.numberOfErrors)
 				if tt.numberOfErrors > 0 {
+					assert.ErrorAs(t, err, &ValidationError{})
 					assert.EqualError(t, err, tt.expectedErrorMessage)
 				}
 			} else {

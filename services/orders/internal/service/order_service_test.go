@@ -159,8 +159,6 @@ func TestCreateOrder_WhenUUIDGenerationFails_ReturnsError(t *testing.T) {
 	_, err := svc.CreateOrder(context.Background(), FirstProductID, 10)
 
 	assert.ErrorIs(t, err, entropyErr)
-	assert.ErrorIs(t, err, entropyErr)
-	assert.ErrorIs(t, err, entropyErr)
 	assert.EqualError(t, err, "create order: entropy unavailable")
 	assert.Empty(t, mock.created)
 }
@@ -171,6 +169,7 @@ func TestCreateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
 	o, err := svc.CreateOrder(context.Background(), "error", 10)
 
 	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrProductNotFound)
 	assert.EqualError(t, err, "create order: get product error from products service: rpc error: code = Internal desc = unexpected error")
 	assert.Empty(t, o)
 	assert.Empty(t, mock.created)
@@ -233,6 +232,9 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELED, 1)
 
 	assert.Error(t, err)
+	err1 := &ErrOrderNotFound{}
+	assert.True(t, errors.As(err, &err1))
+	assert.Equal(t, id, err1.OrderID)
 	assert.EqualError(t, err, "updating order: get order by id: Order with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)
 	assert.Equal(t, id, mock.searchedIDs[0])
@@ -251,6 +253,7 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	updated, err := svc.UpdateOrder(context.Background(), FirstOrderID, "999", 11, order.PAID, 1)
 
 	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrProductNotFound)
 	assert.EqualError(t, err, "updating order: get product 999 from products service: rpc error: code = NotFound desc = product not found\nproduct not found for the given id")
 	assert.Empty(t, updated)
 	assert.Equal(t, testO.ID, mock.searchedIDs[0])
@@ -294,6 +297,7 @@ func TestUpdateOrder_WhenUpdateConflict_ReturnsError(t *testing.T) {
 	updated, err := svc.UpdateOrder(context.Background(), testO.ID, FirstProductID, 10, order.CANCELED, 1)
 
 	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrOrderUpdateConflict)
 	assert.EqualError(t, err, "updating order: order was updated by another process")
 	assert.Empty(t, updated)
 	assert.Equal(t, testO.ID, mock.searchedIDs[0])

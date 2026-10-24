@@ -160,6 +160,7 @@ func TestGetByID_WhenProductsNotExists_ReturnsError(t *testing.T) {
 	result, err := repo.GetByID(context.Background(), FirstUUID)
 
 	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrNotFound)
 	assert.EqualError(t, err, "find product by id: not found")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -377,6 +378,7 @@ func TestUpdate_WhenUpdateConflict_ReturnsError(t *testing.T) {
 	result, err := repo.Update(context.Background(), testP)
 
 	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrVersionConflict)
 	assert.EqualError(t, err, "update product: product was updated by another transaction")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())

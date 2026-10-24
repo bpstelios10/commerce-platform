@@ -157,6 +157,7 @@ func TestGetByID_WhenErrorNotExists_ReturnsError(t *testing.T) {
 	result, err := repo.GetByID(context.Background(), FirstOrderID)
 
 	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrNotFound)
 	assert.EqualError(t, err, "find order by id: not found")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -371,6 +372,7 @@ func TestUpdate_WhenUpdateConflict_ReturnsError(t *testing.T) {
 	result, err := repo.Update(context.Background(), testO)
 
 	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrVersionConflict)
 	assert.EqualError(t, err, "update order: order was updated by another transaction")
 	assert.Empty(t, result)
 	assert.NoError(t, mock.ExpectationsWereMet())
