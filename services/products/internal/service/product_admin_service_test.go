@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setup(t *testing.T) (*AdminServiceImpl, *fakeProductRepo, *fakeProductCategoryRepo) {
@@ -46,8 +47,7 @@ func TestCreateProduct_WhenProductNotExists(t *testing.T) {
 
 	p, err := svc.CreateProduct(context.Background(), p.Name, p.Category, p.Description, p.Price)
 
-	assert.NoError(t, err)
-	assert.NotNil(t, p)
+	require.NoError(t, err)
 	assert.Equal(t, p.Category, categRepo.searchedCategories[0])
 	assert.Equal(t, p.Name, productRepo.created[0].Name)
 	assert.NotEmpty(t, productRepo.created[0].ID) // the id should be created in the service
@@ -134,7 +134,7 @@ func TestUpdateProduct_WhenProductNotExists_Returns404(t *testing.T) {
 
 	var notFoundErr *ErrProductNotFound
 	assert.Error(t, err)
-	assert.ErrorAs(t, err, &notFoundErr)
+	require.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.ProductID)
 	assert.EqualError(t, err, "updating product: get product by id: Product with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)

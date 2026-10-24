@@ -61,7 +61,7 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
 - [x] Focus pgxmock on repository behavior; use repository stubs for service
       decisions and isolate HTTP contracts where helpful. Keep selected composition
       tests instead of duplicating SQL throughout every layer.
-- [ ] Use fatal test prerequisites, meaningful UUID assertions, and error identity
+- [x] Use fatal test prerequisites, meaningful UUID assertions, and error identity
       checks. 
 - [x] Audit row-error fixtures so each exercises its named failure; remove
       the stray pgx v4 import and tidy unused dependencies.

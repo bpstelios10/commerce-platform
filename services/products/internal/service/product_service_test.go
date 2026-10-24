@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupProductServiceTest(t *testing.T) (*ProductServiceImpl, *fakeProductRepo) {
@@ -88,7 +89,7 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 	p, err := svc.GetProductByID(context.Background(), id)
 
 	var notFoundErr *ErrProductNotFound
-	assert.ErrorAs(t, err, &notFoundErr)
+	require.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.ProductID)
 	assert.EqualError(t, err, fmt.Sprintf("get product by id: Product with id [%s] was not found", id))
 	assert.Empty(t, p)
