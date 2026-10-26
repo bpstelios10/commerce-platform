@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"net"
 	"testing"
 	"time"
 
@@ -10,7 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	googlegrpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	status "google.golang.org/grpc/status"
 )
 
 // capturingProductServiceClient records the outgoing metadata it was called with,
@@ -82,4 +85,54 @@ func TestGetProductByID_WhenTimeoutExceeded_ReturnsDeadlineExceeded(t *testing.T
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 	assert.Nil(t, resp)
 	assert.Less(t, time.Since(start), time.Second)
+}
+
+// Test Constructor
+type slowProductServer struct {
+	UnimplementedProductServiceServer
+	delay time.Duration
+}
+
+func (s slowProductServer) GetProductByID(ctx context.Context, in *GetProductByIDRequest) (*GetProductByIDResponse, error) {
+	select {
+	case <-time.After(s.delay):
+		return &GetProductByIDResponse{Id: in.Id}, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+func startProductServer(t *testing.T, srv ProductServiceServer) string {
+	t.Helper()
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	s := googlegrpc.NewServer()
+	RegisterProductServiceServer(s, srv)
+	go s.Serve(lis)
+	t.Cleanup(s.Stop)
+	return lis.Addr().String()
+}
+
+func TestMustNewProductsGrpcClient_CallsServer(t *testing.T) {
+	c := MustNewProductsGrpcClient(startProductServer(t, slowProductServer{}), time.Second)
+
+	resp, err := c.GetProductByID(context.Background(), "some-id")
+
+	require.NoError(t, err)
+	assert.Equal(t, "some-id", resp.Id)
+}
+
+func TestMustNewProductsGrpcClient_WhenInvalidAddress_Panics(t *testing.T) {
+	assert.Panics(t, func() {
+		MustNewProductsGrpcClient("%", time.Second)
+	})
+}
+
+func TestGetProductByID_WhenServerTooSlow_ReturnsDeadlineExceeded(t *testing.T) {
+	c, err := newProductsGrpcClient(startProductServer(t, slowProductServer{delay: time.Second}), 50*time.Millisecond)
+	require.NoError(t, err)
+
+	_, err = c.GetProductByID(context.Background(), "some-id")
+
+	assert.Equal(t, codes.DeadlineExceeded, status.Code(err))
 }

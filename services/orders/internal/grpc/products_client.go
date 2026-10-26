@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"time"
 
 	"commerce-platform/shared/logger"
@@ -46,7 +46,7 @@ func (c *ProductsGrpcClient) GetProductByID(ctx context.Context, id string) (*Ge
 func MustNewProductsGrpcClient(addr string, timeout time.Duration) *ProductsGrpcClient {
 	client, err := newProductsGrpcClient(addr, timeout)
 	if err != nil {
-		log.Fatalf("failed to connect to products service at %s: %v", addr, err)
+		panic(fmt.Sprintf("create products grpc client for %s: %v", addr, err))
 	}
 	return client
 }
