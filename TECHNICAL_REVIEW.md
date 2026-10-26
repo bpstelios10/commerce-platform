@@ -96,12 +96,12 @@ Test each classification, not just that an error exists.~~
 
 ### 5. Request work is insufficiently bounded
 
-[Products main](services/products/cmd/main.go) and
+~~[Products main](services/products/cmd/main.go) and
 [orders main](services/orders/cmd/main.go) construct HTTP servers without timeout
-settings. 
+settings.~~
 
-The [products client](services/orders/internal/grpc/products_client.go)
-has no call budget; startup database Ping has no application deadline. Configure
+~~The [products client](services/orders/internal/grpc/products_client.go)
+has no call budget; startup database Ping has no application deadline.~~ Configure
 header/idle timeouts, deliberate read/write limits, and request/dependency/startup
 budgets preserving earlier caller deadlines. A server write timeout does not
 replace cancellation of database/RPC work.

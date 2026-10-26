@@ -69,7 +69,7 @@ func main() {
 		List:  cfg.Database.Timeouts.List,
 		Write: cfg.Database.Timeouts.Write,
 	})
-	productsClient := grpcx.MustNewProductsGrpcClient(productsGrpcClient)
+	productsClient := grpcx.MustNewProductsGrpcClient(productsGrpcClient, 500*time.Millisecond)
 	svc := service.NewOrderService(repo, productsClient)
 	orderHandler := httpx.NewOrderHandler(svc)
 	orderHandler.RegisterRoutes(r)
