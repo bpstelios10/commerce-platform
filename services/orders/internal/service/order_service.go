@@ -139,13 +139,16 @@ func (s *OrderServiceImpl) DeleteOrder(ctx context.Context, id uuid.UUID) error 
 func (s *OrderServiceImpl) validateProductExists(ctx context.Context, productID string) error {
 	_, err := s.productsClient.GetProductByID(ctx, productID)
 	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return errors.Join(
-				fmt.Errorf("get product %s from products service: %w", productID, err),
-				ErrProductNotFound,
-			)
+		wrapped := fmt.Errorf("get product %s from products service: %w", productID, err)
+		switch status.Code(err) {
+		case codes.NotFound:
+			return errors.Join(wrapped, ErrProductNotFound)
+		case codes.DeadlineExceeded:
+			return errors.Join(wrapped, context.DeadlineExceeded)
+		case codes.Canceled:
+			return errors.Join(wrapped, context.Canceled)
 		}
-		return fmt.Errorf("get product %s from products service: %w", productID, err)
+		return wrapped
 	}
 	return nil
 }

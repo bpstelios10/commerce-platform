@@ -138,6 +138,45 @@ func TestCreateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	o, err := svc.CreateOrder(context.Background(), "999", 10)
 
 	assert.ErrorIs(t, err, ErrProductNotFound)
+	assert.EqualError(t, err, "create order: get product 999 from products service: rpc error: code = NotFound desc = product not found\nproduct not found for the given id")
+	assert.Empty(t, o)
+	assert.Empty(t, mock.created)
+}
+
+func TestCreateOrder_WhenProductsCallTimesOut_ReturnsDeadlineExceeded(t *testing.T) {
+	svc, mock, _ := setup(t)
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+
+	o, err := svc.CreateOrder(ctx, "product-id", 1)
+
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.EqualError(t, err, "create order: get product product-id from products service: rpc error: code = DeadlineExceeded desc = context deadline exceeded\ncontext deadline exceeded")
+	assert.Empty(t, o)
+	assert.Empty(t, mock.created)
+}
+
+func TestCreateOrder_WhenProductsCallCancels_ReturnsCanceled(t *testing.T) {
+	svc, mock, _ := setup(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	o, err := svc.CreateOrder(ctx, "product-id", 1)
+
+	assert.ErrorIs(t, err, context.Canceled)
+	assert.EqualError(t, err, "create order: get product product-id from products service: rpc error: code = Canceled desc = context canceled\ncontext canceled")
+	assert.Empty(t, o)
+	assert.Empty(t, mock.created)
+}
+
+func TestCreateOrder_WhenProductCallFails_ReturnsError(t *testing.T) {
+	svc, mock, _ := setup(t)
+
+	o, err := svc.CreateOrder(context.Background(), ErrornousProductID.String(), 10)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "create order: get product "+ErrornousProductID.String()+
+		" from products service: rpc error: code = Internal desc = unexpected error")
 	assert.Empty(t, o)
 	assert.Empty(t, mock.created)
 }
@@ -160,17 +199,6 @@ func TestCreateOrder_WhenUUIDGenerationFails_ReturnsError(t *testing.T) {
 
 	assert.ErrorIs(t, err, entropyErr)
 	assert.EqualError(t, err, "create order: entropy unavailable")
-	assert.Empty(t, mock.created)
-}
-
-func TestCreateOrder_WhenProductValidationFails_ReturnsError(t *testing.T) {
-	svc, mock, _ := setup(t)
-
-	o, err := svc.CreateOrder(context.Background(), "error", 10)
-
-	assert.Error(t, err)
-	assert.EqualError(t, err, "create order: get product error from products service: rpc error: code = Internal desc = unexpected error")
-	assert.Empty(t, o)
 	assert.Empty(t, mock.created)
 }
 
@@ -259,6 +287,66 @@ func TestUpdateOrder_WhenProductNotExists_ReturnsError(t *testing.T) {
 	assert.Empty(t, mock.updated)
 }
 
+func TestUpdateOrder_WhenProductsCallTimesOut_ReturnsDeadlineExceeded(t *testing.T) {
+	svc, mock, _ := setup(t)
+	mock.expectGetByID(
+		func(_ context.Context, id uuid.UUID) (order.Order, error) {
+			o := testO
+			o.CreatedAt = time.Now()
+			return o, nil
+		})
+
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+
+	o, err := svc.UpdateOrder(ctx, FirstOrderID, "999", 11, order.PAID, 1)
+
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.EqualError(t, err, "updating order: get product 999 from products service: rpc error: code = DeadlineExceeded desc = context deadline exceeded\ncontext deadline exceeded")
+	assert.Empty(t, o)
+	assert.Empty(t, mock.created)
+	assert.Equal(t, testO.ID, mock.searchedIDs[0])
+}
+
+func TestUpdateOrder_WhenProductsCallCancels_ReturnsCanceled(t *testing.T) {
+	svc, mock, _ := setup(t)
+	mock.expectGetByID(
+		func(_ context.Context, id uuid.UUID) (order.Order, error) {
+			o := testO
+			o.CreatedAt = time.Now()
+			return o, nil
+		})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	o, err := svc.UpdateOrder(ctx, FirstOrderID, "999", 11, order.PAID, 1)
+
+	assert.ErrorIs(t, err, context.Canceled)
+	assert.EqualError(t, err, "updating order: get product 999 from products service: rpc error: code = Canceled desc = context canceled\ncontext canceled")
+	assert.Empty(t, o)
+	assert.Empty(t, mock.created)
+	assert.Equal(t, testO.ID, mock.searchedIDs[0])
+}
+
+func TestUpdateOrder_WhenProductCallFails_ReturnsError(t *testing.T) {
+	svc, mock, _ := setup(t)
+	mock.expectGetByID(
+		func(_ context.Context, id uuid.UUID) (order.Order, error) {
+			o := testO
+			o.CreatedAt = time.Now()
+			return o, nil
+		})
+
+	o, err := svc.UpdateOrder(context.Background(), testO.ID, ErrornousProductID.String(), 11, order.PAID, 1)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "updating order: get product "+ErrornousProductID.String()+" from products service: rpc error: code = Internal desc = unexpected error")
+	assert.Empty(t, o)
+	assert.Empty(t, mock.created)
+	assert.Equal(t, testO.ID, mock.searchedIDs[0])
+}
+
 func TestUpdateOrder_WhenDbError_ReturnsError(t *testing.T) {
 	svc, mock, _ := setup(t)
 	mock.expectGetByID(
@@ -339,8 +427,9 @@ var (
 	FirstProductID  = "f47ac10b-58cc-4372-a567-0e02b2c3d001"
 	SecondProductID = "f47ac10b-58cc-4372-a567-0e02b2c3d002"
 
-	FirstOrderID  = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d011")
-	SecondOrderID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d012")
+	FirstOrderID       = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d011")
+	SecondOrderID      = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d012")
+	ErrornousProductID = uuid.MustParse("f47ac10b-58cc-4372-a567-0e02b2c3d010")
 
 	testO = order.Order{
 		ID:        FirstOrderID,

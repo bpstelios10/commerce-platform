@@ -18,12 +18,17 @@ type fakeProductsClient struct {
 	productIDs map[string]bool // product IDs that "exist"
 }
 
-func (f *fakeProductsClient) GetProductByID(_ context.Context, id string) (*grpc.GetProductByIDResponse, error) {
+func (f *fakeProductsClient) GetProductByID(ctx context.Context, id string) (*grpc.GetProductByIDResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
+
 	if f.productIDs[id] {
 		return &grpc.GetProductByIDResponse{Id: id}, nil
-	} else if id == "error" {
+	} else if id == ErrornousProductID.String() {
 		return nil, status.Error(codes.Internal, "unexpected error")
 	}
+
 	return nil, status.Error(codes.NotFound, "product not found")
 }
 

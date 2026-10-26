@@ -101,10 +101,10 @@ Test each classification, not just that an error exists.~~
 settings.~~
 
 ~~The [products client](services/orders/internal/grpc/products_client.go)
-has no call budget; startup database Ping has no application deadline.~~ Configure
+has no call budget; startup database Ping has no application deadline. Configure
 header/idle timeouts, deliberate read/write limits, and request/dependency/startup
 budgets preserving earlier caller deadlines. A server write timeout does not
-replace cancellation of database/RPC work.
+replace cancellation of database/RPC work.~~
 
 ~~POST/PUT handlers decode once without a body limit or EOF check: oversized bodies
 consume resources, and trailing JSON is silently accepted. Enforce body limits
@@ -128,7 +128,7 @@ drain success, deadline expiry, and cleanup after one component fails.
 ~~[Product validation](services/products/internal/http/dto_validation.go) accepts
 names/prices beyond SQL `VARCHAR(100)` / `NUMERIC(10,2)` bounds; order quantity can
 exceed PostgreSQL `INT`. Such input can become a database-driven 500. Align API
-and storage ranges. ~~
+and storage ranges.~~
 
 ~~[Search maxPrice](services/products/internal/http/product_handler.go#L67)
 also accepts `NaN`, infinities, and negative values; require a finite valid bound.~~
@@ -179,9 +179,9 @@ headers, and required streaming/controller behavior. Define panic recovery and
 completion logging at HTTP and gRPC boundaries.
 
 ~~Response helpers still discard `w.Write` errors after marshaling; log these
-without sending a second response. ~~
-Replace whole request DTO Info logs with
-selected fields to control volume and future sensitive-data exposure.
+without sending a second response.
+Replace whole request DTO Info logs with selected fields to control volume and 
+future sensitive-data exposure.~~
 
 ## Go Design And Tests
 
