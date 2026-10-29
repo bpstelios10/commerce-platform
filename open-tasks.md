@@ -1,7 +1,12 @@
 # Open Tasks
 
-Prioritized from the fresh 2026-09-28 [technical review](TECHNICAL_REVIEW.md).
-Only unfinished work is listed. Acceptance checks are proposed, not executed.
+Prioritized from the 2026-10-31 [technical review](TECHNICAL_REVIEW.md).
+Acceptance checks are proposed, not executed.
+
+## 0. Blocker
+
+- [ ] Revert the `version` column out of both `001_*.up.sql` files and add it
+      through new migrations. Verify: an existing DB at version 1 upgrades cleanly.
 
 ## 1. Fix Current Defects
 
@@ -9,38 +14,52 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
       than 204, while successful/idempotent deletion remains 204.
 - [x] Use literal category lookup against canonical database names; test `%`,
       `_`, unknown categories, and normalized valid names against PostgreSQL.
-- [x] Check category `rows.Err()`; verify iteration failures cannot return success.
-      Make partial-result behavior explicit and consistent where appropriate.
+- [ ] Check category `rows.Err()` and return nil on scan/iteration errors
+      (still missing in `PostgreProductCategoryRepository.List`).
 - [x] Translate UPDATE no-rows into repository and service not-found errors in
       both services; test deletion between the preliminary read and write.
 - [x] Validate order product UUIDs before RPC.
 - [x] Handle UUIDv7 generation errors in both create services before persistence.
-- [x] Align input bounds with SQL name/price/quantity limits; reject nonfinite or
-      invalid search price bounds. Enforce core invariants below HTTP and add
-      database CHECK constraints through new migrations.
+- [x] Align HTTP input bounds with SQL name/price/quantity limits; reject
+      nonfinite or invalid search price bounds.
+- [ ] Trim names/categories before validating and storing (padded input can
+      exceed `VARCHAR(100)`).
+- [ ] Enforce invariants below HTTP (domain `Validate()` or service checks) and
+      add CHECK constraints in a new migration: quantity, price, status, version.
 - [x] Limit HTTP request bodies, require one JSON value, and choose/test the
       unknown-field policy. Cover oversized and trailing-content requests.
 - [x] Configure HTTP timeouts and request, RPC, database
       Verify cancellation reaches dependencies and earlier deadlines are preserved.
 - [x] Bound startup database connection/Ping separately, Startup has no incoming request 
       context. Database queries during requests can initially use the overall request deadline; separate query budgets are optional.
-- [ ] After adding timeouts, i need to handle the cancelled requests in some way. 
-      We dont know if a create was committed just before cancellation! so i should
-      probably add idempontency keys, etc.
-- [ ] Attempt all shutdown cleanup even after an error; force-close after the
-      drain budget. Centralize serve failures instead of `Fatal` in goroutines;
-      retain and close the products gRPC connection.
-- [x] Use escaped/structured DB configuration, consistent TLS, and startup validation. 
-      Test URI-special credentials, invalid ports/timeouts, and unknown YAML fields.
-- [ ] Add validations on config.go, rather than later in main.
-- [ ] Add runtime secret overrides (ENV)
+- [ ] Map context deadline/cancel in products' gRPC `HandleError` (currently
+      `Internal`). Use 504 for upstream timeouts and 413 for oversized bodies.
+      Use the `Write` timeout for `Delete`.
+- [ ] Add an `Idempotency-Key` to `POST /orders`: a timed-out create may have
+      committed, so retries can duplicate.
+- [ ] Lifecycle: run servers under `errgroup` instead of `Fatal` in goroutines;
+      attempt all shutdown steps and `errors.Join` them; return errors instead of
+      panicking in `MustNewProductsGrpcClient`; close the products `ClientConn`.
+- [x] Use structured pgx config and an escaped migration URL.
+- [ ] Config: strict YAML (`KnownFields`), `Validate()` (ports, positive
+      timeouts/pool sizes, required fields), `sslmode` used by pool and
+      migrations, products gRPC timeout in config, shutdown timeout as
+      `time.Duration`. Test invalid and unknown fields.
+- [ ] Add runtime secret overrides (ENV).
 
 ## 2. Improve Go And API Quality
 
 - [x] Use idiomatic GO repo methods (GetByID, List, Create, Update, Delete, Exists).
 - [x] Use idiomatic GO capitalization everywhere (ID instead of Id).
-- [x] Define exact money/currency/rounding contracts across Go, JSON, protobuf,
-      and PostgreSQL. Validate discount ranges and test rounding boundaries.
+- [ ] Use integer minor units (or a decimal type) for money across Go, proto
+      and JSON; define rounding for `ApplyDiscount`.
+- [ ] Drop the `Impl` suffix (`service.OrderService`), keep consumer interfaces
+      unexported, and make `AdminService` depend on an interface instead of
+      `*ProductServiceImpl`.
+- [ ] Naming: `XError` for error types, lowercase error strings, one
+      error-prefix style. Add `staticcheck` to `make check`.
+- [ ] Generalize `isBodyValidAndDecoded` into `decodeJSONBody(w, r, dst, limit)`.
+- [ ] Version the proto package (`product.v1`); add `buf lint`/`buf breaking`.
 - [ ] Move product search filtering into SQL; add bounded pagination and stable
       ordering to orders/products lists. Test filters, limits, and page continuity.
 - [ ] Define an application-owned product lookup contract; keep generated types
@@ -49,8 +68,8 @@ Only unfinished work is listed. Acceptance checks are proposed, not executed.
 - [ ] Make logger levels instance-local and global formatting setup explicit.
       Test that creating one logger does not change another's level.
 <!-- i ll leave this one for later, if ever needed -->
-- [ ] Use a proven HTTP response-writer wrapper; test implicit/repeated statuses
-      and required capabilities. Define/test HTTP and gRPC panic recovery.
+- [ ] Use a proven HTTP response-writer wrapper for status capture; add panic
+      recovery (`middleware.Recoverer`, gRPC recovery interceptor).
 - [x] Log response-write failures without a second response; 
 - [x] replace whole DTO Info logs with selected fields. Preserve context without duplicate noise.
 - [x] Decide concurrent-update semantics; use optimistic concurrency where lost

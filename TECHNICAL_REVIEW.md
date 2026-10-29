@@ -1,222 +1,147 @@
-# Technical Review — commerce-platform
-
-Reviewed: 2026-08-31. Scope: both services (`orders`, `products`), `shared` module, protos, build tooling.
-
-## Summary
-
-This is a Go workspace (`go.work`) with two microservices sharing a consistent
-handler → service → repository architecture, gRPC for inter-service calls, and
-a `shared` logging module. For a learning project it is in good shape: layering
-is consistent, dependencies are injected as interfaces, error handling is
-centralized, and most layers have decent test coverage. The main gaps are
-around production-readiness (config, graceful shutdown, error fidelity across
-the gRPC boundary) and a couple of untested/duplicated areas — expected at this
-stage (see [TECH.md](TECH.md) phases 3, 4, 7 which cover Postgres, config, and
-Docker and are not yet implemented).
-
-## Strengths
-
-- **Consistent layering** — both services follow handler → service →
-  repository with constructor injection (`NewXxx`) and interfaces owned by the
-  consumer (e.g. `OrderRepository` defined in [order_service.go](services/orders/internal/service/order_service.go), not in the repository package). This is idiomatic Go and keeps the domain decoupled from storage.
-- **Correct concurrency handling** — the in-memory repositories
-  ([order_repository.go](services/orders/internal/repository/order_repository.go), [product_repository.go](services/products/internal/repository/product_repository.go))
-  use `sync.RWMutex` with locks on every map access (not just writes), with
-  comments explaining why. This is a common beginner bug that's been avoided.
-
 # Technical Review
 
-Reviewed: 2026-09-28. Fresh static review of orders, products, shared packages,
-tests, SQL migrations, configuration, protobuf contract, containers, and tooling.
-No builds, tests, databases, or containers were run; test results are not certified.
+Reviewed: 2026-10-31. Static review of both services, `shared`, migrations,
+config, proto and build files. Nothing was built, tested or run. Supersedes the
+2026-09-28 review.
 
 ## Assessment
 
-The structure is maintainable, but correctness and failure handling are not yet
-strong enough for production ownership. Invest next in reliable behavior under
-invalid input, database failures, cancellation, and concurrent updates, not
-additional infrastructure or architectural layers.
+Clear progress since September: optimistic concurrency, structured pgx config,
+request/RPC/DB timeouts, body limits and single-value JSON decoding, and a much
+better test split (fakes with call verification, composition tests, pgxmock only
+in repositories). Layering is sound; keep it.
 
-Preserve the useful foundations: parameterized SQL, context-aware repositories,
-consumer-owned interfaces, wrapped errors, centralized transport responses,
-database-generated timestamps, embedded migrations, request-ID propagation,
-non-root images, and the vet/race/formatting checks in `make check`.
+What now separates this from production quality is data integrity at the DB
+layer, process lifecycle, unvalidated config and some non-idiomatic naming.
+Item 1 is a blocker for any existing database.
 
 ## Current Defects
 
-Ordered by remediation priority; these describe current code, not roadmap omissions.
+Ordered by priority. Several were marked done in [open-tasks.md](open-tasks.md)
+but are not done in code; the task list is corrected.
 
-### 1. Product deletion reports success after failure
+### 1. An applied migration was edited (blocker)
 
-~~[admin_handler.go](services/products/internal/http/admin_handler.go#L108)
-discards `DeleteProduct`'s error and always sends 204. Handle the error before
-writing the response. Add a handler test injecting a delete failure and expecting
-500; [existing tests](services/products/internal/http/admin_handler_test.go#L475)
-cover successful deletion and malformed IDs, not this failure.~~
+`version` was added inside `001_create_orders.up.sql` and
+`001_create_products.up.sql`. golang-migrate already recorded version 1 on any
+existing database (including the Compose volume), so the column is never added
+and every query that selects `version` fails. Revert both `001` files and add
+new migrations (`ALTER TABLE ... ADD COLUMN version INT NOT NULL DEFAULT 1`).
+Never edit an applied migration; a "fresh DB + upgrade from previous version"
+test catches this.
 
-### 2. Category reads have two correctness bugs
+### 2. Integrity rules exist only in HTTP handlers
 
-~~[product_category_repository_postgre.go](services/products/internal/repository/product_category_repository_postgre.go)
-uses `ILIKE` for identity lookup: `%` and `_` are patterns, not literal names.
-Validation can accept `%`, return it as the category, and then fail the product
-foreign key with a 500. Compare exact canonical database names; keep categories
-database-driven, not a Go enum.~~
+- No CHECK constraints exist in any migration.
+- Services accept `quantity <= 0`, empty names, non-positive prices and any
+  status-to-status transition.
+- Product name/category length is validated on the trimmed value, but the
+  untrimmed value is persisted, so padded input can exceed `VARCHAR(100)` and
+  return 500.
 
-~~`GetAll` also omits `rows.Err()`, turning iteration failures into successful
-partial responses. Its [iteration-error test](services/products/internal/repository/product_category_repository_postgre_test.go#L99)
-expects an error the implementation does not return. Check the terminal error
-and explicitly choose whether repository errors return nil or partial results.~~
+Trim before validating and storing. Enforce invariants in the domain/service
+layer (constructors or `Validate()` on the domain type). Add a new migration with
+CHECKs: `quantity > 0`, `price > 0`, `status IN (...)`, `version > 0`.
 
-### 3. Update races become internal errors
+### 3. Category `List` still ignores iteration errors
 
-~~[Orders](services/orders/internal/repository/order_repository_postgre.go) and
-[products](services/products/internal/repository/product_repository_postgre.go)
-translate `pgx.ErrNoRows` in `FindByID`, but not in `Update`. Both services read
-before updating; deletion between those operations becomes 500 instead of
-not-found. Translate missing rows consistently at repository and service
-boundaries; test a successful read followed by an update miss. Separately, decide
-whether concurrent edits are last-write-wins or require optimistic concurrency.
-A transaction alone does not define that policy.~~
+[product_category_repository_postgre.go](services/products/internal/repository/product_category_repository_postgre.go)
+has no `rows.Err()` check and returns a partial slice on scan errors. A
+truncated result is reported as success.
 
-### 4. Invalid input and dependency failures are misclassified
+### 4. Process lifecycle
 
-~~[Order validation](services/orders/internal/http/dto_validation.go) checks only
-that `product_id` is nonblank. A malformed UUID reaches products, becomes gRPC
-`InvalidArgument`, and returns HTTP 500 through
-[order_service.go](services/orders/internal/service/order_service.go) and
-[HTTP error mapping](services/orders/internal/http/errors.go). Validate before
-the RPC and return 400.~~
+- Serve goroutines in both `main.go` files call `logger.Fatal`, which skips the
+  deferred `db.Close()`.
+- In products, an HTTP `Shutdown` error returns before gRPC is stopped.
+- Orders never closes the products `ClientConn`, and
+  `MustNewProductsGrpcClient` now panics instead of returning an error to `main`.
 
-~~Not-found is preserved correctly; unavailable and deadline errors still lack
-an explicit public policy. Map dependency failures deliberately, for example
-503/504, preserving causes internally. Products'
-[gRPC mapper](services/products/internal/grpc/errors.go) should recognize wrapped
-context cancellation/deadline errors rather than defaulting to Internal.
-Test each classification, not just that an error exists.~~
+Let `main` own the lifecycle: start servers under `errgroup` (or a shared error
+channel), return errors from constructors, close the gRPC connection on
+shutdown, attempt every cleanup step and `errors.Join` the results.
 
-### 5. Request work is insufficiently bounded
+### 5. Config is unvalidated, and some values bypass it
 
-~~[Products main](services/products/cmd/main.go) and
-[orders main](services/orders/cmd/main.go) construct HTTP servers without timeout
-settings.~~
+- No strict decoding (`yaml.Decoder.KnownFields(true)`) and no `Validate()`.
+  A missing timeout is zero, and `context.WithTimeout(ctx, 0)` fails every query
+  immediately. The `uint16`/`int32` casts of port and pool sizes overflow
+  silently.
+- The products gRPC call timeout is hardcoded (`500*time.Millisecond`) in
+  [orders main](services/orders/cmd/main.go).
+- TLS is inconsistent: the pool uses pgx's default `sslmode` (`prefer`), while
+  migrations force `disable`. Make `sslmode` a config field used by both.
+- The migration `connect_timeout` truncates sub-second values to `0`, which
+  Postgres treats as no timeout.
+- `GracefulShutdown.Timeout` is int seconds; every other duration is
+  `time.Duration`.
 
-~~The [products client](services/orders/internal/grpc/products_client.go)
-has no call budget; startup database Ping has no application deadline. Configure
-header/idle timeouts, deliberate read/write limits, and request/dependency/startup
-budgets preserving earlier caller deadlines. A server write timeout does not
-replace cancellation of database/RPC work.~~
+### 6. Money is still floating point
 
-~~POST/PUT handlers decode once without a body limit or EOF check: oversized bodies
-consume resources, and trailing JSON is silently accepted. Enforce body limits
-and one JSON value; explicitly choose an unknown-field policy.~~
+Prices are `float64` in Go, `double` in the proto and `NUMERIC(10,2)` in SQL.
+`ApplyDiscount` multiplies floats without rounding, so results drift from what
+Postgres stores. Use integer minor units (`int64` cents) across Go, proto and
+JSON, or a decimal type, and define the rounding rule.
 
-### 6. Shutdown can skip resources
+### 7. Timeout and cancellation mapping is half done
 
-In [products main](services/products/cmd/main.go), an HTTP shutdown error returns
-before gRPC is stopped. `Shutdown` timing out does not force active HTTP
-connections closed. Attempt every cleanup, force-close after the drain budget
-where necessary, and aggregate errors. Preserve drain-before-pool-close ordering.
+- Products' [gRPC `HandleError`](services/products/internal/grpc/errors.go)
+  maps a context deadline/cancel to `Internal`. Orders then sees an internal
+  error, not a timeout. Map them to `DeadlineExceeded`/`Canceled`.
+- HTTP returns 503 for every `DeadlineExceeded`. 504 is the precise code for an
+  upstream timeout. An oversized body returns 400; 413 is the standard code.
+- `Delete` uses the `Read` timeout in both repositories.
+- An UPDATE that matches no rows is always reported as a version conflict, so an
+  entity deleted between the read and the write returns 409, not 404. Fine if
+  intended; document it.
 
-Server goroutines call `Fatal`, bypassing deferred cleanup. Report serve failures
-to one lifecycle owner. The [gRPC wrapper](services/orders/internal/grpc/products_client.go)
-also loses connection ownership: retain and close the `ClientConn`. Its `MustNew`
-should not terminate the process from an infrastructure package. Test bind failure,
-drain success, deadline expiry, and cleanup after one component fails.
+### 8. Lists and search load whole tables
 
-### 7. Validation and storage contracts disagree
+Unchanged: `SearchProducts` filters the full table in Go, and lists have no
+pagination or ordering. Move filtering, `ORDER BY` and a `LIMIT`/cursor into SQL.
 
-~~[Product validation](services/products/internal/http/dto_validation.go) accepts
-names/prices beyond SQL `VARCHAR(100)` / `NUMERIC(10,2)` bounds; order quantity can
-exceed PostgreSQL `INT`. Such input can become a database-driven 500. Align API
-and storage ranges.~~
+### 9. Logging global state and status capture
 
-~~[Search maxPrice](services/products/internal/http/product_handler.go#L67)
-also accepts `NaN`, infinities, and negative values; require a finite valid bound.~~
+Unchanged: [`logger.New`](shared/logger/logger.go) mutates the global level and
+format functions, and its comment still claims it is side-effect-free. The
+[middleware](shared/logger/request_context_middleware.go) records every
+`WriteHeader` call, even after the status is committed. There is no panic
+recovery at the HTTP or gRPC boundary; add `middleware.Recoverer` and a gRPC
+recovery interceptor.
 
-~~Core invariants are mostly HTTP-only: direct service calls can persist invalid
-quantity, price, name, or status. Enforce business invariants below HTTP, retain
-transport parsing in handlers, and add database CHECK constraints for invariants
-that must survive every writer.~~
+## Idiomatic Go
 
-~~Money is `float64` in Go and `double` in [protobuf](protos/product/v1/product.proto),
-but fixed-scale decimal in SQL. Define currency, precision, and rounding, then
-use an exact representation across boundaries. `ApplyDiscount` needs an accepted
-percentage range and rounding behavior before business use.~~
+- **Drop the `Impl` suffix.** `OrderServiceImpl`, `ProductServiceImpl` and
+  `AdminServiceImpl` are a Java pattern. Name the concrete type
+  `service.OrderService` and keep the consumer's interface in the handler
+  package, unexported. Constructors are inconsistent too: `NewOrderService`
+  versus `NewProductServiceImpl`.
+- **Depend on behavior, not concrete services.** `AdminServiceImpl` holds
+  `*ProductServiceImpl` only to call `GetProductByID`. Depend on a one-method
+  interface or on the repository.
+- **Error naming.** Sentinels are `ErrX`; error types are `XError`
+  (`OrderNotFoundError`, `BodyTooLargeError`, not `ErrOrderNotFound` or
+  `TooLongBodyErr`). Error strings are lowercase without punctuation
+  (`ApplyDiscount`, `TooLongBodyErr`). Add `staticcheck` to `make check`; it
+  flags these.
+- **Body decoding helper.** `isBodyValidAndDecoded` hardcodes `ErrInvalidOrder`
+  and `1<<10`, and decodes into `&req` where `req` is already `*T`. Pass `req`,
+  take the limit and error as parameters, and name it `decodeJSONBody`.
+- **Error context.** Prefixes mix styles: `get_order:` (handler),
+  `get order by id:` (service), `find order by id:` (repo `GetByID`). Use one
+  style and match the function name.
+- **Proto.** Package `product` is unversioned; use `product.v1` and run
+  `buf lint`/`buf breaking` in CI.
+- **Transport boundary.** Unchanged: `OrderService` still imports generated
+  protobuf types and gRPC status codes. Translate both in the gRPC adapter.
 
-### 8. Database configuration is fragile
+## Tests
 
-~~[postgre.go](shared/database/postgre.go) and [migration.go](shared/database/migration.go)
-interpolate credentials into URLs without escaping. URI-special characters can
-change parsing. Construct pgx configuration structurally and use an escaped URL
-for migrations. Migrations force `sslmode=disable`; configure consistent TLS policy.~~
-
-[config.go](shared/config/config.go) lacks strict YAML field checking and post-load
-validation. Validate ports, positive timeouts, required addresses, and database
-settings. Add runtime secret overrides: changing Compose's `POSTGRES_PASSWORD`
-does not change embedded application credentials. Test special-character
-credentials and invalid config.
-
-### 9. Lists and search load whole tables
-
-[product_service.go](services/products/internal/service/product_service.go)
-loads every product and filters in Go. Orders/products lists are unbounded and
-lack stable SQL ordering. Move filtering and bounded pagination into SQL with
-deterministic ordering and a documented API contract. Choose indexes from query
-plans, not speculative full-text/vector search requirements.
-
-### 10. Logging has hidden global state and inaccurate status capture
-
-[logger.New](shared/logger/logger.go) changes global level, caller formatting,
-and sometimes time formatting. Creating another logger can alter the first;
-the side-effect-free constructor comment is incorrect. Set levels per logger
-and make unavoidable process-wide setup explicit and one-time.
-
-[request_context_middleware.go](shared/logger/request_context_middleware.go)
-records every `WriteHeader`, even after a different status was committed, and
-does not track implicit writes. It also hides optional writer capabilities.
-Use chi's established response-writer wrapper; test implicit 200, repeated
-headers, and required streaming/controller behavior. Define panic recovery and
-completion logging at HTTP and gRPC boundaries.
-
-~~Response helpers still discard `w.Write` errors after marshaling; log these
-without sending a second response.
-Replace whole request DTO Info logs with selected fields to control volume and 
-future sensitive-data exposure.~~
-
-## Go Design And Tests
-
-- **Keep abstractions small.** Existing repository interfaces are useful. Avoid
-   generic repositories, DI frameworks, or sharing trivial duplicates solely to
-   remove repetition. Concrete handler dependencies are not inherently wrong.
-- **Finish the transport boundary.** `ProductsClient` returns generated protobuf
-   types and `OrderService` imports gRPC status codes. Define the small application
-   lookup/result/error contract needed; translate in the adapter. Repository
-   sentinels also tie services to storage packages; clarify error ownership without
-   introducing a generic error framework.
-- ~~**Handle ID generation errors.** Both create services ignore `uuid.NewV7()`
-   errors. Return the error before persistence; do not save a zero ID.~~
-- ~~**Separate test responsibilities.** Service and HTTP tests repeatedly wire
-   repositories to pgxmock and duplicate exact SQL. Keep selected composition tests,
-   but test service decisions through repository stubs and HTTP contracts through
-   narrow dependencies where useful. SQL expectations belong primarily in repository
-   tests. Removing in-memory storage does not require SQL mocks in every layer.~~
-- ~~**Repair misleading assertions.** Use `require` before dereferencing responses
-   or inspecting typed errors; prefer `ErrorIs`/`ErrorAs` over asserting every wrapped
-   error string. `assert.NotNil` on a value UUID does not check it is nonzero. Audit
-   `RowError(1, ...)` cases without a second row: explicitly distinguish scan,
-   iteration, and no-row errors. Remove the pgx v4 import in
-   [category tests](services/products/internal/service/product_category_service_test.go)
-   and tidy the resulting unused dependency.~~
-- **Add real PostgreSQL coverage.** pgxmock cannot validate SQL execution, codecs,
-   rounding, constraints, or migrations. Use isolated disposable databases and
-   actual migrations for CRUD, wildcard cases, constraints, and cancellation.
-   Test fresh migrations, no-change reruns, and upgrades; never rewrite applied
-   migrations. The category seed down-migration can fail when products reference
-   its rows: document/test the supported rollback policy.
-- **Exercise real boundaries selectively.** Add an orders-to-products gRPC suite
-   for status codes, deadlines, and request IDs. Shutdown tests using cancellation,
-   ephemeral listeners, and a focused subprocess signal test are practical; the
-   previous blanket dismissal was incorrect.
+The current split is right: fakes with expected-call verification, one
+composition file per handler, and pgxmock only in repositories. The main gap is
+real PostgreSQL: items 1, 2 and 3 would each have failed a migration-backed
+integration test. Also missing: a gRPC client deadline test and lifecycle tests
+(bind failure, drain, cleanup after a failure).
 
 ## Gaps After Correctness
 
@@ -242,8 +167,10 @@ future sensitive-data exposure.~~
    and dirty-migration recovery. Library locking is not a deployment procedure.
 - **Commerce semantics.** Orders retain a product reference, quantity, and
    caller-updatable status. Define legal transitions, price/currency snapshots,
-   deletion semantics, idempotent creation, and inventory consistency before
-   payments/retries. Product-existence RPCs are not cross-service transactions.
+   deletion semantics, and inventory consistency before payments. With timeouts
+   in place, a client can no longer tell whether a timed-out create committed:
+   add an `Idempotency-Key` on `POST /orders` before clients retry.
+   Product-existence RPCs are not cross-service transactions.
 - **API/setup documentation.** Document REST contracts and error codes.
    [README.md](README.md) still describes in-memory products, Postgres-only Compose,
    automatic test-profile selection, incorrect default profile/log level, and
