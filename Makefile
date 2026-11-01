@@ -1,14 +1,17 @@
 .PHONY: all build run-all run-orders run-products test-all test-orders test-products test-shared test-v coverage check tidy proto-server proto-client clean
 
 SERVICES := orders products
+GOARCH ?= arm64
 
 # ── build ──────────────────────────────────────────────────────────────────────
 
 all: build
 
+# Builds Linux ARM64 binaries into bin/. Use Docker Compose to build
+# container images for the selected target platform.
 build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C services/orders   -o ../../bin/orders   ./cmd/...
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C services/products -o ../../bin/products ./cmd/...
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -C services/orders   -o ../../bin/orders   ./cmd/...
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -C services/products -o ../../bin/products ./cmd/...
 
 # ── run ────────────────────────────────────────────────────────────────────────
 

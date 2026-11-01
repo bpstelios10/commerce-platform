@@ -98,8 +98,8 @@ Acceptance checks are proposed, not executed.
 
 ## 4. Close Deployment And Product Gaps
 
-- [ ] Make clean-checkout image builds self-contained and target-aware for
-      ARM64/AMD64; distinguish native builds from container artifacts.
+- [x] Build target-specific Linux binaries locally before Compose packages them;
+      support ARM64 and AMD64 with `make build GOARCH=<arch>`.
 - [ ] Correct setup/API docs: PostgreSQL repositories, all Compose services,
       explicit profiles, log-level precedence, `make check`, credential overrides,
       and the shutdown example. Document REST contracts and errors.

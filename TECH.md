@@ -20,7 +20,7 @@ See [TECHNICAL_REVIEW.md](TECHNICAL_REVIEW.md) for the full write-up. Quick refe
 | 4 | Configuration (env vars) | Done — `shared/config` |
 | 5 | Logging | Done — `shared/logger` (zerolog, request-scoped logger, canonical access logs) |
 | 6 | Testing | Mostly done — handler/service/domain/validation covered; repository layer has no tests yet |
-| 7 | Docker | Partially done — `docker-compose.yml` runs Postgres; the Go services themselves aren't containerized yet (still run via `make run-*`) |
+| 7 | Docker | Mostly done — Compose packages locally built service binaries and runs the full stack; readiness checks and termination grace periods remain |
 | 8 | gRPC | Partially done — `GetProductByID` only; `CreateProduct` not yet exposed over gRPC |
 | 9 | Order Service | Done |
 | 10 | REST client (switchable transport) | Not started — orders only calls products over gRPC |

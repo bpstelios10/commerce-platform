@@ -80,15 +80,19 @@ Both services connect to Postgres on startup, ping it, and run their own
 traffic — each service owns its own database (`orders`, `products`) in one
 Postgres instance, created by [database/postgres/init.sql](database/postgres/init.sql).
 
-**Start Postgres before the services** (it's the only thing defined in
-[docker-compose.yml](docker-compose.yml) — the Go services are not
-containerized, run them with `make run-*` as shown below):
+**Build the Go services locally, then run the full stack with Docker Compose.**
+`make build` creates Linux ARM64 binaries, suitable for Apple Silicon Macs:
 
 ```bash
-docker compose up -d          # start Postgres in the background
-docker compose ps             # check it's healthy
+make build                    # compile both services on your machine
+docker compose up -d           # package the binaries and start the full stack
+docker compose ps             # check service status
 docker compose down           # stop it (add -v to also wipe the data volume)
 ```
+
+On Intel Macs, use `make build GOARCH=amd64` instead. To start only Postgres
+and run the Go services directly on the host, use `docker compose up -d postgres`,
+then `make run-all`.
 
 Default credentials (overridable via `POSTGRES_DB`/`POSTGRES_USER`/`POSTGRES_PASSWORD`,
 matching `services/<name>/config/local.yaml`): user `commerce`, password `commerce`.
@@ -141,7 +145,7 @@ make coverage           # run tests with coverage and open HTML reports
 
 make lint               # golangci-lint across all modules
 make tidy               # go mod tidy in every module + go work sync
-make build              # build orders/products binaries into bin/
+make build              # build Linux ARM64 binaries into bin/
 make clean              # remove build artifacts and coverage files
 ```
 
