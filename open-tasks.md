@@ -100,9 +100,10 @@ Acceptance checks are proposed, not executed.
 
 - [x] Build target-specific Linux binaries locally before Compose packages them;
       support ARM64 and AMD64 with `make build GOARCH=<arch>`.
-- [ ] Correct setup/API docs: PostgreSQL repositories, all Compose services,
+- [x] Correct setup docs: PostgreSQL repositories, all Compose services,
       explicit profiles, log-level precedence, `make check`, credential overrides,
-      and the shutdown example. Document REST contracts and errors.
+      and the shutdown example.
+- [ ] Document REST contracts and errors.
 - [ ] Add bounded readiness distinct from liveness, including shutdown state;
       configure service health checks and termination grace periods.
 - [ ] Before external exposure, implement identity, admin permissions, order

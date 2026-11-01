@@ -13,8 +13,8 @@ HTTP with `chi`.
 ## Project layout
 
 ```
-services/products/   REST + gRPC server, in-memory repository
-services/orders/      REST server, gRPC client of products
+services/products/   REST + gRPC server, PostgreSQL repositories
+services/orders/      REST server, PostgreSQL repository, gRPC client of products
 shared/               Logging (zerolog), graceful shutdown, YAML config loading, Postgres client + migrations
 protos/               .proto definitions (source of truth for generated gRPC code)
 ```
@@ -27,6 +27,7 @@ interfaces via constructors (`NewXxx`).
 ## Prerequisites
 
 - Go (see `go.work` for the exact version)
+- Docker with Docker Compose, for PostgreSQL or the full containerized stack
 - `protoc` + Go plugins, only if you need to regenerate gRPC code (see
   [Protobuf / gRPC](#protobuf--grpc) below)
 
@@ -46,11 +47,20 @@ interfaces via constructors (`NewXxx`).
 
 | Env var     | Default | Description                                                                                   |
 | ----------- | ------- | --------------------------------------------------------------------------------------------- |
-| `LOG_LEVEL` | `info`  | zerolog level name (`debug`, `info`, `warn`, `error`, ...), read on startup by both services. |
+| `ACTIVE_PROFILE` | unset | Load only `base.yaml`; set `local`, `test`, or `d-compose` to load an overlay. |
+| `LOG_LEVEL` | unset | Override YAML `log-level` with a valid zerolog level (`debug`, `info`, `warn`, `error`, ...). |
 
 Per-service settings (ports, database, gRPC client address) live in
-`services/<name>/config/*.yaml`, selected via `ACTIVE_PROFILE` (defaults to
-`local`; `test.yaml` is used by `go test`).
+`services/<name>/config/*.yaml` and are embedded when the service is compiled.
+`base.yaml` is always loaded. With `ACTIVE_PROFILE` unset, the reported profile
+is `default` and no overlay is loaded; the base files use local addresses.
+Compose explicitly selects `d-compose`, which uses container service names.
+`go test` does not automatically select `test.yaml`; that overlay currently only
+changes the environment label, not database addresses or credentials.
+
+Log-level precedence is a valid `LOG_LEVEL`, then YAML `log-level`, then `info`.
+Currently orders defaults to `debug` via its base YAML; products defaults to
+`info`. An unset or invalid override falls through to the next source.
 
 ## Error Handling and Logging
 
@@ -85,7 +95,7 @@ Postgres instance, created by [database/postgres/init.sql](database/postgres/ini
 
 ```bash
 make build                    # compile both services on your machine
-docker compose up -d           # package the binaries and start the full stack
+docker compose up --build -d   # package the binaries and start the full stack
 docker compose ps             # check service status
 docker compose down           # stop it (add -v to also wipe the data volume)
 ```
@@ -94,8 +104,15 @@ On Intel Macs, use `make build GOARCH=amd64` instead. To start only Postgres
 and run the Go services directly on the host, use `docker compose up -d postgres`,
 then `make run-all`.
 
-Default credentials (overridable via `POSTGRES_DB`/`POSTGRES_USER`/`POSTGRES_PASSWORD`,
-matching `services/<name>/config/local.yaml`): user `commerce`, password `commerce`.
+Default local credentials are user `commerce`, password `commerce`, as configured
+in each service's `base.yaml`. Both services persist data in PostgreSQL.
+
+Compose's `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` variables
+configure the PostgreSQL container only; they do not override the Go services'
+embedded database configuration. If changing credentials, update the matching
+service YAML and rebuild the binaries/images too. PostgreSQL initialization
+variables and [init.sql](database/postgres/init.sql) apply only to a fresh data
+volume; they do not change an existing database or user.
 
 **Inspect the database** with `psql` inside the container:
 
@@ -129,9 +146,9 @@ SELECT * FROM orders;
 All common tasks are wired up in the [Makefile](Makefile):
 
 ```bash
-make run-all            # run both services (products in background, orders in foreground)
-make run-products       # run only products (HTTP :8082, gRPC :8092)
-make run-orders         # run only orders (HTTP :8083)
+ACTIVE_PROFILE=local make run-all      # products in background, orders in foreground
+ACTIVE_PROFILE=local make run-products # HTTP :8082, gRPC :8092
+ACTIVE_PROFILE=local make run-orders   # HTTP :8083
 
 ACTIVE_PROFILE=test make run-all      # run both services on the given environment
 ACTIVE_PROFILE=test make run-products # run only products on the given environment
@@ -143,7 +160,7 @@ make test-products      # run tests for products only
 make test-v             # same as test-all, verbose
 make coverage           # run tests with coverage and open HTML reports
 
-make lint               # golangci-lint across all modules
+make check              # go vet, race-enabled tests, and gofmt check across all modules
 make tidy               # go mod tidy in every module + go work sync
 make build              # build Linux ARM64 binaries into bin/
 make clean              # remove build artifacts and coverage files
@@ -159,6 +176,9 @@ go test -C services/products ./...
 go run  -C services/orders ./cmd/...
 go test -C services/orders ./...
 ```
+
+For host execution, start PostgreSQL first with `docker compose up -d postgres`;
+do not also run the Compose service containers on the same ports.
 
 ## Protobuf / gRPC
 
