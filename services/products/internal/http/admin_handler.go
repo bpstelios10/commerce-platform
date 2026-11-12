@@ -51,7 +51,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// trim strings
+	// normalize input
 	req.Name = strings.TrimSpace(req.Name)
 	req.Category = strings.TrimSpace(req.Category)
 
@@ -92,7 +92,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// trim strings
+	// normalize input
 	req.Name = strings.TrimSpace(req.Name)
 	req.Category = strings.TrimSpace(req.Category)
 

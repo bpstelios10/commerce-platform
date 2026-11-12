@@ -30,7 +30,7 @@ new migrations (`ALTER TABLE ... ADD COLUMN version INT NOT NULL DEFAULT 1`).
 Never edit an applied migration; a "fresh DB + upgrade from previous version"
 test catches this.~
 
-### 2. Integrity rules exist only in HTTP handlers
+### ~2. Integrity rules exist only in HTTP handlers~
 
 - ~No CHECK constraints exist in any migration.~
 - ~Services accept `quantity <= 0`, empty names, non-positive prices and any
@@ -39,9 +39,9 @@ test catches this.~
   untrimmed value is persisted, so padded input can exceed `VARCHAR(100)` and
   return 500.~
 
-Trim before validating and storing. Enforce invariants in the domain/service
+~Trim before validating and storing. Enforce invariants in the domain/service
 layer (constructors or `Validate()` on the domain type). Add a new migration with
-CHECKs: `quantity > 0`, `price > 0`, `status IN (...)`, `version > 0`.
+CHECKs: `quantity > 0`, `price > 0`, `status IN (...)`, `version > 0`.~
 
 ### 3. Category `List` still ignores iteration errors
 

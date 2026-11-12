@@ -19,7 +19,8 @@ Acceptance checks are proposed, not executed.
       nonfinite or invalid search price bounds.
 - [x] Trim names/categories before validating and storing (padded input can
       exceed `VARCHAR(100)`).
-- [ ] Enforce invariants below HTTP (domain `Validate()` or service checks) and
+- [x] Enforce invariants below HTTP (domain `Validate()` or service checks) 
+      (not neeeded - too defensive) and
       add CHECK constraints in a new migration: quantity, price, status, version.
 - [x] Limit HTTP request bodies, require one JSON value, and choose/test the
       unknown-field policy. Cover oversized and trailing-content requests.
