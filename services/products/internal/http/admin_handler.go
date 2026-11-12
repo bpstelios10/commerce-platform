@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"commerce-platform/services/products/internal/product"
 	"commerce-platform/services/products/internal/service"
@@ -50,6 +51,10 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// trim strings
+	req.Name = strings.TrimSpace(req.Name)
+	req.Category = strings.TrimSpace(req.Category)
+
 	if err := validateCreateProduct(ctx, req); err != nil {
 		HandleError(ctx, w, err)
 		return
@@ -86,6 +91,10 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	if !isBodyValidAndDecoded(ctx, r.Body, w, &req, "update_product") {
 		return
 	}
+
+	// trim strings
+	req.Name = strings.TrimSpace(req.Name)
+	req.Category = strings.TrimSpace(req.Category)
 
 	if err := validateUpdateProduct(ctx, req); err != nil {
 		HandleError(ctx, w, err)

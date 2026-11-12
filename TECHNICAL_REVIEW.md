@@ -22,22 +22,22 @@ but are not done in code; the task list is corrected.
 
 ### 1. An applied migration was edited (blocker)
 
-`version` was added inside `001_create_orders.up.sql` and
+~`version` was added inside `001_create_orders.up.sql` and
 `001_create_products.up.sql`. golang-migrate already recorded version 1 on any
 existing database (including the Compose volume), so the column is never added
 and every query that selects `version` fails. Revert both `001` files and add
 new migrations (`ALTER TABLE ... ADD COLUMN version INT NOT NULL DEFAULT 1`).
 Never edit an applied migration; a "fresh DB + upgrade from previous version"
-test catches this.
+test catches this.~
 
 ### 2. Integrity rules exist only in HTTP handlers
 
 - No CHECK constraints exist in any migration.
 - Services accept `quantity <= 0`, empty names, non-positive prices and any
   status-to-status transition.
-- Product name/category length is validated on the trimmed value, but the
+- ~Product name/category length is validated on the trimmed value, but the
   untrimmed value is persisted, so padded input can exceed `VARCHAR(100)` and
-  return 500.
+  return 500.~
 
 Trim before validating and storing. Enforce invariants in the domain/service
 layer (constructors or `Validate()` on the domain type). Add a new migration with

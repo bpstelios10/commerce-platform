@@ -3,11 +3,6 @@
 Prioritized from the 2026-10-31 [technical review](TECHNICAL_REVIEW.md).
 Acceptance checks are proposed, not executed.
 
-## 0. Blocker
-
-- [ ] Revert the `version` column out of both `001_*.up.sql` files and add it
-      through new migrations. Verify: an existing DB at version 1 upgrades cleanly.
-
 ## 1. Fix Current Defects
 
 - [x] Handle product delete errors in HTTP; test DB failure returns 500 rather
@@ -22,7 +17,7 @@ Acceptance checks are proposed, not executed.
 - [x] Handle UUIDv7 generation errors in both create services before persistence.
 - [x] Align HTTP input bounds with SQL name/price/quantity limits; reject
       nonfinite or invalid search price bounds.
-- [ ] Trim names/categories before validating and storing (padded input can
+- [x] Trim names/categories before validating and storing (padded input can
       exceed `VARCHAR(100)`).
 - [ ] Enforce invariants below HTTP (domain `Validate()` or service checks) and
       add CHECK constraints in a new migration: quantity, price, status, version.

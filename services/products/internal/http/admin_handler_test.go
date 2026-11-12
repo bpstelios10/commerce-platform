@@ -55,6 +55,7 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 	}{
 		{"valid-product", "iPad", "ACCESSORY", "some-description", 999},
 		{"empty-description", "Hoodie", "CLOTHES", "", 49},
+		{"trim-spaces", " Hoodie ", "  CLOTHES", "", 49},
 		{"decimal-price", "Necklace", "JEWELRY", "some-description", 15.5},
 	}
 
@@ -65,8 +66,8 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 				func(ctx context.Context, name, category string, description *string, price float64) (product.Product, error) {
 					return product.Product{
 						ID:          uuid.New(),
-						Name:        tt.name,
-						Category:    tt.category,
+						Name:        strings.TrimSpace(tt.name),
+						Category:    strings.TrimSpace(tt.category),
 						Description: new(tt.description),
 						Price:       tt.price,
 						CreatedAt:   time.Now()}, nil
@@ -93,15 +94,15 @@ func TestCreateProduct_WhenRequestValid_CreatesProduct(t *testing.T) {
 			err = json.Unmarshal(body, &created)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, created.ID)
-			assert.Equal(t, tt.name, created.Name)
-			assert.Equal(t, tt.category, created.Category)
+			assert.Equal(t, strings.TrimSpace(tt.name), created.Name)
+			assert.Equal(t, strings.TrimSpace(tt.category), created.Category)
 			assert.Equal(t, new(tt.description), created.Description)
 			assert.Equal(t, tt.price, created.Price)
 			assert.WithinDuration(t, time.Now(), created.CreatedAt, 2*time.Second)
 			assert.Equal(t, "/products/"+created.ID.String(), res.Header.Get("Location"))
 			assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-			assert.Equal(t, tt.name, mock.created[0].Name)
-			assert.Equal(t, tt.category, mock.created[0].Category)
+			assert.Equal(t, strings.TrimSpace(tt.name), mock.created[0].Name)
+			assert.Equal(t, strings.TrimSpace(tt.category), mock.created[0].Category)
 			assert.Equal(t, tt.description, *mock.created[0].Description)
 			assert.Equal(t, tt.price, mock.created[0].Price)
 		})
@@ -269,7 +270,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	p := product.Product{
 		ID:          SecondUUID,
 		Name:        "iPhone 15",
-		Category:    "CLOTHES",
+		Category:    "CLOTHES ",
 		Description: new("Updated description"),
 		Price:       1500.0,
 		CreatedAt:   time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
@@ -307,7 +308,7 @@ func TestUpdateProduct_WhenRequestValid_UpdatesProduct(t *testing.T) {
 	assert.Equal(t, p, updated)
 	assert.Equal(t, p.ID, mock.updated[0].ID)
 	assert.Equal(t, p.Name, mock.updated[0].Name)
-	assert.Equal(t, p.Category, mock.updated[0].Category)
+	assert.Equal(t, strings.TrimSpace(p.Category), mock.updated[0].Category)
 	assert.Equal(t, p.Description, mock.updated[0].Description)
 	assert.Equal(t, p.Price, mock.updated[0].Price)
 }
