@@ -32,9 +32,9 @@ test catches this.~
 
 ### 2. Integrity rules exist only in HTTP handlers
 
-- No CHECK constraints exist in any migration.
-- Services accept `quantity <= 0`, empty names, non-positive prices and any
-  status-to-status transition.
+- ~No CHECK constraints exist in any migration.~
+- ~Services accept `quantity <= 0`, empty names, non-positive prices and any
+  status-to-status transition.~ WONT DO - very defensive
 - ~Product name/category length is validated on the trimmed value, but the
   untrimmed value is persisted, so padded input can exceed `VARCHAR(100)` and
   return 500.~

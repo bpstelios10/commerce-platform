@@ -8,3 +8,6 @@ CREATE TABLE orders (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     version INT NOT NULL DEFAULT 1
 );
+
+CONSTRAINT order_price_positive CHECK (quantity > 0),
+CONSTRAINT order_version_positive CHECK (version > 0)

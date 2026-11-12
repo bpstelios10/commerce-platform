@@ -9,3 +9,6 @@ CREATE TABLE products (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     version INT NOT NULL DEFAULT 1
 );
+
+CONSTRAINT product_price_positive CHECK (price > 0),
+CONSTRAINT product_version_positive CHECK (version > 0)
