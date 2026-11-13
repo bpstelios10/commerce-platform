@@ -174,7 +174,7 @@ func (r *PostgreProductRepository) Update(ctx context.Context, p product.Product
 }
 
 func (r *PostgreProductRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	ctx, cancel := context.WithTimeout(ctx, r.timeouts.Read)
+	ctx, cancel := context.WithTimeout(ctx, r.timeouts.Write)
 	defer cancel()
 
 	const query = `

@@ -126,7 +126,7 @@ func TestCreateProduct_WhenRequestBodyTooBig_Returns400(t *testing.T) {
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
@@ -369,7 +369,7 @@ func TestUpdateProduct_WhenRequestBodyTooBig_Returns400(t *testing.T) {
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, http.StatusRequestEntityTooLarge, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,

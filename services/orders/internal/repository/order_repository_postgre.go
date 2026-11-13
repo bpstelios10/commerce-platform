@@ -168,7 +168,7 @@ func (repo *PostgreOrderRepository) Update(ctx context.Context, o order.Order) (
 }
 
 func (repo *PostgreOrderRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	ctx, cancel := context.WithTimeout(ctx, repo.timeouts.Read)
+	ctx, cancel := context.WithTimeout(ctx, repo.timeouts.Write)
 	defer cancel()
 	const query = `
 		DELETE FROM orders

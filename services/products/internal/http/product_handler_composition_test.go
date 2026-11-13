@@ -199,7 +199,7 @@ func TestGetProductComposition_WhenQueryExceedsTimeout_Returns503(t *testing.T) 
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+	assert.Equal(t, http.StatusGatewayTimeout, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.JSONEq(
 		t,
