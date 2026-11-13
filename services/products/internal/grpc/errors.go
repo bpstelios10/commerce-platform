@@ -20,13 +20,14 @@ func HandleError(ctx context.Context, err error) error {
 		logger.Warn().Err(err).Msg("product not found")
 		return status.Error(codes.NotFound, notFoundErr.Error())
 
-	case errors.Is(err, service.ErrInvalidProduct):
-		logger.Warn().Err(err).Msg("invalid product")
-		return status.Error(codes.InvalidArgument, service.ErrInvalidProduct.Error())
+	// will never happen for get product by id
+	// case errors.Is(err, service.ErrInvalidProduct):
+	// 	logger.Warn().Err(err).Msg("invalid product")
+	// 	return status.Error(codes.InvalidArgument, service.ErrInvalidProduct.Error())
 
-	case errors.Is(err, service.ErrInvalidCategory):
-		logger.Warn().Err(err).Msg("invalid product category")
-		return status.Error(codes.InvalidArgument, service.ErrInvalidCategory.Error())
+	// case errors.Is(err, service.ErrInvalidCategory):
+	// 	logger.Warn().Err(err).Msg("invalid product category")
+	// 	return status.Error(codes.InvalidArgument, service.ErrInvalidCategory.Error())
 
 	case errors.Is(err, validation.ErrInvalidUUID):
 		logger.Warn().Err(err).Msg("invalid UUID")

@@ -47,7 +47,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 
 	case errors.As(err, &tooLongBodyErr):
 		logger.Warn().Err(err).Msg("Request body too long")
-		writeError(ctx, w, http.StatusBadRequest, "REQUEST_BODY_TOO_LONG", tooLongBodyErr.Error())
+		writeError(ctx, w, http.StatusRequestEntityTooLarge, "REQUEST_BODY_TOO_LONG", tooLongBodyErr.Error())
 
 	case errors.Is(err, service.ErrOrderUpdateConflict):
 		logger.Warn().Err(err).Msg("order update conflict")
@@ -55,7 +55,7 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 
 	case errors.Is(err, context.DeadlineExceeded):
 		logger.Warn().Err(err).Msg("request timed out")
-		writeError(ctx, w, http.StatusServiceUnavailable, "REQUEST_TIMED_OUT", "request timed out")
+		writeError(ctx, w, http.StatusGatewayTimeout, "REQUEST_TIMED_OUT", "request timed out")
 
 	case errors.Is(err, context.Canceled):
 		// debug cause this is normal client behavior, not a server fault
