@@ -28,7 +28,7 @@ Acceptance checks are proposed, not executed.
       Verify cancellation reaches dependencies and earlier deadlines are preserved.
 - [x] Bound startup database connection/Ping separately, Startup has no incoming request 
       context. Database queries during requests can initially use the overall request deadline; separate query budgets are optional.
-- [ ] Map context deadline/cancel in products' gRPC `HandleError` (currently
+- [x] Map context deadline/cancel in products' gRPC `HandleError` (currently
       `Internal`). Use 504 for upstream timeouts and 413 for oversized bodies.
       Use the `Write` timeout for `Delete`.
 - [ ] Add an `Idempotency-Key` to `POST /orders`: a timed-out create may have

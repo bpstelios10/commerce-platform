@@ -137,3 +137,40 @@ func TestGetProductByID_WhenBadUUID_ReturnsError(t *testing.T) {
 	assert.Equal(t, "invalid UUID", st.Message())
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestGetProductByID_WhenRepositoryReturnsContextError_ReturnsGRPCCode(t *testing.T) {
+	tests := []struct {
+		name    string
+		err     error
+		code    codes.Code
+		message string
+	}{
+		{"deadline exceeded", context.DeadlineExceeded, codes.DeadlineExceeded, "request timed out"},
+		{"canceled", context.Canceled, codes.Canceled, "request canceled by client"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, mock := setupProductHandlerTest(t)
+			id := uuid.New()
+			mock.ExpectQuery(`
+				SELECT product_id, name, category, description, price, created_at, version
+				FROM products
+				WHERE product_id = $1`).
+				WithArgs(id).
+				WillReturnError(tt.err)
+
+			res, err := client.GetProductByID(
+				context.Background(),
+				&GetProductByIDRequest{Id: id.String()},
+			)
+
+			assert.Nil(t, res)
+			st, ok := status.FromError(err)
+			assert.True(t, ok)
+			assert.Equal(t, tt.code, st.Code())
+			assert.Equal(t, tt.message, st.Message())
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}

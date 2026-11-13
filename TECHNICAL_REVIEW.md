@@ -85,12 +85,12 @@ JSON, or a decimal type, and define the rounding rule.
 
 ### 7. Timeout and cancellation mapping is half done
 
-- Products' [gRPC `HandleError`](services/products/internal/grpc/errors.go)
+- ~Products' [gRPC `HandleError`](services/products/internal/grpc/errors.go)
   maps a context deadline/cancel to `Internal`. Orders then sees an internal
-  error, not a timeout. Map them to `DeadlineExceeded`/`Canceled`.
+  error, not a timeout. Map them to `DeadlineExceeded`/`Canceled`.~
 - HTTP returns 503 for every `DeadlineExceeded`. 504 is the precise code for an
   upstream timeout. An oversized body returns 400; 413 is the standard code.
-- `Delete` uses the `Read` timeout in both repositories.
+- ~`Delete` uses the `Read` timeout in both repositories.~
 - An UPDATE that matches no rows is always reported as a version conflict, so an
   entity deleted between the read and the write returns 409, not 404. Fine if
   intended; document it.
