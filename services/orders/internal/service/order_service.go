@@ -27,16 +27,16 @@ type ProductsClient interface {
 	GetProductByID(ctx context.Context, id string) (*grpc.GetProductByIDResponse, error)
 }
 
-type OrderServiceImpl struct {
+type OrderService struct {
 	orderRepository OrderRepository
 	productsClient  ProductsClient
 }
 
-func NewOrderService(repository OrderRepository, productsClient ProductsClient) *OrderServiceImpl {
-	return &OrderServiceImpl{orderRepository: repository, productsClient: productsClient}
+func NewOrderService(repository OrderRepository, productsClient ProductsClient) *OrderService {
+	return &OrderService{orderRepository: repository, productsClient: productsClient}
 }
 
-func (s *OrderServiceImpl) GetOrders(ctx context.Context) ([]order.Order, error) {
+func (s *OrderService) GetOrders(ctx context.Context) ([]order.Order, error) {
 	orders, err := s.orderRepository.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get orders: %w", err)
@@ -45,7 +45,7 @@ func (s *OrderServiceImpl) GetOrders(ctx context.Context) ([]order.Order, error)
 	return orders, nil
 }
 
-func (s *OrderServiceImpl) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
+func (s *OrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error) {
 	o, err := s.orderRepository.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
@@ -58,7 +58,7 @@ func (s *OrderServiceImpl) GetOrderByID(ctx context.Context, id uuid.UUID) (orde
 	return o, nil
 }
 
-func (s *OrderServiceImpl) CreateOrder(ctx context.Context, productID string, quantity int32) (order.Order, error) {
+func (s *OrderService) CreateOrder(ctx context.Context, productID string, quantity int32) (order.Order, error) {
 	if err := s.validateProductExists(ctx, productID); err != nil {
 		return order.Order{}, fmt.Errorf("create order: %w", err)
 	}
@@ -87,7 +87,7 @@ func (s *OrderServiceImpl) CreateOrder(ctx context.Context, productID string, qu
 	return o, nil
 }
 
-func (s *OrderServiceImpl) UpdateOrder(
+func (s *OrderService) UpdateOrder(
 	ctx context.Context,
 	id uuid.UUID,
 	productID string,
@@ -124,7 +124,7 @@ func (s *OrderServiceImpl) UpdateOrder(
 	return updated, nil
 }
 
-func (s *OrderServiceImpl) DeleteOrder(ctx context.Context, id uuid.UUID) error {
+func (s *OrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {
 	logger := log(ctx)
 	logger.Info().Str("order_id", id.String()).Msg("attempting to delete order")
 
@@ -136,7 +136,7 @@ func (s *OrderServiceImpl) DeleteOrder(ctx context.Context, id uuid.UUID) error 
 	return nil
 }
 
-func (s *OrderServiceImpl) validateProductExists(ctx context.Context, productID string) error {
+func (s *OrderService) validateProductExists(ctx context.Context, productID string) error {
 	_, err := s.productsClient.GetProductByID(ctx, productID)
 	if err != nil {
 		wrapped := fmt.Errorf("get product %s from products service: %w", productID, err)

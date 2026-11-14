@@ -11,15 +11,15 @@ type ProductCategoryRepository interface {
 	List(ctx context.Context) ([]string, error)
 }
 
-type ProductCategoryServiceImpl struct {
+type ProductCategoryService struct {
 	repo ProductCategoryRepository
 }
 
-func NewProductCategoryServiceImpl(repo ProductCategoryRepository) *ProductCategoryServiceImpl {
-	return &ProductCategoryServiceImpl{repo: repo}
+func NewProductCategoryService(repo ProductCategoryRepository) *ProductCategoryService {
+	return &ProductCategoryService{repo: repo}
 }
 
-func (s *ProductCategoryServiceImpl) Validate(ctx context.Context, category string) (string, error) {
+func (s *ProductCategoryService) Validate(ctx context.Context, category string) (string, error) {
 	normalized := strings.ToUpper(strings.TrimSpace(category))
 
 	exists, err := s.repo.Exists(ctx, normalized)
@@ -34,7 +34,7 @@ func (s *ProductCategoryServiceImpl) Validate(ctx context.Context, category stri
 }
 
 // TODO add category as domain, including the description
-func (s *ProductCategoryServiceImpl) GetProductCategories(ctx context.Context) ([]string, error) {
+func (s *ProductCategoryService) GetProductCategories(ctx context.Context) ([]string, error) {
 	categories, err := s.repo.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get product categories: %w", err)

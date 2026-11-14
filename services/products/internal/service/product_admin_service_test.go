@@ -14,15 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setup(t *testing.T) (*AdminServiceImpl, *fakeProductRepo, *fakeProductCategoryRepo) {
+func setup(t *testing.T) (*AdminService, *fakeProductRepo, *fakeProductCategoryRepo) {
 	t.Helper()
 
 	repo := newFakeProductRepo(t)
-	productService := NewProductServiceImpl(repo)
+	productService := NewProductService(repo)
 
 	categoryRepo := newFakeProductCategoryRepo(t)
-	categoryService := NewProductCategoryServiceImpl(categoryRepo)
-	svc := NewAdminServiceImpl(productService, categoryService, repo)
+	categoryService := NewProductCategoryService(categoryRepo)
+	svc := NewAdminService(productService, categoryService, repo)
 
 	return svc, repo, categoryRepo
 }

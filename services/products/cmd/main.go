@@ -70,7 +70,7 @@ func main() {
 		List:  cfg.Database.Timeouts.List,
 		Write: cfg.Database.Timeouts.Write,
 	})
-	productService := service.NewProductServiceImpl(productRepo)
+	productService := service.NewProductService(productRepo)
 	productHandler := httpx.NewProductHandler(productService)
 	productHandler.RegisterRoutes(r)
 
@@ -81,12 +81,12 @@ func main() {
 	// product category handler
 	categoryRepo := repository.NewPostgreProductCategoryRepository(
 		db, repository.Timeouts{Read: cfg.Database.Timeouts.Read})
-	categoryService := service.NewProductCategoryServiceImpl(categoryRepo)
+	categoryService := service.NewProductCategoryService(categoryRepo)
 	categoryHandler := httpx.NewProductCategoryHandler(categoryService)
 	categoryHandler.RegisterRoutes(r)
 
 	// admin handler
-	adminProductService := service.NewAdminServiceImpl(productService, categoryService, productRepo)
+	adminProductService := service.NewAdminService(productService, categoryService, productRepo)
 	adminHandler := httpx.NewAdminHandler(adminProductService)
 	adminHandler.RegisterRoutes(r)
 

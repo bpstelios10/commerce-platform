@@ -110,11 +110,11 @@ recovery interceptor.
 
 ## Idiomatic Go
 
-- **Drop the `Impl` suffix.** `OrderServiceImpl`, `ProductServiceImpl` and
+- ~**Drop the `Impl` suffix.** `OrderServiceImpl`, `ProductServiceImpl` and
   `AdminServiceImpl` are a Java pattern. Name the concrete type
   `service.OrderService` and keep the consumer's interface in the handler
   package, unexported. Constructors are inconsistent too: `NewOrderService`
-  versus `NewProductServiceImpl`.
+  versus `NewProductServiceImpl`.~
 - **Depend on behavior, not concrete services.** `AdminServiceImpl` holds
   `*ProductServiceImpl` only to call `GetProductByID`. Depend on a one-method
   interface or on the repository.

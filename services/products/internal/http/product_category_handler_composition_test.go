@@ -24,7 +24,7 @@ func productCategoryHandlerCompositionTest(t *testing.T) (*chi.Mux, pgxmock.PgxP
 	})
 	repo := repository.NewPostgreProductCategoryRepository(
 		mock, repository.Timeouts{Read: 100 * time.Millisecond})
-	svc := service.NewProductCategoryServiceImpl(repo)
+	svc := service.NewProductCategoryService(repo)
 	handler := NewProductCategoryHandler(svc)
 
 	r := chi.NewRouter()

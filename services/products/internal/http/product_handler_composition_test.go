@@ -30,7 +30,7 @@ func setupProductHandlerCompositionTest(t *testing.T) (*httptest.Server, pgxmock
 		List:  100 * time.Millisecond,
 		Write: 100 * time.Millisecond,
 	})
-	svc := service.NewProductServiceImpl(repo)
+	svc := service.NewProductService(repo)
 	handler := NewProductHandler(svc)
 
 	r := chi.NewRouter()

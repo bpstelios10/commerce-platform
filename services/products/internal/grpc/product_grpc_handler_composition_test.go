@@ -31,7 +31,7 @@ func setupProductHandlerTest(t *testing.T) (ProductServiceClient, pgxmock.PgxPoo
 		List:  100 * time.Millisecond,
 		Write: 100 * time.Millisecond,
 	})
-	svc := service.NewProductServiceImpl(repo)
+	svc := service.NewProductService(repo)
 	handler := NewProductGrpcHandler(svc)
 
 	server := grpc.NewServer()

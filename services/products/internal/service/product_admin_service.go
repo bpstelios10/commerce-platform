@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type ProductCategoryService interface {
+type CategoryValidationService interface {
 	Validate(ctx context.Context, category string) (string, error)
 }
 
@@ -20,17 +20,17 @@ type ProductWriter interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
-type AdminServiceImpl struct {
-	productService  *ProductServiceImpl
-	categoryService ProductCategoryService
+type AdminService struct {
+	productService  *ProductService
+	categoryService CategoryValidationService
 	repo            ProductWriter
 }
 
-func NewAdminServiceImpl(productService *ProductServiceImpl, categoryService ProductCategoryService, repo ProductWriter) *AdminServiceImpl {
-	return &AdminServiceImpl{productService: productService, categoryService: categoryService, repo: repo}
+func NewAdminService(productService *ProductService, categoryService CategoryValidationService, repo ProductWriter) *AdminService {
+	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 
-func (s *AdminServiceImpl) CreateProduct(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error) {
+func (s *AdminService) CreateProduct(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error) {
 	validatedCategory, err := s.categoryService.Validate(ctx, category)
 	if err != nil {
 		return product.Product{}, err
@@ -60,7 +60,7 @@ func (s *AdminServiceImpl) CreateProduct(ctx context.Context, name string, categ
 	return p, nil
 }
 
-func (s *AdminServiceImpl) UpdateProduct(
+func (s *AdminService) UpdateProduct(
 	ctx context.Context,
 	id uuid.UUID,
 	name string,
@@ -100,7 +100,7 @@ func (s *AdminServiceImpl) UpdateProduct(
 	return p, nil
 }
 
-func (s *AdminServiceImpl) DeleteProduct(ctx context.Context, id uuid.UUID) error {
+func (s *AdminService) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 	logger := log(ctx)
 	logger.Info().Str("product_id", id.String()).Msg("attempting to delete product")
 

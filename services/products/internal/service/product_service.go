@@ -18,17 +18,17 @@ type ProductRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (product.Product, error)
 }
 
-type ProductServiceImpl struct {
+type ProductService struct {
 	repository ProductRepository
 }
 
-func NewProductServiceImpl(repository ProductRepository) *ProductServiceImpl {
-	return &ProductServiceImpl{
+func NewProductService(repository ProductRepository) *ProductService {
+	return &ProductService{
 		repository: repository,
 	}
 }
 
-func (s *ProductServiceImpl) GetProducts(ctx context.Context) ([]product.Product, error) {
+func (s *ProductService) GetProducts(ctx context.Context) ([]product.Product, error) {
 	products, err := s.repository.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get products: %w", err)
@@ -41,7 +41,7 @@ func (s *ProductServiceImpl) GetProducts(ctx context.Context) ([]product.Product
 // pg_trgm (trigram) → fuzzy/partial/typo tolerance (widgit ≈ widget).
 // Full-text search (tsvector) → handles plural/stemming ("widgets" → "widget") automatically.
 // GIN (Generalized Inverted Index) → efficient indexing for multiple columns, useful for combined search scenarios.
-func (s *ProductServiceImpl) SearchProducts(ctx context.Context, query string, maxPrice *float64, category string) ([]product.Product, error) {
+func (s *ProductService) SearchProducts(ctx context.Context, query string, maxPrice *float64, category string) ([]product.Product, error) {
 	products, err := s.repository.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get products: %w", err)
@@ -71,7 +71,7 @@ func (s *ProductServiceImpl) SearchProducts(ctx context.Context, query string, m
 	return filtered, nil
 }
 
-func (s *ProductServiceImpl) GetProductByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
+func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (product.Product, error) {
 	p, err := s.repository.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {

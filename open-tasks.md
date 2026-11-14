@@ -49,7 +49,7 @@ Acceptance checks are proposed, not executed.
 - [x] Use idiomatic GO capitalization everywhere (ID instead of Id).
 - [ ] Use integer minor units (or a decimal type) for money across Go, proto
       and JSON; define rounding for `ApplyDiscount`.
-- [ ] Drop the `Impl` suffix (`service.OrderService`), keep consumer interfaces
+- [x] Drop the `Impl` suffix (`service.OrderService`), keep consumer interfaces
       unexported, and make `AdminService` depend on an interface instead of
       `*ProductServiceImpl`.
 - [ ] Naming: `XError` for error types, lowercase error strings, one

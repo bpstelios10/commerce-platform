@@ -33,11 +33,11 @@ func setupAdminHandlerCompositionTest(t *testing.T) (*httptest.Server, pgxmock.P
 		List:  100 * time.Millisecond,
 		Write: 100 * time.Millisecond,
 	})
-	productService := service.NewProductServiceImpl(repo)
+	productService := service.NewProductService(repo)
 	categoryRepo := repository.NewPostgreProductCategoryRepository(
 		mock, repository.Timeouts{Read: 100 * time.Millisecond})
-	categoryService := service.NewProductCategoryServiceImpl(categoryRepo)
-	adminSvc := service.NewAdminServiceImpl(productService, categoryService, repo)
+	categoryService := service.NewProductCategoryService(categoryRepo)
+	adminSvc := service.NewAdminService(productService, categoryService, repo)
 	handler := NewAdminHandler(adminSvc)
 
 	r := chi.NewRouter()
