@@ -12,17 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type ProductService interface {
+type productService interface {
 	GetProducts(ctx context.Context) ([]product.Product, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (product.Product, error)
 	SearchProducts(ctx context.Context, query string, maxPrice *float64, category string) ([]product.Product, error)
 }
 
 type ProductHandler struct {
-	productService ProductService
+	productService productService
 }
 
-func NewProductHandler(productService ProductService) *ProductHandler {
+func NewProductHandler(productService productService) *ProductHandler {
 	return &ProductHandler{
 		productService: productService,
 	}

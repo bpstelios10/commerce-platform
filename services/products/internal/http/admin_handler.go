@@ -17,17 +17,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type AdminService interface {
+type adminService interface {
 	CreateProduct(ctx context.Context, name string, category string, description *string, price float64) (product.Product, error)
 	UpdateProduct(ctx context.Context, id uuid.UUID, name string, category string, description *string, price float64, version int) (product.Product, error)
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 }
 
 type AdminHandler struct {
-	adminService AdminService
+	adminService adminService
 }
 
-func NewAdminHandler(adminService AdminService) *AdminHandler {
+func NewAdminHandler(adminService adminService) *AdminHandler {
 	return &AdminHandler{adminService: adminService}
 }
 

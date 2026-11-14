@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type OrderRepository interface {
+type orderRepository interface {
 	List(ctx context.Context) ([]order.Order, error)
 	GetByID(ctx context.Context, id uuid.UUID) (order.Order, error)
 	Create(ctx context.Context, o order.Order) (order.Order, error)
@@ -28,11 +28,11 @@ type ProductsClient interface {
 }
 
 type OrderService struct {
-	orderRepository OrderRepository
+	orderRepository orderRepository
 	productsClient  ProductsClient
 }
 
-func NewOrderService(repository OrderRepository, productsClient ProductsClient) *OrderService {
+func NewOrderService(repository orderRepository, productsClient ProductsClient) *OrderService {
 	return &OrderService{orderRepository: repository, productsClient: productsClient}
 }
 

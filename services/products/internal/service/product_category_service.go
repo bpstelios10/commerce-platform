@@ -6,16 +6,16 @@ import (
 	"strings"
 )
 
-type ProductCategoryRepository interface {
+type productCategoryRepository interface {
 	Exists(ctx context.Context, category string) (bool, error)
 	List(ctx context.Context) ([]string, error)
 }
 
 type ProductCategoryService struct {
-	repo ProductCategoryRepository
+	repo productCategoryRepository
 }
 
-func NewProductCategoryService(repo ProductCategoryRepository) *ProductCategoryService {
+func NewProductCategoryService(repo productCategoryRepository) *ProductCategoryService {
 	return &ProductCategoryService{repo: repo}
 }
 

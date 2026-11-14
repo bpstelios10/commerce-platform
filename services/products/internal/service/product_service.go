@@ -13,16 +13,16 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type ProductRepository interface {
+type productRepository interface {
 	List(ctx context.Context) ([]product.Product, error)
 	GetByID(ctx context.Context, id uuid.UUID) (product.Product, error)
 }
 
 type ProductService struct {
-	repository ProductRepository
+	repository productRepository
 }
 
-func NewProductService(repository ProductRepository) *ProductService {
+func NewProductService(repository productRepository) *ProductService {
 	return &ProductService{
 		repository: repository,
 	}

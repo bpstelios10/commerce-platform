@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type OrderService interface {
+type orderService interface {
 	GetOrders(ctx context.Context) ([]order.Order, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (order.Order, error)
 	CreateOrder(ctx context.Context, productID string, quantity int32) (order.Order, error)
@@ -25,10 +25,10 @@ type OrderService interface {
 }
 
 type OrderHandler struct {
-	orderService OrderService
+	orderService orderService
 }
 
-func NewOrderHandler(service OrderService) *OrderHandler {
+func NewOrderHandler(service orderService) *OrderHandler {
 	return &OrderHandler{orderService: service}
 }
 

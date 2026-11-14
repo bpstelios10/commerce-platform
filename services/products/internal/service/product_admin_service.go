@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type CategoryValidationService interface {
+type categoryValidationService interface {
 	Validate(ctx context.Context, category string) (string, error)
 }
 
@@ -22,11 +22,11 @@ type ProductWriter interface {
 
 type AdminService struct {
 	productService  *ProductService
-	categoryService CategoryValidationService
+	categoryService categoryValidationService
 	repo            ProductWriter
 }
 
-func NewAdminService(productService *ProductService, categoryService CategoryValidationService, repo ProductWriter) *AdminService {
+func NewAdminService(productService *ProductService, categoryService categoryValidationService, repo ProductWriter) *AdminService {
 	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 
