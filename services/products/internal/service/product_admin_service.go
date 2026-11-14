@@ -10,6 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
+type productService interface {
+	GetProductByID(ctx context.Context, id uuid.UUID) (product.Product, error)
+}
+
 type categoryValidationService interface {
 	Validate(ctx context.Context, category string) (string, error)
 }
@@ -21,12 +25,12 @@ type productWriter interface {
 }
 
 type AdminService struct {
-	productService  *ProductService
+	productService  productService
 	categoryService categoryValidationService
 	repo            productWriter
 }
 
-func NewAdminService(productService *ProductService, categoryService categoryValidationService, repo productWriter) *AdminService {
+func NewAdminService(productService productService, categoryService categoryValidationService, repo productWriter) *AdminService {
 	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 
