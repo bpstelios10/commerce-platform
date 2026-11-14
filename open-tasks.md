@@ -52,7 +52,7 @@ Acceptance checks are proposed, not executed.
 - [x] Drop the `Impl` suffix (`service.OrderService`), keep consumer interfaces
       unexported, and make `AdminService` depend on an interface instead of
       `*ProductServiceImpl`.
-- [ ] Naming: `XError` for error types, lowercase error strings, one
+- [x] Naming: `XError` for error types, lowercase error strings, one
       error-prefix style. Add `staticcheck` to `make check`.
 - [ ] Generalize `isBodyValidAndDecoded` into `decodeJSONBody(w, r, dst, limit)`.
 - [ ] Version the proto package (`product.v1`); add `buf lint`/`buf breaking`.

@@ -89,8 +89,8 @@ func TestGetOrderByID_WhenOrderNotExists_ReturnsNotFound(t *testing.T) {
 	o, err := svc.GetOrderByID(context.Background(), id)
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "get order by id: Order with id ["+id.String()+"] was not found")
-	var notFoundErr *ErrOrderNotFound
+	assert.EqualError(t, err, "get order by id: order with id ["+id.String()+"] was not found")
+	var notFoundErr *OrderNotFoundError
 	require.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.OrderID)
 	assert.Empty(t, o)
@@ -259,10 +259,10 @@ func TestUpdateOrder_WhenOrderNotExists_CreatesOrder(t *testing.T) {
 	updated, err := svc.UpdateOrder(context.Background(), id, "1", 10, order.CANCELED, 1)
 
 	assert.Error(t, err)
-	err1 := &ErrOrderNotFound{}
+	err1 := &OrderNotFoundError{}
 	require.ErrorAs(t, err, &err1)
 	assert.Equal(t, id, err1.OrderID)
-	assert.EqualError(t, err, "updating order: get order by id: Order with id ["+id.String()+"] was not found")
+	assert.EqualError(t, err, "updating order: get order by id: order with id ["+id.String()+"] was not found")
 	assert.Empty(t, updated)
 	assert.Equal(t, id, mock.searchedIDs[0])
 	assert.Empty(t, mock.updated)

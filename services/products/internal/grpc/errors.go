@@ -12,7 +12,7 @@ import (
 
 func HandleError(ctx context.Context, err error) error {
 	logger := log(ctx)
-	var notFoundErr *service.ErrProductNotFound
+	var notFoundErr *service.ProductNotFoundError
 
 	switch {
 

@@ -9,11 +9,11 @@ import (
 	"net/http"
 )
 
-type TooLongBodyErr struct {
+type TooLongBodyError struct {
 	limit int64
 }
 
-func (err TooLongBodyErr) Error() string {
+func (err TooLongBodyError) Error() string {
 	return fmt.Sprintf("Request body exceeds %d bytes", err.limit)
 }
 
@@ -21,8 +21,8 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 	logger := log(ctx)
 
 	var validationErr ValidationError
-	var notFoundErr *service.ErrProductNotFound
-	var tooLongBodyErr TooLongBodyErr
+	var notFoundErr *service.ProductNotFoundError
+	var tooLongBodyError TooLongBodyError
 
 	switch {
 
@@ -46,9 +46,9 @@ func HandleError(ctx context.Context, w http.ResponseWriter, err error) {
 		logger.Warn().Err(err).Msg("invalid UUID")
 		writeError(ctx, w, http.StatusBadRequest, "INVALID_UUID", validation.ErrInvalidUUID.Error())
 
-	case errors.As(err, &tooLongBodyErr):
+	case errors.As(err, &tooLongBodyError):
 		logger.Warn().Err(err).Msg("Request body too long")
-		writeError(ctx, w, http.StatusRequestEntityTooLarge, "REQUEST_BODY_TOO_LONG", tooLongBodyErr.Error())
+		writeError(ctx, w, http.StatusRequestEntityTooLarge, "REQUEST_BODY_TOO_LONG", tooLongBodyError.Error())
 
 	case errors.Is(err, service.ErrProductUpdateConflict):
 		logger.Warn().Err(err).Msg("product update conflict")

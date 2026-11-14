@@ -171,7 +171,7 @@ func TestGetProductComposition_WhenProductNotExists_Returns404(t *testing.T) {
 		t,
 		`{
 			"code": "PRODUCT_NOT_FOUND",
-			"message": "Product with id [`+id.String()+`] was not found"
+			"message": "product with id [`+id.String()+`] was not found"
 		}`,
 		string(body),
 	)

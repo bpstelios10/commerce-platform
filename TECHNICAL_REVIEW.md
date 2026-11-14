@@ -115,14 +115,14 @@ recovery interceptor.
   `service.OrderService` and keep the consumer's interface in the handler
   package, unexported. Constructors are inconsistent too: `NewOrderService`
   versus `NewProductServiceImpl`.~
-- **Depend on behavior, not concrete services.** `AdminServiceImpl` holds
+- ~**Depend on behavior, not concrete services.** `AdminServiceImpl` holds
   `*ProductServiceImpl` only to call `GetProductByID`. Depend on a one-method
-  interface or on the repository.
-- **Error naming.** Sentinels are `ErrX`; error types are `XError`
+  interface or on the repository.~
+- ~**Error naming.** Sentinels are `ErrX`; error types are `XError`
   (`OrderNotFoundError`, `BodyTooLargeError`, not `ErrOrderNotFound` or
   `TooLongBodyErr`). Error strings are lowercase without punctuation
   (`ApplyDiscount`, `TooLongBodyErr`). Add `staticcheck` to `make check`; it
-  flags these.
+  flags these.~
 - **Body decoding helper.** `isBodyValidAndDecoded` hardcodes `ErrInvalidOrder`
   and `1<<10`, and decodes into `&req` where `req` is already `*T`. Pass `req`,
   take the limit and error as parameters, and name it `decodeJSONBody`.

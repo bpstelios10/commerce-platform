@@ -146,7 +146,7 @@ func isBodyValidAndDecoded[T any](ctx context.Context, body io.ReadCloser, w htt
 		if errors.As(err, &e) {
 			err = errors.Join(
 				fmt.Errorf("decode %s request: %w", action, err),
-				TooLongBodyErr{limit: 1 << 10},
+				TooLongBodyError{limit: 1 << 10},
 			)
 		} else {
 			err = errors.Join(

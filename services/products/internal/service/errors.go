@@ -13,10 +13,10 @@ var (
 	ErrProductUpdateConflict = errors.New("product was updated by another process")
 )
 
-type ErrProductNotFound struct {
+type ProductNotFoundError struct {
 	ProductID uuid.UUID
 }
 
-func (err *ErrProductNotFound) Error() string {
-	return fmt.Sprintf("Product with id [%s] was not found", err.ProductID.String())
+func (err *ProductNotFoundError) Error() string {
+	return fmt.Sprintf("product with id [%s] was not found", err.ProductID.String())
 }

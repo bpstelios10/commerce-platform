@@ -13,10 +13,10 @@ var (
 	ErrOrderUpdateConflict = errors.New("order was updated by another process")
 )
 
-type ErrOrderNotFound struct {
+type OrderNotFoundError struct {
 	OrderID uuid.UUID
 }
 
-func (err *ErrOrderNotFound) Error() string {
-	return fmt.Sprintf("Order with id [%s] was not found", err.OrderID.String())
+func (err *OrderNotFoundError) Error() string {
+	return fmt.Sprintf("order with id [%s] was not found", err.OrderID.String())
 }

@@ -127,7 +127,7 @@ func TestGetOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
 		t,
 		`{
 			"code": "ORDER_NOT_FOUND",
-			"message": "Order with id [`+id.String()+`] was not found"
+			"message": "order with id [`+id.String()+`] was not found"
 		}`,
 		string(body),
 	)
@@ -379,7 +379,7 @@ func TestUpdateOrderComposition_WhenOrderNotExists_Returns404(t *testing.T) {
 		t,
 		`{
 			"code": "ORDER_NOT_FOUND",
-			"message": "Order with id [`+id.String()+`] was not found"
+			"message": "order with id [`+id.String()+`] was not found"
 		}`,
 		string(body),
 	)

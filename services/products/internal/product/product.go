@@ -19,7 +19,7 @@ type Product struct {
 
 func (p *Product) ApplyDiscount(percentage int16) error {
 	if percentage < 1 || percentage > 99 {
-		return errors.New("Discount amount should be between 1 and 99")
+		return errors.New("discount amount should be between 1 and 99")
 	}
 
 	p.Price = p.Price * (1 - float64(percentage)/100)

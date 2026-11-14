@@ -88,10 +88,10 @@ func TestGetProductByID_WhenProductDoesNotExist_ReturnsError(t *testing.T) {
 
 	p, err := svc.GetProductByID(context.Background(), id)
 
-	var notFoundErr *ErrProductNotFound
+	var notFoundErr *ProductNotFoundError
 	require.ErrorAs(t, err, &notFoundErr)
 	assert.Equal(t, id, notFoundErr.ProductID)
-	assert.EqualError(t, err, fmt.Sprintf("get product by id: Product with id [%s] was not found", id))
+	assert.EqualError(t, err, fmt.Sprintf("get product by id: product with id [%s] was not found", id))
 	assert.Empty(t, p)
 	assert.Equal(t, mock.searchedIDs[0], id)
 }

@@ -174,7 +174,7 @@ func TestGetProduct_WhenProductNotExists_Returns404(t *testing.T) {
 	id, _ := uuid.NewV7()
 	mock.expectGetProductByID(
 		func(ctx context.Context, u uuid.UUID) (product.Product, error) {
-			return product.Product{}, fmt.Errorf("blah: %w", &service.ErrProductNotFound{ProductID: id})
+			return product.Product{}, fmt.Errorf("blah: %w", &service.ProductNotFoundError{ProductID: id})
 		})
 
 	res, err := http.Get(srv.URL + "/products/" + id.String())
@@ -189,7 +189,7 @@ func TestGetProduct_WhenProductNotExists_Returns404(t *testing.T) {
 		t,
 		`{
 			"code": "PRODUCT_NOT_FOUND",
-			"message": "Product with id [`+id.String()+`] was not found"
+			"message": "product with id [`+id.String()+`] was not found"
 		}`,
 		string(body),
 	)

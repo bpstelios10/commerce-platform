@@ -145,7 +145,7 @@ func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 	id, _ := uuid.NewV7()
 	mock.expectGetOrderByID(
 		func(_ context.Context, id uuid.UUID) (order.Order, error) {
-			return order.Order{}, fmt.Errorf("blah: %w", &service.ErrOrderNotFound{OrderID: id})
+			return order.Order{}, fmt.Errorf("blah: %w", &service.OrderNotFoundError{OrderID: id})
 		})
 
 	res, err := http.Get(srv.URL + "/orders/" + id.String())
@@ -160,7 +160,7 @@ func TestGetOrder_WhenOrderNotExists_Returns404(t *testing.T) {
 		t,
 		`{
 			"code": "ORDER_NOT_FOUND",
-			"message": "Order with id [`+id.String()+`] was not found"
+			"message": "order with id [`+id.String()+`] was not found"
 		}`,
 		string(body),
 	)
