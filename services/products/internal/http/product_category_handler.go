@@ -8,16 +8,16 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type ProductCategoryService interface {
+type productCategoryService interface {
 	Validate(ctx context.Context, category string) (string, error)
 	GetProductCategories(ctx context.Context) ([]string, error)
 }
 
 type ProductCategoryHandler struct {
-	productCategoryService ProductCategoryService
+	productCategoryService productCategoryService
 }
 
-func NewProductCategoryHandler(productCategoryService ProductCategoryService) *ProductCategoryHandler {
+func NewProductCategoryHandler(productCategoryService productCategoryService) *ProductCategoryHandler {
 	return &ProductCategoryHandler{
 		productCategoryService: productCategoryService,
 	}

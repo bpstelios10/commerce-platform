@@ -23,17 +23,17 @@ type Timeouts struct {
 }
 
 type PostgreProductRepository struct {
-	db       ProductDB
+	db       productDB
 	timeouts Timeouts
 }
 
-type ProductDB interface {
+type productDB interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
-func NewPostgreProductRepository(db ProductDB, t Timeouts) *PostgreProductRepository {
+func NewPostgreProductRepository(db productDB, t Timeouts) *PostgreProductRepository {
 	return &PostgreProductRepository{db: db, timeouts: t}
 }
 

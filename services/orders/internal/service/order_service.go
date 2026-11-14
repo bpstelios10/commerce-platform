@@ -23,16 +23,16 @@ type orderRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
-type ProductsClient interface {
+type productsClient interface {
 	GetProductByID(ctx context.Context, id string) (*grpc.GetProductByIDResponse, error)
 }
 
 type OrderService struct {
 	orderRepository orderRepository
-	productsClient  ProductsClient
+	productsClient  productsClient
 }
 
-func NewOrderService(repository orderRepository, productsClient ProductsClient) *OrderService {
+func NewOrderService(repository orderRepository, productsClient productsClient) *OrderService {
 	return &OrderService{orderRepository: repository, productsClient: productsClient}
 }
 

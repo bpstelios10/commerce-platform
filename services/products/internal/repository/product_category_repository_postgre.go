@@ -9,16 +9,16 @@ import (
 )
 
 type PostgreProductCategoryRepository struct {
-	db       ProductCategoryDB
+	db       productCategoryDB
 	timeouts Timeouts
 }
 
-type ProductCategoryDB interface {
+type productCategoryDB interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func NewPostgreProductCategoryRepository(db ProductCategoryDB, t Timeouts) *PostgreProductCategoryRepository {
+func NewPostgreProductCategoryRepository(db productCategoryDB, t Timeouts) *PostgreProductCategoryRepository {
 	return &PostgreProductCategoryRepository{db: db, timeouts: t}
 }
 

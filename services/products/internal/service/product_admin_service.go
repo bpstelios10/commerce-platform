@@ -14,7 +14,7 @@ type categoryValidationService interface {
 	Validate(ctx context.Context, category string) (string, error)
 }
 
-type ProductWriter interface {
+type productWriter interface {
 	Create(ctx context.Context, p product.Product) (product.Product, error)
 	Update(ctx context.Context, p product.Product) (product.Product, error)
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -23,10 +23,10 @@ type ProductWriter interface {
 type AdminService struct {
 	productService  *ProductService
 	categoryService categoryValidationService
-	repo            ProductWriter
+	repo            productWriter
 }
 
-func NewAdminService(productService *ProductService, categoryService categoryValidationService, repo ProductWriter) *AdminService {
+func NewAdminService(productService *ProductService, categoryService categoryValidationService, repo productWriter) *AdminService {
 	return &AdminService{productService: productService, categoryService: categoryService, repo: repo}
 }
 

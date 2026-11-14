@@ -23,17 +23,17 @@ type Timeouts struct {
 }
 
 type PostgreOrderRepository struct {
-	db       DB
+	db       db
 	timeouts Timeouts
 }
 
-type DB interface {
+type db interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
-func NewPostgreOrderRepository(db DB, t Timeouts) *PostgreOrderRepository {
+func NewPostgreOrderRepository(db db, t Timeouts) *PostgreOrderRepository {
 	return &PostgreOrderRepository{db: db, timeouts: t}
 }
 
