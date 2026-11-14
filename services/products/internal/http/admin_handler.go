@@ -47,7 +47,7 @@ func (h *AdminHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	logger := log(ctx)
 
 	var req CreateProductRequest
-	if err := isBodyValidAndDecoded(w, r.Body, &req, 1<<10, service.ErrInvalidProduct, "create_product"); err != nil {
+	if err := decodeJSONBody(w, r.Body, &req, 1<<10, service.ErrInvalidProduct, "create_product"); err != nil {
 		HandleError(ctx, w, err)
 		return
 	}
@@ -89,7 +89,7 @@ func (h *AdminHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	logger.Info().Str("product_id", validUUID.String()).Msg("update product request received")
 
 	var req UpdateProductRequest
-	if err = isBodyValidAndDecoded(w, r.Body, &req, 1<<10, service.ErrInvalidProduct, "update_product"); err != nil {
+	if err = decodeJSONBody(w, r.Body, &req, 1<<10, service.ErrInvalidProduct, "update_product"); err != nil {
 		HandleError(ctx, w, err)
 		return
 	}
@@ -139,7 +139,7 @@ func (h *AdminHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	HandleResponse(ctx, w, http.StatusNoContent)
 }
 
-func isBodyValidAndDecoded[T any](
+func decodeJSONBody[T any](
 	w http.ResponseWriter,
 	body io.ReadCloser,
 	req *T,
