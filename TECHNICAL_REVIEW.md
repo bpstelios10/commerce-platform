@@ -122,7 +122,7 @@ recovery interceptor.
   (`OrderNotFoundError`, `BodyTooLargeError`, not `ErrOrderNotFound` or
   `TooLongBodyErr`). Error strings are lowercase without punctuation
   (`ApplyDiscount`, `TooLongBodyErr`). Add `staticcheck` to `make check`; it
-  flags these.~
+  flags these.~ Wont add staticheck. it needs to be installed. too much effort
 - **Body decoding helper.** `isBodyValidAndDecoded` hardcodes `ErrInvalidOrder`
   and `1<<10`, and decodes into `&req` where `req` is already `*T`. Pass `req`,
   take the limit and error as parameters, and name it `decodeJSONBody`.

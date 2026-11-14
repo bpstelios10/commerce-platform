@@ -82,7 +82,8 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	logger := log(ctx)
 
 	var req CreateOrderRequest
-	if !isBodyValidAndDecoded(ctx, r.Body, w, &req, "create_order") {
+	if err := decodeJSONBody(w, r.Body, &req, 1<<10, service.ErrInvalidOrder, "create_order"); err != nil {
+		HandleError(ctx, w, err)
 		return
 	}
 
@@ -119,7 +120,8 @@ func (h *OrderHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	logger.Info().Str("order_id", id.String()).Msg("update order request received")
 
 	var req UpdateOrderRequest
-	if !isBodyValidAndDecoded(ctx, r.Body, w, &req, "update_order") {
+	if err = decodeJSONBody(w, r.Body, &req, 1<<10, service.ErrInvalidOrder, "update_order"); err != nil {
+		HandleError(ctx, w, err)
 		return
 	}
 
@@ -166,8 +168,15 @@ func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	HandleResponse(ctx, w, http.StatusNoContent)
 }
 
-func isBodyValidAndDecoded[T any](ctx context.Context, body io.ReadCloser, w http.ResponseWriter, req *T, action string) bool {
-	body = http.MaxBytesReader(w, body, 1<<10)
+func decodeJSONBody[T any](
+	w http.ResponseWriter,
+	body io.ReadCloser,
+	req *T,
+	limit int64,
+	invalidErr error,
+	action string,
+) error {
+	body = http.MaxBytesReader(w, body, limit)
 	dec := json.NewDecoder(body)
 
 	if err := dec.Decode(&req); err != nil {
@@ -175,24 +184,22 @@ func isBodyValidAndDecoded[T any](ctx context.Context, body io.ReadCloser, w htt
 		if errors.As(err, &e) {
 			err = errors.Join(
 				fmt.Errorf("decode %s request: %w", action, err),
-				TooLongBodyError{limit: 1 << 10},
+				TooLongBodyError{limit: limit},
 			)
 		} else {
 			err = errors.Join(
 				fmt.Errorf("decode %s request: %w", action, err),
-				service.ErrInvalidOrder,
+				invalidErr,
 			)
 		}
-		HandleError(ctx, w, err)
-		return false
+		return err
 	}
 
 	// trailing JSON/content
 	if dec.Decode(&struct{}{}) != io.EOF {
-		err := fmt.Errorf("decode %s request: %w", action, service.ErrInvalidOrder)
-		HandleError(ctx, w, err)
-		return false
+		err := fmt.Errorf("decode %s request: %w", action, invalidErr)
+		return err
 	}
 
-	return true
+	return nil
 }
