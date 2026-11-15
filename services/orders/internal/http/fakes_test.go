@@ -4,12 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"commerce-platform/services/orders/internal/grpc"
 	"commerce-platform/services/orders/internal/order"
 
 	"github.com/google/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // ---- GRPC fakes ----
@@ -18,11 +15,11 @@ type mockProductsClient struct {
 	productIDs map[string]bool
 }
 
-func (m *mockProductsClient) GetProductByID(_ context.Context, id string) (*grpc.GetProductByIDResponse, error) {
+func (m *mockProductsClient) ProductExists(_ context.Context, id string) (bool, error) {
 	if m.productIDs[id] {
-		return &grpc.GetProductByIDResponse{Id: id}, nil
+		return true, nil
 	}
-	return nil, status.Error(codes.NotFound, "product not found")
+	return false, nil
 }
 
 // ---- REPO fakes ----

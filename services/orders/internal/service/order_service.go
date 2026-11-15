@@ -1,7 +1,6 @@
 package service
 
 import (
-	"commerce-platform/services/orders/internal/grpc"
 	"commerce-platform/services/orders/internal/order"
 	"commerce-platform/services/orders/internal/repository"
 	"commerce-platform/shared/logger"
@@ -11,8 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type orderRepository interface {
@@ -23,17 +20,17 @@ type orderRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
-type productsClient interface {
-	GetProductByID(ctx context.Context, id string) (*grpc.GetProductByIDResponse, error)
+type productChecker interface {
+	ProductExists(ctx context.Context, id string) (bool, error)
 }
 
 type OrderService struct {
 	orderRepository orderRepository
-	productsClient  productsClient
+	productChecker  productChecker
 }
 
-func NewOrderService(repository orderRepository, productsClient productsClient) *OrderService {
-	return &OrderService{orderRepository: repository, productsClient: productsClient}
+func NewOrderService(repository orderRepository, productChecker productChecker) *OrderService {
+	return &OrderService{orderRepository: repository, productChecker: productChecker}
 }
 
 func (s *OrderService) GetOrders(ctx context.Context) ([]order.Order, error) {
@@ -59,8 +56,12 @@ func (s *OrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (order.Or
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, productID string, quantity int32) (order.Order, error) {
-	if err := s.validateProductExists(ctx, productID); err != nil {
+	exists, err := s.productChecker.ProductExists(ctx, productID)
+	if err != nil {
 		return order.Order{}, fmt.Errorf("create order: %w", err)
+	}
+	if !exists {
+		return order.Order{}, fmt.Errorf("create order: %w", ErrProductNotFound)
 	}
 	// TODO check quantity is enough, when inventory is added
 
@@ -100,8 +101,12 @@ func (s *OrderService) UpdateOrder(
 		return order.Order{}, fmt.Errorf("updating order: %w", err)
 	}
 
-	if err := s.validateProductExists(ctx, productID); err != nil {
+	exists, err := s.productChecker.ProductExists(ctx, productID)
+	if err != nil {
 		return order.Order{}, fmt.Errorf("updating order: %w", err)
+	}
+	if !exists {
+		return order.Order{}, fmt.Errorf("updating order: %w", ErrProductNotFound)
 	}
 
 	existing.ProductID = productID
@@ -133,23 +138,6 @@ func (s *OrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("deleting order: %w", err)
 	}
 
-	return nil
-}
-
-func (s *OrderService) validateProductExists(ctx context.Context, productID string) error {
-	_, err := s.productsClient.GetProductByID(ctx, productID)
-	if err != nil {
-		wrapped := fmt.Errorf("get product %s from products service: %w", productID, err)
-		switch status.Code(err) {
-		case codes.NotFound:
-			return errors.Join(wrapped, ErrProductNotFound)
-		case codes.DeadlineExceeded:
-			return errors.Join(wrapped, context.DeadlineExceeded)
-		case codes.Canceled:
-			return errors.Join(wrapped, context.Canceled)
-		}
-		return wrapped
-	}
 	return nil
 }
 

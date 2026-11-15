@@ -58,9 +58,9 @@ Acceptance checks are proposed, not executed.
 - [ ] Version the proto package (`product.v1`); add `buf lint`/`buf breaking`.
 - [ ] Move product search filtering into SQL; add bounded pagination and stable
       ordering to orders/products lists. Test filters, limits, and page continuity.
-- [ ] Define an application-owned product lookup contract; keep generated types
-      and gRPC status translation in the adapter. Clarify repository error
-      ownership without introducing a generic framework.
+- [x] Define an application-owned product lookup contract; keep generated types
+      and gRPC status translation in the adapter. 
+- [ ] Clarify repository error ownership without introducing a generic framework.
 - [ ] Make logger levels instance-local and global formatting setup explicit.
       Test that creating one logger does not change another's level.
 <!-- i ll leave this one for later, if ever needed -->

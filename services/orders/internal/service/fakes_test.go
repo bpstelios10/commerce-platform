@@ -1,7 +1,6 @@
 package service
 
 import (
-	"commerce-platform/services/orders/internal/grpc"
 	"commerce-platform/services/orders/internal/order"
 	"context"
 	"testing"
@@ -18,18 +17,18 @@ type fakeProductsClient struct {
 	productIDs map[string]bool // product IDs that "exist"
 }
 
-func (f *fakeProductsClient) GetProductByID(ctx context.Context, id string) (*grpc.GetProductByIDResponse, error) {
+func (f *fakeProductsClient) ProductExists(ctx context.Context, id string) (bool, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, status.FromContextError(err).Err()
+		return false, status.FromContextError(err).Err()
 	}
 
 	if f.productIDs[id] {
-		return &grpc.GetProductByIDResponse{Id: id}, nil
+		return true, nil
 	} else if id == ErrornousProductID.String() {
-		return nil, status.Error(codes.Internal, "unexpected error")
+		return false, status.Error(codes.Internal, "unexpected error")
 	}
 
-	return nil, status.Error(codes.NotFound, "product not found")
+	return false, nil
 }
 
 // ---- REPO fakes ----

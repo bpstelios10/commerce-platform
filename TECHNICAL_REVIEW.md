@@ -131,8 +131,8 @@ recovery interceptor.
   style and match the function name.
 - **Proto.** Package `product` is unversioned; use `product.v1` and run
   `buf lint`/`buf breaking` in CI.
-- **Transport boundary.** Unchanged: `OrderService` still imports generated
-  protobuf types and gRPC status codes. Translate both in the gRPC adapter.
+- ~**Transport boundary.** Unchanged: `OrderService` still imports generated
+  protobuf types and gRPC status codes. Translate both in the gRPC adapter.~
 
 ## Tests
 

@@ -2,14 +2,17 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"commerce-platform/shared/logger"
 
 	googlegrpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	status "google.golang.org/grpc/status"
 )
 
 // ProductsGrpcClient adapts the generated ProductServiceClient to the
@@ -31,7 +34,7 @@ func newProductsGrpcClient(addr string, timeout time.Duration) (*ProductsGrpcCli
 	return &ProductsGrpcClient{client: NewProductServiceClient(conn), timeout: timeout}, nil
 }
 
-func (c *ProductsGrpcClient) GetProductByID(ctx context.Context, id string) (*GetProductByIDResponse, error) {
+func (c *ProductsGrpcClient) getProductByID(ctx context.Context, id string) (*GetProductByIDResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
@@ -49,4 +52,21 @@ func MustNewProductsGrpcClient(addr string, timeout time.Duration) *ProductsGrpc
 		panic(fmt.Sprintf("create products grpc client for %s: %v", addr, err))
 	}
 	return client
+}
+
+func (c *ProductsGrpcClient) ProductExists(ctx context.Context, productID string) (bool, error) {
+	_, err := c.getProductByID(ctx, productID)
+	if err != nil {
+		wrapped := fmt.Errorf("get product %s from products service: %w", productID, err)
+		switch status.Code(err) {
+		case codes.NotFound:
+			return false, nil
+		case codes.DeadlineExceeded:
+			return false, errors.Join(wrapped, context.DeadlineExceeded)
+		case codes.Canceled:
+			return false, errors.Join(wrapped, context.Canceled)
+		}
+		return false, wrapped
+	}
+	return true, nil
 }
