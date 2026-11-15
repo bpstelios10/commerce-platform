@@ -168,10 +168,10 @@ func (h *OrderHandler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	HandleResponse(ctx, w, http.StatusNoContent)
 }
 
-func decodeJSONBody[T any](
+func decodeJSONBody(
 	w http.ResponseWriter,
 	body io.ReadCloser,
-	req *T,
+	req any,
 	limit int64,
 	invalidErr error,
 	action string,

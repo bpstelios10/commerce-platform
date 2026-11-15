@@ -54,7 +54,7 @@ Acceptance checks are proposed, not executed.
       `*ProductServiceImpl`.
 - [x] Naming: `XError` for error types, lowercase error strings, one
       error-prefix style. Add `staticcheck` to `make check`.
-- [ ] Generalize `isBodyValidAndDecoded` into `decodeJSONBody(w, r, dst, limit)`.
+- [x] Generalize `isBodyValidAndDecoded` into `decodeJSONBody(w, r, dst, limit)`.
 - [ ] Version the proto package (`product.v1`); add `buf lint`/`buf breaking`.
 - [ ] Move product search filtering into SQL; add bounded pagination and stable
       ordering to orders/products lists. Test filters, limits, and page continuity.

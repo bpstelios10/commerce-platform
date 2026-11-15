@@ -123,9 +123,9 @@ recovery interceptor.
   `TooLongBodyErr`). Error strings are lowercase without punctuation
   (`ApplyDiscount`, `TooLongBodyErr`). Add `staticcheck` to `make check`; it
   flags these.~ Wont add staticheck. it needs to be installed. too much effort
-- **Body decoding helper.** `isBodyValidAndDecoded` hardcodes `ErrInvalidOrder`
+- ~**Body decoding helper.** `isBodyValidAndDecoded` hardcodes `ErrInvalidOrder`
   and `1<<10`, and decodes into `&req` where `req` is already `*T`. Pass `req`,
-  take the limit and error as parameters, and name it `decodeJSONBody`.
+  take the limit and error as parameters, and name it `decodeJSONBody`.~
 - **Error context.** Prefixes mix styles: `get_order:` (handler),
   `get order by id:` (service), `find order by id:` (repo `GetByID`). Use one
   style and match the function name.
